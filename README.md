@@ -7,3 +7,6 @@
 
 # RUN
 1. python trains.py
+
+# INTRODUCTION
+https://www.jianshu.com/p/b1a5427db6e2
