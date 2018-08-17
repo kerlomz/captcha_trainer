@@ -1,0 +1,24 @@
+# Device: The default device is CPU.
+# - If you use the GPU version, you need to install some additional applications.
+# TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
+# TrainsPath and TestPath: The local path of your training and testing set.
+System:
+  Language: 'en-US'
+  NeuralNet: 'CNNNet'
+  Device: 'gpu:0'
+  TrainsPath: 'E:\Task\Trains\CY'
+  TrainRegex: '.*?(?=_.*\.)'
+  TestPath: 'E:\Task\TestGroup\CY'
+  TestRegex: '.*?(?=_.*\.)'
+
+# TestNum: The number of samples for each test batch.
+# - A test for every saved steps, Default value is 100.
+# EndAcc: Finish the training when the accuracy reaches [EndAcc*100]%.
+# EndStep: Finish the training when the step is greater than the [-1: Off, EndStep >0: On] step.
+# LearningRate: Find the fastest relationship between the loss decline and the learning rate.
+Trains:
+  TestNum: 512
+  SavedStep: 100
+  EndAcc: 0.95
+  EndStep: -1
+  LearningRate: 0.001

@@ -1,0 +1,34 @@
+# Convolution: The number of layers is at least 3.
+# - The number below corresponds to the size of each layer of convolution.
+DenseNet:
+  Filters: 24
+
+CNNNet:
+  Convolution:
+    - 32
+    - 64
+    - 64
+  ConvCoreSize: 3
+  FullConnect: 1024
+
+# CharSet: [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER, NUMERIC].
+# ImageChannel: [1 - Gray Scale, 3 - RGB].
+Model:
+  ModelName: 'CaptchaName'
+  ImageChannel: 1
+  CharLength: 4
+  CharSet: 'ALPHANUMERIC_LOWER'
+
+# OriginalColor: [false - Gray Scale, true - RGB].
+# Binaryzation: [-1: Off, >0 and < 255: On].
+# Smoothing: [-1: Off, >0: On].
+# Blur: [-1: Off, >0: On].
+# Resize: [WIDTH, HEIGHT].
+Pretreatment:
+  Magnification: 2
+  OriginalColor: false
+  Binaryzation: -1
+  Invert: false
+  Smoothing: -1
+  Blur: -1
+#  Resize: [160, 60]
