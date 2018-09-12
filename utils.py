@@ -45,7 +45,7 @@ def text2vec(text):
 def path2list(path, shuffle=False):
 
     file_list = os.listdir(path)
-    group = [os.path.join(path, image_file) for image_file in file_list]
+    group = [os.path.join(path, image_file) for image_file in file_list if not image_file.startswith(".")]
     if shuffle:
         random.shuffle(group)
     return group
