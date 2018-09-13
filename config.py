@@ -6,22 +6,25 @@ import os
 import re
 import sys
 import yaml
+import shutil
 import random
 import platform
 import PIL.Image as pilImage
 from os.path import join
 from character import *
-from exception import *
+from exception import exception, ConfigException
 
 PROJECT_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 # PROJECT_PARENT_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.path.pardir))
 
+SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
+MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
 SYS_CONFIG_NAME = 'config.yaml'
 MODEL_CONFIG_NAME = 'model.yaml'
 PLATFORM = platform.system()
 
 PATH_SPLIT = "\\" if PLATFORM == "Windows" else "/"
-# For Service
+
 SYS_CONFIG_PATH = os.path.join(PROJECT_PATH, SYS_CONFIG_NAME)
 MODEL_PATH = os.path.join(PROJECT_PATH, 'model')
 
@@ -30,12 +33,25 @@ if not os.path.exists(MODEL_PATH):
 
 MODEL_CONFIG_PATH = os.path.join(PROJECT_PATH, MODEL_CONFIG_NAME)
 
-
 if not os.path.exists(SYS_CONFIG_PATH):
-    exception('Configuration File "{}" No Found.'.format(SYS_CONFIG_NAME))
+    exception(
+        'Configuration File "{}" No Found. '
+        'If it is used for the first time, please copy one from {} as {}'.format(
+            SYS_CONFIG_NAME,
+            SYS_CONFIG_DEMO_NAME,
+            SYS_CONFIG_NAME
+        ), ConfigException.SYS_CONFIG_PATH_NOT_EXIST
+    )
 
 if not os.path.exists(MODEL_CONFIG_PATH):
-    exception('Configuration File "{}" No Found.'.format(MODEL_CONFIG_NAME))
+    exception(
+        'Configuration File "{}" No Found. '
+        'If it is used for the first time, please copy one from {} as {}'.format(
+            MODEL_CONFIG_NAME,
+            MODEL_CONFIG_DEMO_NAME,
+            MODEL_CONFIG_NAME
+        ), ConfigException.MODEL_CONFIG_PATH_NOT_EXIST
+    )
 
 with open(SYS_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
     sys_stream = sys_fp.read()
@@ -45,29 +61,45 @@ with open(MODEL_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
     sys_stream = sys_fp.read()
     cf_model = yaml.load(sys_stream)
 
-LANGUAGE = cf_system['System'].get('Language')
-LANGUAGE = LANGUAGE if LANGUAGE else 'en-US'
+
+def char_set(_type):
+    if isinstance(_type, list):
+        return _type
+    if isinstance(_type, str):
+        return SIMPLE_CHAR_SET.get(_type) if _type in SIMPLE_CHAR_SET.keys() else ConfigException.CHAR_SET_NOT_EXIST
+    exception(
+        "Character set configuration error, customized character set should be list type",
+        ConfigException.CHAR_SET_INCORRECT
+    )
 
 
-def char_set(_name):
-    if isinstance(_name, list):
-        return _name
-    if _name == 'NUMERIC':
-        return NUMBER
-    elif _name == 'ALPHANUMERIC':
-        return NUMBER + ALPHA_LOWER + ALPHA_UPPER
-    elif _name == 'ALPHANUMERIC_LOWER':
-        return NUMBER + ALPHA_LOWER
-    elif _name == 'ALPHANUMERIC_UPPER':
-        return NUMBER + ALPHA_UPPER
-    else:
-        return NUMBER + ALPHA_LOWER + ALPHA_UPPER
+def parse_neural_structure(_net):
+    layer = ""
+    layer_structure = []
+    layer_num = 1
+    pre_input = 1
+    for i in _net:
+        key = list(i.keys())[0]
+        val = list(i.values())[0]
+        conv = {"index": layer_num, "input": pre_input, "output": val, "extra": []}
+        if key == 'Convolution':
+            layer += "\n - {} Layer: {} Layer-[{} * {}]".format(layer_num, key, val, val)
+            layer_structure.append(conv)
+            pre_input = val
+            layer_num += 1
+        if key == 'Pool':
+            layer += ", {} Layer-{}".format(key, val)
+            layer_structure[layer_num - 2]['extra'].append({"name": "pool", "window": val})
+        if key == 'Optimization':
+            layer += ", {} Layer".format(val)
+            layer_structure[layer_num - 2]['extra'].append({"name": "dropout"})
+    return layer[1:], layer_structure
 
 
 def fetch_file_list(path):
     file_list = os.listdir(path)
-    if len(file_list) < 50:
-        exception("Insufficient Sample!")
+    if len(file_list) < 200:
+        exception("Insufficient Sample!", ConfigException.INSUFFICIENT_SAMPLE)
     group = [os.path.join(path, image_file) for image_file in file_list]
     random.shuffle(group)
     return group
@@ -77,24 +109,31 @@ TARGET_MODEL = cf_model['Model'].get('ModelName')
 
 CHAR_SET = cf_model['Model'].get('CharSet')
 GEN_CHAR_SET = char_set(CHAR_SET)
+
+if GEN_CHAR_SET == ConfigException.CHAR_SET_NOT_EXIST:
+    exception(
+        "The character set type does not exist, there is no character set named {}".format(CHAR_SET),
+        ConfigException.CHAR_SET_NOT_EXIST
+    )
+
 CHAR_SET_LEN = len(GEN_CHAR_SET)
 
 NEU_NAME = cf_system['System'].get('NeuralNet')
 
 FILTERS = cf_model.get('DenseNet').get('Filters')
 
-CONV_NEU_NUMS = cf_model.get('CNNNet').get('Convolution')
+CONV_NEU_LAYER = cf_model.get('CNNNet').get('Layer')
+CONV_NEU_LAYER_DESC, CONV_NEU_STRUCTURE = parse_neural_structure(CONV_NEU_LAYER)
+
 FULL_LAYER_FEATURE_NUM = cf_model['CNNNet'].get('FullConnect')
 CONV_CORE_SIZE = cf_model.get('CNNNet').get('ConvCoreSize')
 
-NEU_LAYER_NUM = len(CONV_NEU_NUMS)
-MAX_POOL_NUM = NEU_LAYER_NUM
+NEU_LAYER_NUM = len(CONV_NEU_STRUCTURE)
+MAX_POOL_NUM = len([i for i in CONV_NEU_LAYER if list(i.keys())[0] == 'Pool'])
 
-POOL_SIZE = [2, 2]
 CONV_STRIDES = [1, 1, 1, 1]
 POOL_STRIDES = [1, 2, 2, 1]
 PADDING = 'SAME'
-
 
 MODEL_TAG = '{}.model'.format(TARGET_MODEL)
 CHECKPOINT_TAG = 'checkpoint'
@@ -108,18 +147,16 @@ TEST_PATH = cf_system['System'].get('TestPath')
 TEST_REGEX = cf_system['System'].get('TestRegex')
 TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
 
-
 TRAINS_PATH = cf_system['System'].get('TrainsPath')
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
 
 TRAINS_SAVE_STEP = cf_system['Trains'].get('SavedStep')
-
+COMPILE_ACC = cf_system['Trains'].get('CompileAcc')
 TRAINS_END_ACC = cf_system['Trains'].get('EndAcc')
 TRAINS_END_STEP = cf_system['Trains'].get('EndStep')
 TRAINS_LEARNING_RATE = cf_system['Trains'].get('LearningRate')
 TRAINS_TEST_NUM = cf_system['Trains'].get('TestNum')
-
 
 _TEST_GROUP = fetch_file_list(TEST_PATH)
 _TRAIN_GROUP = fetch_file_list(TRAINS_PATH)
@@ -174,12 +211,16 @@ print("PROJECT_PATH", PROJECT_PATH)
 print('MODEL_PATH:', SAVE_MODEL)
 print('COMPILE_MODEL_PATH:', COMPILE_MODEL_PATH)
 print('CHAR_SET_LEN:', CHAR_SET_LEN)
-print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}{}'.format(IMAGE_WIDTH, IMAGE_HEIGHT, ", MAGNIFICATION: {}".format(MAGNIFICATION) if MAGNIFICATION and not RESIZE else ""))
+print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}{}'.format(
+    IMAGE_WIDTH, IMAGE_HEIGHT, ", MAGNIFICATION: {}".format(
+        MAGNIFICATION) if MAGNIFICATION and not RESIZE else "")
+)
 print('IMAGE_ORIGINAL_COLOR: {}'.format(IMAGE_ORIGINAL_COLOR))
 print("MAX_CAPTCHA_LEN", MAX_CAPTCHA_LEN)
 print('NEURAL NETWORK: {}'.format(NEU_NAME))
 if NEU_NAME == 'DenseNet':
     print('FILTERS: {}'.format(FILTERS))
 else:
-    print('{} LAYER CONV: {}, FULL_CONNECT: {}'.format(NEU_LAYER_NUM, CONV_NEU_NUMS, FULL_LAYER_FEATURE_NUM))
+    print('{} LAYER CONV: \n{}\n - Full Connect Layer: {}'.format(NEU_LAYER_NUM, CONV_NEU_LAYER_DESC,
+                                                                  FULL_LAYER_FEATURE_NUM))
 print('---------------------------------------------------------------------------------')

@@ -28,7 +28,7 @@ CNNNet:
 # ImageChannel: [1 - Gray Scale, 3 - RGB].
 # CharLength: Captcha Length.
 Model:
-  ModelName: patchca
+  ModelName: YourModelName
   ImageChannel: 1
   CharLength: 4
   CharSet: ALPHANUMERIC_LOWER

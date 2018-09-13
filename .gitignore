@@ -84,4 +84,6 @@ ENV/
 *.pid
 nohup.out
 
-.model/
+model/*
+config.yaml
+model.yaml

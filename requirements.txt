@@ -3,5 +3,4 @@ tensorflow-gpu==1.9.0
 pillow==4.3.0
 opencv-python==3.3.0.10
 numpy==1.14.1
-pyinstaller==3.3.1
 pyyaml==3.13

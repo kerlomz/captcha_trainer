@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-import PIL.Image as pilImage
 import os
 import numpy as np
 import cv2
@@ -30,8 +29,8 @@ def vec2text(vec):
 def text2vec(text):
     text_len = len(text)
     if text_len > MAX_CAPTCHA_LEN:
-        print(text)
-        raise ValueError('MAX_CAPTCHA_LEN')
+        raise ValueError('Sample label {} exceeds the maximum length of the defined captcha label. \n'
+                         'Please match the value corresponding to CharLength of model.yaml'.format(text))
     vector = np.zeros(MAX_CAPTCHA_LEN * CHAR_SET_LEN)
     try:
         for i, c in enumerate(text):

@@ -1,14 +1,13 @@
 # Device: [gpu:0, cpu:0] The default device is GPU.
 # - If you use the GPU version, you need to install some additional applications.
 # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
-# TrainsPath and TestPath: The local path of your training and testing set.
+# TrainsPath and TestPath: The local absolute path of your training and testing set.
 System:
-  Language: 'en-US'
   NeuralNet: 'CNNNet'
   Device: 'gpu:0'
-  TrainsPath: 'E:\Task\Trains\patchca'
+  TrainsPath: 'E:\Task\Trains\YourModelName\'
   TrainRegex: '.*?(?=_.*\.)'
-  TestPath: 'E:\Task\TestGroup\patchca'
+  TestPath: 'E:\Task\TestGroup\YourModelName\'
   TestRegex: '.*?(?=_.*\.)'
 
 # SavedStep: A Session.run() execution is called a Step,
@@ -24,7 +23,7 @@ System:
 Trains:
   SavedStep: 100
   TestNum: 500
-  CompileAcc: 0.8
+  CompileAcc: 0.9
   EndAcc: 0.95
   EndStep: -1
   LearningRate: 0.001

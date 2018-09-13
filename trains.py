@@ -17,19 +17,28 @@ else:
     from framework_cnn import *
 
 
+def compile_graph(sess, input_graph_def, acc):
+    output_graph_def = convert_variables_to_constants(
+        sess,
+        input_graph_def,
+        output_node_names=['output/predict']
+    )
+    with tf.gfile.FastGFile(COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000))), mode='wb') as gf:
+        gf.write(output_graph_def.SerializeToString())
+
+
 def train_process():
     _network = DenseNet().network() if NEU_NAME == 'DenseNet' else CNN().network()
     global_step = tf.Variable(0, trainable=False)
 
     _label = tf.reshape(label, [-1, MAX_CAPTCHA_LEN, CHAR_SET_LEN])
-    max_idx_p = _network['predict']  # shape:batch_size, 4, nb_cls
-    max_idx_l = tf.argmax(_label, 1 if NEU_NAME == 'DenseNet' else 2)
-    correct_predict = tf.equal(max_idx_p, max_idx_l)
+    max_idx_predict = _network['predict']
+    max_idx_label = tf.argmax(_label, 1 if NEU_NAME == 'DenseNet' else 2)
+    correct_predict = tf.equal(max_idx_predict, max_idx_label)
 
     with tf.name_scope('monitor'):
         loss = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(logits=_network['final_output'], labels=_label)
-            if NEU_NAME == 'DenseNet' else
+            # Loss Function
             tf.nn.sigmoid_cross_entropy_with_logits(logits=_network['final_output'], labels=_label)
         )
     tf.summary.scalar('loss', loss)
@@ -45,11 +54,12 @@ def train_process():
 
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter('logs', sess.graph)
-    saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)  # 将训练过程进行保存
+    # Save the training process
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
     try:
         saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
-    except Exception as e:
-        print(e)
+    except ValueError:
+        pass
     time_epoch_start = time.time()
     index = 0
 
@@ -76,41 +86,29 @@ def train_process():
         index += 1
 
         if step % 10 == 0:
-            print(step, '损失: ' if LANGUAGE == 'zh-CN' else 'Loss: ', _loss)
+            print('Loss: ', _loss)
 
         if step % TRAINS_SAVE_STEP == 0:
             saver.save(sess, SAVE_MODEL, global_step=step)
         else:
             continue
 
+        # Another way to calculate accuracy
         # batch_x_test, batch_y_test = get_next_batch(TRAINS_TEST_NUM, True)
         # acc = sess.run(accuracy, feed_dict={x: batch_x_test, label: batch_y_test, keep_prob: 1.})
-        # print(step, '精度评估:\t' if LANGUAGE == 'zh-CN' else 'Train-Acc:\t', acc)
+        # print(step, 'Test Predict Accuracy Rate: \t', acc)
         epoch_time = time.time() - time_epoch_start
         time_epoch_start = time.time()
-        acc = test_training(sess, max_idx_p)
+        acc = test_training(sess, max_idx_predict)
         print(
-            '迭代时间: %0.2fs' % epoch_time if LANGUAGE == 'zh-CN' else 'EP Spend: %0.2fs' % epoch_time,
-            '精度评估: %0.2f%%' % (acc * 100) if LANGUAGE == 'zh-CN' else 'Train-Acc: %0.2f%%' % (
-                    acc * 100)
+            'Epoch Spend: %0.2fs' % epoch_time,
+            'Test Predict Accuracy Rate: %0.2f%%' % (acc * 100)
         )
-        if acc > 0.9:
-            output_graph_def = convert_variables_to_constants(
-                sess,
-                input_graph_def,
-                output_node_names=['output/predict']
-            )
-            with tf.gfile.FastGFile(COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc*100))), mode='wb') as gf:
-                gf.write(output_graph_def.SerializeToString())
+        if acc > COMPILE_ACC:
+            compile_graph(sess, input_graph_def, acc)
 
         if acc > TRAINS_END_ACC and step > TRAINS_END_STEP:
-            output_graph_def = convert_variables_to_constants(
-                sess,
-                input_graph_def,
-                output_node_names=['output/predict']
-            )
-            with tf.gfile.FastGFile(COMPILE_MODEL_PATH, mode='wb') as gf:
-                gf.write(output_graph_def.SerializeToString())
+            compile_graph(sess, input_graph_def, acc)
             break
 
 
@@ -168,13 +166,13 @@ def test_training(sess, predict):
         image = image.flatten() / 255
         predict_text = predict_func(image, sess, predict, x, keep_prob)
         if text == predict_text:
+            # Output specific correct label
             # print("Flag: {}  Predict: {}".format(text, predict_text))
             right_cnt += 1
         else:
             pass
+            # Output specific error labels
             # print(
-            #     "预测错误, 标注: {}  预测: {}".format(text, predict_text)
-            #     if LANGUAGE == 'zh-CN' else
             #     "False, Label: {}  Predict: {}".format(text, predict_text)
             # )
     return right_cnt / task_cnt
@@ -182,5 +180,5 @@ def test_training(sess, predict):
 
 if __name__ == '__main__':
     train_process()
-    print('end')
+    print('Training completed.')
     pass
