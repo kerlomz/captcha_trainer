@@ -86,7 +86,7 @@ def train_process():
         index += 1
 
         if step % 10 == 0:
-            print('Loss: ', _loss)
+            print('Loss: {}'.format(step), _loss)
 
         if step % TRAINS_SAVE_STEP == 0:
             saver.save(sess, SAVE_MODEL, global_step=step)
