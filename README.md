@@ -25,12 +25,14 @@
 1. config.yaml - System Config
     ```yaml
     # Device: [gpu:0, cpu:0] The default device is GPU.
+    # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
     # - If you use the GPU version, you need to install some additional applications.
     # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
     # TrainsPath and TestPath: The local path of your training and testing set.
     System:
       NeuralNet: 'CNNNet'
       Device: 'gpu:0'
+      DeviceUsage: 0.7
       TrainsPath: 'E:\Task\Trains\YourModelName'
       TrainRegex: '.*?(?=_.*\.)'
       TestPath: 'E:\Task\TestGroup\YourModelName'
@@ -68,9 +70,6 @@
     ```yaml
     # Convolution: The number of layers is at least 3.
     # - The number below corresponds to the size of each layer of convolution.
-    DenseNet:
-      Filters: 24
-    
     # Provide flexible neural network construction,
     # Adjust the neural network structure that suits you best
     # [Convolution, Pool, Optimization: {Dropout}]
@@ -121,5 +120,8 @@
 # Run
 1. ```python trains.py```
 
-# INTRODUCTION
+# License
+This project use SATA License (Star And Thank Author License), so you have to star this project before using. Read the license carefully.
+
+# Introduction
 https://www.jianshu.com/p/b1a5427db6e2

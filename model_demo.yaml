@@ -1,8 +1,5 @@
 # Convolution: The number of layers is at least 3.
 # - The number below corresponds to the size of each layer of convolution.
-DenseNet:
-  Filters: 24
-
 # Provide flexible neural network construction,
 # Adjust the neural network structure that suits you best
 # [Convolution, Pool, Optimization: {Dropout}]

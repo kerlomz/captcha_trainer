@@ -6,7 +6,7 @@
 System:
   NeuralNet: 'CNNNet'
   Device: 'gpu:0'
-  DeviceUsage: 0.9
+  DeviceUsage: 0.7
   TrainsPath: 'E:\Task\Trains\YourModelName\'
   TrainRegex: '.*?(?=_.*\.)'
   TestPath: 'E:\Task\TestGroup\YourModelName\'
