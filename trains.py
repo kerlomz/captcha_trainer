@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+import os
 import time
-from config import *
 from utils import *
 from PIL import Image
 from predict import predict_func
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
+from framework_cnn import *
+from quantize import quantize
 
 TRAINS_GROUP = path2list(TRAINS_PATH, True)
 TEST_GROUP = path2list(TEST_PATH, True)
-
-if NEU_NAME == 'DenseNet':
-    from framework_densenet import *
-else:
-    from framework_cnn import *
 
 
 def compile_graph(sess, input_graph_def, acc):
@@ -28,7 +25,8 @@ def compile_graph(sess, input_graph_def, acc):
 
 
 def train_process():
-    _network = DenseNet().network() if NEU_NAME == 'DenseNet' else CNN().network()
+
+    _network = CNN().network()
     global_step = tf.Variable(0, trainable=False)
 
     _label = tf.reshape(label, [-1, MAX_CAPTCHA_LEN, CHAR_SET_LEN])
@@ -50,33 +48,35 @@ def train_process():
     tf.summary.scalar('accuracy', accuracy)
 
     with tf.device(DEVICE):
-        sess = tf.Session(config=tf.ConfigProto(log_device_placement=False))
-
+        sess = tf.Session(config=tf.ConfigProto(
+            allow_soft_placement=True,
+            log_device_placement=False,
+            gpu_options=tf.GPUOptions(allow_growth=True, per_process_gpu_memory_fraction=GPU_USAGE))
+        )
+    print('Session Initializing...')
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter('logs', sess.graph)
     # Save the training process
+    print('Loading history archive...')
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
     try:
         saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
     except ValueError:
         pass
+    print('Initialized.\n---------------------------------------------------------------------------------')
     time_epoch_start = time.time()
     index = 0
 
     graph = tf.get_default_graph()
     input_graph_def = graph.as_graph_def()
-
+    # input_graph_def = tf.contrib.quantize.create_training_graph(graph, quant_delay=100)
     merged = tf.summary.merge_all()
     while True:
 
-        batch_x, batch_y = get_next_batch(128, False)  # 64
+        batch_x, batch_y = get_next_batch(64, False)  # 64
         summary, _, _loss, step = sess.run(
             [merged, optimizer, loss, global_step],
             feed_dict={
-                x: batch_x,
-                label: batch_y,
-                training_flag: True
-            } if NEU_NAME == 'DenseNet' else {
                 x: batch_x,
                 label: batch_y,
                 keep_prob: 0.95
@@ -181,4 +181,5 @@ def test_training(sess, predict):
 if __name__ == '__main__':
     train_process()
     print('Training completed.')
+    quantize()
     pass

@@ -49,6 +49,7 @@ class CNN:
         return conv, CONV_NEU_STRUCTURE[-1]['output']
 
     def network(self):
+        print('Network structure loading...')
         _x = tf.reshape(x, shape=[-1, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNEL])
 
         conv, neu_num = self.conv_layer(_x)

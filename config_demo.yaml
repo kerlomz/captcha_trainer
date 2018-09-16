@@ -1,10 +1,12 @@
 # Device: [gpu:0, cpu:0] The default device is GPU.
+# - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
 # - If you use the GPU version, you need to install some additional applications.
 # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
 # TrainsPath and TestPath: The local absolute path of your training and testing set.
 System:
   NeuralNet: 'CNNNet'
   Device: 'gpu:0'
+  DeviceUsage: 0.9
   TrainsPath: 'E:\Task\Trains\YourModelName\'
   TrainRegex: '.*?(?=_.*\.)'
   TestPath: 'E:\Task\TestGroup\YourModelName\'

@@ -3,7 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import numpy as np
 from utils import vec2text
-from config import *
+from config import MAX_CAPTCHA_LEN, CHAR_SET_LEN
 
 
 def predict_func(captcha_image, _sess, _predict, _x, _keep_prob):

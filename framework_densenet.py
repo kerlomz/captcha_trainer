@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-
+# Not use
 import tensorflow as tf
 from tensorflow.contrib.framework import arg_scope
 from tensorflow.contrib.layers import batch_norm, flatten

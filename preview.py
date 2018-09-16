@@ -2,9 +2,11 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 from PIL import Image
+from PIL import ImageFile
 from config import *
-from utils import *
+from utils import preprocessing, path2list
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 TRAINS_GROUP = path2list(TRAINS_PATH, True)
 image_path = TRAINS_GROUP[random.randint(0, len(TRAINS_GROUP))]
 image = Image.open(image_path)

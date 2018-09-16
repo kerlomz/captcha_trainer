@@ -6,7 +6,6 @@ import os
 import re
 import sys
 import yaml
-import shutil
 import random
 import platform
 import PIL.Image as pilImage
@@ -14,8 +13,11 @@ from os.path import join
 from character import *
 from exception import exception, ConfigException
 
-PROJECT_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
-# PROJECT_PARENT_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.path.pardir))
+# Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2
+# If you have a GPU, you shouldn't care about AVX support.
+# Just disables the warning, doesn't enable AVX/FMA
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+PROJECT_PATH = "."
 
 SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
 MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
@@ -141,7 +143,7 @@ SAVE_MODEL = join(MODEL_PATH, MODEL_TAG)
 SAVE_CHECKPOINT = join(MODEL_PATH, CHECKPOINT_TAG)
 
 DEVICE = cf_system['System'].get('Device')
-DEVICE = DEVICE if DEVICE else "cpu:0"
+GPU_USAGE = cf_system['System'].get('DeviceUsage')
 
 TEST_PATH = cf_system['System'].get('TestPath')
 TEST_REGEX = cf_system['System'].get('TestRegex')
@@ -199,6 +201,7 @@ def checkpoint(_name, _path):
 MODEL_FILE = checkpoint(TARGET_MODEL, MODEL_PATH)
 # COMPILE_TRAINS_PATH = os.path.join(MODEL_PATH, '{}.tfrecords'.format(TARGET_MODEL))
 COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
+QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
 CHECKPOINT = 'model_checkpoint_path: {}\nall_model_checkpoint_paths: {}'.format(MODEL_FILE, MODEL_FILE)
 with open(SAVE_CHECKPOINT, 'w') as f:
     f.write(CHECKPOINT)

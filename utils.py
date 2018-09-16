@@ -5,7 +5,10 @@ import os
 import numpy as np
 import cv2
 import random
+from PIL import ImageFile
 from config import CHAR_SET_LEN, GEN_CHAR_SET, MAX_CAPTCHA_LEN
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def char2pos(c):
