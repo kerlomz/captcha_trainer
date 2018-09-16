@@ -1095,13 +1095,13 @@ class GraphReWriter(object):
         self.nodes_map = self.create_nodes_map(self.input_graph)
 
 
-def quantize():
-    if not gfile.Exists(COMPILE_MODEL_PATH):
-        print("Input graph file '" + COMPILE_MODEL_PATH + "' does not exist!")
+def quantize(input_path, output_path):
+    if not gfile.Exists(input_path):
+        print("Input graph file '" + input_path + "' does not exist!")
         return -1
 
     tf_graph = graph_pb2.GraphDef()
-    with gfile.Open(COMPILE_MODEL_PATH, "rb") as f:
+    with gfile.Open(input_path, "rb") as f:
         data = f.read()
         tf_graph.ParseFromString(data)
 
@@ -1111,7 +1111,7 @@ def quantize():
 
     output_graph = GraphReWriter(tf_graph).rewrite(["output/predict"])
 
-    f = gfile.FastGFile(QUANTIZED_MODEL_PATH, "wb")
+    f = gfile.FastGFile(output_path, "wb")
     f.write(output_graph.SerializeToString())
 
     return 0

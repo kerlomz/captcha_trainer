@@ -13,6 +13,8 @@ from quantize import quantize
 TRAINS_GROUP = path2list(TRAINS_PATH, True)
 TEST_GROUP = path2list(TEST_PATH, True)
 
+LAST_COMPILE_MODEL_PATH = ""
+
 
 def compile_graph(sess, input_graph_def, acc):
     output_graph_def = convert_variables_to_constants(
@@ -20,7 +22,9 @@ def compile_graph(sess, input_graph_def, acc):
         input_graph_def,
         output_node_names=['output/predict']
     )
-    with tf.gfile.FastGFile(COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000))), mode='wb') as gf:
+    global LAST_COMPILE_MODEL_PATH
+    LAST_COMPILE_MODEL_PATH = COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000)))
+    with tf.gfile.FastGFile(LAST_COMPILE_MODEL_PATH, mode='wb') as gf:
         gf.write(output_graph_def.SerializeToString())
 
 
@@ -181,5 +185,5 @@ def test_training(sess, predict):
 if __name__ == '__main__':
     train_process()
     print('Training completed.')
-    quantize()
+    quantize(LAST_COMPILE_MODEL_PATH, QUANTIZED_MODEL_PATH)
     pass
