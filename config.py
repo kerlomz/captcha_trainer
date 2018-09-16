@@ -122,8 +122,6 @@ CHAR_SET_LEN = len(GEN_CHAR_SET)
 
 NEU_NAME = cf_system['System'].get('NeuralNet')
 
-FILTERS = cf_model.get('DenseNet').get('Filters')
-
 CONV_NEU_LAYER = cf_model.get('CNNNet').get('Layer')
 CONV_NEU_LAYER_DESC, CONV_NEU_STRUCTURE = parse_neural_structure(CONV_NEU_LAYER)
 
