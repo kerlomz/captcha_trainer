@@ -9,7 +9,6 @@ import yaml
 import random
 import platform
 import PIL.Image as pilImage
-from os.path import join
 from character import *
 from exception import exception, ConfigException
 
@@ -137,8 +136,8 @@ PADDING = 'SAME'
 
 MODEL_TAG = '{}.model'.format(TARGET_MODEL)
 CHECKPOINT_TAG = 'checkpoint'
-SAVE_MODEL = join(MODEL_PATH, MODEL_TAG)
-SAVE_CHECKPOINT = join(MODEL_PATH, CHECKPOINT_TAG)
+SAVE_MODEL = os.path.join(MODEL_PATH, MODEL_TAG)
+SAVE_CHECKPOINT = os.path.join(MODEL_PATH, CHECKPOINT_TAG)
 
 DEVICE = cf_system['System'].get('Device')
 GPU_USAGE = cf_system['System'].get('DeviceUsage')
@@ -219,9 +218,7 @@ print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}{}'.format(
 print('IMAGE_ORIGINAL_COLOR: {}'.format(IMAGE_ORIGINAL_COLOR))
 print("MAX_CAPTCHA_LEN", MAX_CAPTCHA_LEN)
 print('NEURAL NETWORK: {}'.format(NEU_NAME))
-if NEU_NAME == 'DenseNet':
-    print('FILTERS: {}'.format(FILTERS))
-else:
-    print('{} LAYER CONV: \n{}\n - Full Connect Layer: {}'.format(NEU_LAYER_NUM, CONV_NEU_LAYER_DESC,
-                                                                  FULL_LAYER_FEATURE_NUM))
+print('{} LAYER CONV: \n{}\n - Full Connect Layer: {}'.format(
+    NEU_LAYER_NUM, CONV_NEU_LAYER_DESC, FULL_LAYER_FEATURE_NUM
+))
 print('---------------------------------------------------------------------------------')
