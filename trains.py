@@ -35,7 +35,7 @@ def train_process():
 
     _label = tf.reshape(label, [-1, MAX_CAPTCHA_LEN, CHAR_SET_LEN])
     max_idx_predict = _network['predict']
-    max_idx_label = tf.argmax(_label, 1 if NEU_NAME == 'DenseNet' else 2)
+    max_idx_label = tf.argmax(_label, 2)
     correct_predict = tf.equal(max_idx_predict, max_idx_label)
 
     with tf.name_scope('monitor'):
@@ -55,7 +55,9 @@ def train_process():
         sess = tf.Session(config=tf.ConfigProto(
             allow_soft_placement=True,
             log_device_placement=False,
-            gpu_options=tf.GPUOptions(allow_growth=True, per_process_gpu_memory_fraction=GPU_USAGE))
+            gpu_options=tf.GPUOptions(
+                allow_growth=True,  # it will cause fragmentation.
+                per_process_gpu_memory_fraction=GPU_USAGE))
         )
     print('Session Initializing...')
     sess.run(tf.global_variables_initializer())
@@ -73,7 +75,6 @@ def train_process():
 
     graph = tf.get_default_graph()
     input_graph_def = graph.as_graph_def()
-    # input_graph_def = tf.contrib.quantize.create_training_graph(graph, quant_delay=100)
     merged = tf.summary.merge_all()
     while True:
 
@@ -97,10 +98,6 @@ def train_process():
         else:
             continue
 
-        # Another way to calculate accuracy
-        # batch_x_test, batch_y_test = get_next_batch(TRAINS_TEST_NUM, True)
-        # acc = sess.run(accuracy, feed_dict={x: batch_x_test, label: batch_y_test, keep_prob: 1.})
-        # print(step, 'Test Predict Accuracy Rate: \t', acc)
         epoch_time = time.time() - time_epoch_start
         time_epoch_start = time.time()
         acc = test_training(sess, max_idx_predict)

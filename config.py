@@ -160,17 +160,6 @@ TRAINS_TEST_NUM = cf_system['Trains'].get('TestNum')
 _TEST_GROUP = fetch_file_list(TEST_PATH)
 _TRAIN_GROUP = fetch_file_list(TRAINS_PATH)
 
-_IMAGE_PATH = _TEST_GROUP[random.randint(0, len(_TEST_GROUP) - 1)]
-_TEST_IMAGE_SIZE = pilImage.open(_IMAGE_PATH).size
-_TRAIN_IMAGE_SIZE = pilImage.open(_TRAIN_GROUP[0]).size
-if _TEST_IMAGE_SIZE != _TRAIN_IMAGE_SIZE:
-    exception("The image size of the test set must match the training set")
-
-TEST_SAMPLE_LABEL = re.search(TEST_REGEX, _IMAGE_PATH.split(PATH_SPLIT)[-1]).group()
-
-MAX_CAPTCHA_LEN = cf_model['Model'].get('CharLength')
-MAX_CAPTCHA_LEN = MAX_CAPTCHA_LEN if MAX_CAPTCHA_LEN else len(TEST_SAMPLE_LABEL)
-
 IMAGE_CHANNEL = cf_model['Model'].get('ImageChannel')
 
 MAGNIFICATION = cf_model['Pretreatment'].get('Magnification')
@@ -182,6 +171,18 @@ SMOOTH = cf_model['Pretreatment'].get('Smoothing')
 BLUR = cf_model['Pretreatment'].get('Blur')
 RESIZE = cf_model['Pretreatment'].get('Resize')
 RESIZE = tuple(RESIZE) if RESIZE else None
+
+_IMAGE_PATH = _TEST_GROUP[random.randint(0, len(_TEST_GROUP) - 1)]
+_TEST_IMAGE_SIZE = pilImage.open(_IMAGE_PATH).size
+_TRAIN_IMAGE_SIZE = pilImage.open(_TRAIN_GROUP[0]).size
+
+if _TEST_IMAGE_SIZE != _TRAIN_IMAGE_SIZE and not RESIZE:
+    exception("The image size of the test set must match the training set")
+
+TEST_SAMPLE_LABEL = re.search(TEST_REGEX, _IMAGE_PATH.split(PATH_SPLIT)[-1]).group()
+
+MAX_CAPTCHA_LEN = cf_model['Model'].get('CharLength')
+MAX_CAPTCHA_LEN = MAX_CAPTCHA_LEN if MAX_CAPTCHA_LEN else len(TEST_SAMPLE_LABEL)
 IMAGE_WIDTH = RESIZE[0] if RESIZE else _TEST_IMAGE_SIZE[0] * MAGNIFICATION
 IMAGE_HEIGHT = RESIZE[1] if RESIZE else _TEST_IMAGE_SIZE[1] * MAGNIFICATION
 
@@ -198,6 +199,7 @@ def checkpoint(_name, _path):
 MODEL_FILE = checkpoint(TARGET_MODEL, MODEL_PATH)
 # COMPILE_TRAINS_PATH = os.path.join(MODEL_PATH, '{}.tfrecords'.format(TARGET_MODEL))
 COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
+TF_LITE_MODEL_PATH = os.path.join(MODEL_PATH, "{}.tflite".format(TARGET_MODEL))
 QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
 CHECKPOINT = 'model_checkpoint_path: {}\nall_model_checkpoint_paths: {}'.format(MODEL_FILE, MODEL_FILE)
 with open(SAVE_CHECKPOINT, 'w') as f:
@@ -221,4 +223,5 @@ print('NEURAL NETWORK: {}'.format(NEU_NAME))
 print('{} LAYER CONV: \n{}\n - Full Connect Layer: {}'.format(
     NEU_LAYER_NUM, CONV_NEU_LAYER_DESC, FULL_LAYER_FEATURE_NUM
 ))
+
 print('---------------------------------------------------------------------------------')
