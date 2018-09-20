@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+import sys
+import time
 
 
 class SystemException(RuntimeError):
@@ -9,8 +11,18 @@ class SystemException(RuntimeError):
         self.code = code
 
 
+class Error(object):
+    def __init__(self, message, code=-1):
+        self.message = message
+        self.code = code
+        print(self.message)
+        time.sleep(5)
+        sys.exit(self.code)
+
+
 def exception(text, code=-1):
-    raise SystemException(text, code)
+    # raise SystemException(text, code)
+    Error(text, code)
 
 
 class ConfigException:

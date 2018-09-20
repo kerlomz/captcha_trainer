@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-import os
 import time
 from utils import *
 from PIL import Image
 from predict import predict_func
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 from framework_cnn import *
-from quantize import quantize
+from tools.quantize import quantize
 
 TRAINS_GROUP = path2list(TRAINS_PATH, True)
 TEST_GROUP = path2list(TEST_PATH, True)
@@ -29,7 +28,6 @@ def compile_graph(sess, input_graph_def, acc):
 
 
 def train_process():
-
     _network = CNN().network()
     global_step = tf.Variable(0, trainable=False)
 
@@ -180,6 +178,7 @@ def test_training(sess, predict):
 
 
 if __name__ == '__main__':
+    init()
     train_process()
     print('Training completed.')
     quantize(LAST_COMPILE_MODEL_PATH, QUANTIZED_MODEL_PATH)

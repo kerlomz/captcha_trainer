@@ -1,13 +1,13 @@
 # Attention
 1. Choose your version:
     This project uses GPU for training by default.
-    You can use the CPU version by replacing ```tensorflow-gpu==1.9.0``` in the requirements.txt file with ```tensorflow==1.9.0```
+    You can use the CPU version by replacing ```tensorflow-gpu==1.10.0``` in the requirements.txt file with ```tensorflow==1.10.0```
     
 # Ready to work
    If you want to use the GPU for training, you must first install CUDA and cuDNN:
    https://www.tensorflow.org/install/install_sources#tested_source_configurations
    Please open the above link to view the version of CUDA and cuDNN corresponding to the current TensorFlow version.
-   
+
 # Start
 1. Install the python 3.6 environment (with pip)
 2. Install virtualenv ```pip3 install virtualenv```
@@ -90,15 +90,22 @@
     # ModelName: Corresponding to the model file in the model directory,
     # - such as YourModelName.pb, fill in YourModelName here.
     # CharSet: Provides a default optional built-in solution:
-    # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER, NUMERIC]
+    # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
+    # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET]
     # - Or you can use your own customized character set like: ['a', '1', '2'].
     # ImageChannel: [1 - Gray Scale, 3 - RGB].
     # CharLength: Captcha Length.
+    # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
+    # - which is convenient for users to freely combine character sets.
+    # - If you don't want to manually define the character set manually,
+    # - you can choose a built-in character set
+    # - and set the characters to be excluded by CharExclude parameter.
     Model:
       ModelName: YourModelName
       ImageChannel: 1
       CharLength: 4
       CharSet: ALPHANUMERIC_LOWER
+      CharExclude: []
     
     # Magnification: [ x2 -> from size(50, 50) to size(100,100)].
     # OriginalColor: [false - Gray Scale, true - RGB].
@@ -115,8 +122,18 @@
       Blur: 5
     #  Resize: [160, 60]
     ```
-    
-
+# Tools
+1. Pretreatment Previewer
+    ```python -m tools.preview```
+2. Navigator (Currently only supports character set recommendations)
+    ```python -m tools.navigator```
+3. Quantize
+    ```python -m tools.quantize --input=***.pb --output=***.pb```
+4. PyInstaller Package
+    ```
+    pip install pyinstaller
+    python -m tools.package
+    ```
 # Run
 1. ```python trains.py```
 

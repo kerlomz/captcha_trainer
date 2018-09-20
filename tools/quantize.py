@@ -19,6 +19,9 @@ from __future__ import print_function
 
 import collections
 import re
+import os
+import sys
+from optparse import OptionParser
 
 import numpy as np
 from tensorflow.core.framework import attr_value_pb2
@@ -33,8 +36,6 @@ from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.ops import array_ops
 from tensorflow.python.platform import gfile
-
-from config import COMPILE_MODEL_PATH, QUANTIZED_MODEL_PATH
 
 
 def print_input_nodes(current_node, nodes_map, indent, already_visited):
@@ -1118,4 +1119,17 @@ def quantize(input_path, output_path):
 
 
 if __name__ == "__main__":
-    quantize()
+
+    parser = OptionParser()
+    parser.add_option(
+        "-i", "--input",
+        dest="input",
+        help="input model")
+    parser.add_option(
+        "-o", "--output",
+        dest="output",
+        help="output model")
+
+    (options, args) = parser.parse_args()
+
+    quantize(options.input, options.output)
