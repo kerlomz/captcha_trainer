@@ -109,7 +109,11 @@ def fetch_file_list(path):
 TARGET_MODEL = cf_model['Model'].get('ModelName')
 
 CHAR_SET = cf_model['Model'].get('CharSet')
-GEN_CHAR_SET = char_set(CHAR_SET)
+CHAR_EXCLUDE = cf_model['Model'].get('CharExclude')
+if not isinstance(CHAR_EXCLUDE, list):
+    exception("\"CharExclude\" should be a list")
+
+GEN_CHAR_SET = [i for i in char_set(CHAR_SET) if i not in CHAR_EXCLUDE]
 
 if GEN_CHAR_SET == ConfigException.CHAR_SET_NOT_EXIST:
     exception(
