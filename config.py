@@ -219,7 +219,7 @@ def init():
 if '../' not in SYS_CONFIG_PATH:
     print('Loading Configuration...')
     print('---------------------------------------------------------------------------------')
-    print('CURRENT_CHECKPOINT:', checkpoint(TARGET_MODEL, MODEL_PATH))
+
     # print("PROJECT_PARENT_PATH", PROJECT_PARENT_PATH)
     print("PROJECT_PATH", PROJECT_PATH)
     print('MODEL_PATH:', SAVE_MODEL)
