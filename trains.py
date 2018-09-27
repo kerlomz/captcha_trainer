@@ -137,9 +137,12 @@ def text_and_image(test=False):
     f_path = file_list[index]
     captcha_text = re.search(TEST_REGEX if test else TRAINS_REGEX, f_path.split(PATH_SPLIT)[-1]).group()
     pil_image = Image.open(f_path)
+    origin_size = pil_image.size
     define_size = RESIZE if RESIZE else (IMAGE_WIDTH, IMAGE_HEIGHT)
-
-    if define_size != pil_image.size:
+    if define_size != origin_size:
+        pil_image = pil_image.resize(define_size)
+    define_size = (origin_size[0] * MAGNIFICATION, origin_size[1] * MAGNIFICATION)
+    if define_size != origin_size:
         pil_image = pil_image.resize(define_size)
 
     captcha_image = preprocessing(
