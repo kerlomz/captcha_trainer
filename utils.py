@@ -59,7 +59,7 @@ class DataIterator:
 
         im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
-        if not im:
+        if im is None:
             pil_image = PIL.Image.open(path).convert("RGB")
             im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32) / 255.
