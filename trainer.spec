@@ -1,4 +1,6 @@
 # -*- mode: python -*-
+# Used to package as a single executable
+# This is a configuration file
 
 # block_cipher = pyi_crypto.PyiBlockCipher(key='')
 block_cipher = None

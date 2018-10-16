@@ -2,187 +2,179 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import time
-from utils import *
-from PIL import Image
-from predict import predict_func
+import logging
+import numpy as np
+import tensorflow as tf
+import framework_lstm
+import utils
+from config import *
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
-from framework_cnn import *
-from tools.quantize import quantize
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-TRAINS_GROUP = path2list(TRAINS_PATH, True)
-TEST_GROUP = path2list(TEST_PATH, True)
-
-LAST_COMPILE_MODEL_PATH = ""
+logger = logging.getLogger('Training for OCR using CNN+LSTM+CTC')
+logger.setLevel(logging.INFO)
 
 
-def compile_graph(sess, input_graph_def, acc):
+def compile_graph(acc):
+    input_graph = tf.Graph()
+
+    sess = tf.Session(graph=input_graph)
+    with input_graph.as_default():
+        model = framework_lstm.LSTM(RunMode.Predict)
+        model.build_graph()
+        input_graph_def = input_graph.as_graph_def()
+        saver = tf.train.Saver()
+        saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
+        feed = {model.inputs: np.asarray(
+            [np.reshape(np.eye(IMAGE_WIDTH, IMAGE_HEIGHT), [IMAGE_HEIGHT, IMAGE_WIDTH, 1])]
+        )}
+        sess.run(model.dense_decoded, feed)
+
+    for node in input_graph_def.node:
+        if node.op == 'RefSwitch':
+            node.op = 'Switch'
+            for index in range(len(node.input)):
+                if 'moving_' in node.input[index]:
+                    node.input[index] = node.input[index] + '/read'
+        elif node.op == 'AssignSub':
+            node.op = 'Sub'
+            if 'use_locking' in node.attr:
+                del node.attr['use_locking']
+        elif node.op == 'AssignAdd':
+            node.op = 'Add'
+            if 'use_locking' in node.attr:
+                del node.attr['use_locking']
+
     output_graph_def = convert_variables_to_constants(
         sess,
         input_graph_def,
-        output_node_names=['output/predict']
+        output_node_names=['lstm/output/predict']
     )
-    global LAST_COMPILE_MODEL_PATH
-    LAST_COMPILE_MODEL_PATH = COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000)))
-    with tf.gfile.FastGFile(LAST_COMPILE_MODEL_PATH, mode='wb') as gf:
+
+    last_compile_model_path = COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000)))
+    with tf.gfile.FastGFile(last_compile_model_path, mode='wb') as gf:
         gf.write(output_graph_def.SerializeToString())
 
 
-def train_process():
-    _network = CNN().network()
-    global_step = tf.Variable(0, trainable=False)
+def train_process(mode=RunMode.Trains):
+    model = framework_lstm.LSTM(mode)
+    model.build_graph()
 
-    _label = tf.reshape(label, [-1, MAX_CAPTCHA_LEN, CHAR_SET_LEN])
-    max_idx_predict = _network['predict']
-    max_idx_label = tf.argmax(_label, 2)
-    correct_predict = tf.equal(max_idx_predict, max_idx_label)
+    print('Loading Trains DataSet...')
+    train_feeder = utils.DataIterator(mode=RunMode.Trains)
+    print('Total {} Trains DataSets'.format(train_feeder.size))
 
-    with tf.name_scope('monitor'):
-        loss = tf.reduce_mean(
-            # Loss Function
-            tf.nn.sigmoid_cross_entropy_with_logits(logits=_network['final_output'], labels=_label)
-        )
-    tf.summary.scalar('loss', loss)
+    print('Loading Test DataSet...')
+    test_feeder = utils.DataIterator(mode=RunMode.Test)
+    print('Total {} Test DataSets'.format(test_feeder.size))
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=TRAINS_LEARNING_RATE).minimize(loss, global_step=global_step)
+    num_train_samples = train_feeder.size
+    num_batches_per_epoch = int(num_train_samples / BATCH_SIZE)
 
-    with tf.name_scope('monitor'):
-        accuracy = tf.reduce_mean(tf.cast(correct_predict, tf.float32))
-    tf.summary.scalar('accuracy', accuracy)
+    num_val_samples = test_feeder.size
+    num_batches_per_epoch_val = int(num_val_samples / BATCH_SIZE)
+    shuffle_idx_val = np.random.permutation(num_val_samples)
 
-    with tf.device(DEVICE):
-        sess = tf.Session(config=tf.ConfigProto(
-            allow_soft_placement=True,
-            log_device_placement=False,
-            gpu_options=tf.GPUOptions(
-                allow_growth=True,  # it will cause fragmentation.
-                per_process_gpu_memory_fraction=GPU_USAGE))
-        )
-    print('Session Initializing...')
-    sess.run(tf.global_variables_initializer())
-    writer = tf.summary.FileWriter('logs', sess.graph)
-    # Save the training process
-    print('Loading history archive...')
-    saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
-    try:
-        saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
-    except ValueError:
-        pass
-    print('Initialized.\n---------------------------------------------------------------------------------')
-    time_epoch_start = time.time()
-    index = 0
-
-    graph = tf.get_default_graph()
-    input_graph_def = graph.as_graph_def()
-    merged = tf.summary.merge_all()
-    while True:
-
-        batch_x, batch_y = get_next_batch(64, False)  # 64
-        summary, _, _loss, step = sess.run(
-            [merged, optimizer, loss, global_step],
-            feed_dict={
-                x: batch_x,
-                label: batch_y,
-                keep_prob: 0.95
-            }
-        )
-        writer.add_summary(summary, index)
-        index += 1
-
-        if step % 10 == 0:
-            print('Loss: {}'.format(step), _loss)
-
-        if step % TRAINS_SAVE_STEP == 0:
-            saver.save(sess, SAVE_MODEL, global_step=step)
-        else:
-            continue
-
-        epoch_time = time.time() - time_epoch_start
-        time_epoch_start = time.time()
-        acc = test_training(sess, max_idx_predict)
-        print(
-            'Epoch Spend: %0.2fs' % epoch_time,
-            'Test Predict Accuracy Rate: %0.2f%%' % (acc * 100)
-        )
-        if acc > COMPILE_ACC:
-            compile_graph(sess, input_graph_def, acc)
-
-        if acc > TRAINS_END_ACC and step > TRAINS_END_STEP:
-            compile_graph(sess, input_graph_def, acc)
-            break
-
-
-def get_next_batch(batch_size=64, test=False):
-    batch_x = np.zeros([batch_size, IMAGE_HEIGHT * IMAGE_WIDTH])
-    batch_y = np.zeros([batch_size, MAX_CAPTCHA_LEN * CHAR_SET_LEN])
-
-    for i in range(batch_size):
-        text, image = text_and_image(test)
-        if 'UPPER' in CHAR_SET:
-            text = text.upper()
-        elif 'LOWER' in CHAR_SET:
-            text = text.lower()
-        batch_x[i, :] = image.flatten() / 255
-        batch_y[i, :] = text2vec(text)
-
-    return batch_x, batch_y
-
-
-def text_and_image(test=False):
-    global TEST_GROUP, TRAINS_GROUP
-    if test:
-        TEST_GROUP = path2list(TEST_PATH, True)
-    file_list = TEST_GROUP if test else TRAINS_GROUP
-
-    index = random.randint(0, len(file_list) - 1)
-    f_path = file_list[index]
-    captcha_text = re.search(TEST_REGEX if test else TRAINS_REGEX, f_path.split(PATH_SPLIT)[-1]).group()
-    pil_image = Image.open(f_path)
-    origin_size = pil_image.size
-    define_size = RESIZE if RESIZE else (IMAGE_WIDTH, IMAGE_HEIGHT)
-    if define_size != origin_size:
-        pil_image = pil_image.resize(define_size)
-    define_size = (origin_size[0] * MAGNIFICATION, origin_size[1] * MAGNIFICATION)
-    if define_size != origin_size:
-        pil_image = pil_image.resize(define_size)
-
-    captcha_image = preprocessing(
-        pil_image,
-        binaryzation=BINARYZATION,
-        smooth=SMOOTH,
-        blur=BLUR,
-        original_color=IMAGE_ORIGINAL_COLOR,
-        invert=INVERT
+    config = tf.ConfigProto(
+        allow_soft_placement=True,
+        log_device_placement=False,
+        gpu_options=tf.GPUOptions(
+            allow_growth=True,  # it will cause fragmentation.
+            per_process_gpu_memory_fraction=GPU_USAGE)
     )
-    return captcha_text, captcha_image
-
-
-def test_training(sess, predict):
-    right_cnt = 0
-    task_cnt = TRAINS_TEST_NUM
-    for i in range(task_cnt):
-        text, image = text_and_image(True)
-        if 'UPPER' in CHAR_SET:
-            text = text.upper()
-        elif 'LOWER' in CHAR_SET:
-            text = text.lower()
-        image = image.flatten() / 255
-        predict_text = predict_func(image, sess, predict, x, keep_prob)
-        if text == predict_text:
-            # Output specific correct label
-            # print("Flag: {}  Predict: {}".format(text, predict_text))
-            right_cnt += 1
-        else:
+    accuracy = 0
+    with tf.Session(config=config) as sess:
+        sess.run(tf.global_variables_initializer())
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
+        train_writer = tf.summary.FileWriter('logs', sess.graph)
+        try:
+            saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
+        except ValueError:
             pass
-            # Output specific error labels
-            # print(
-            #     "False, Label: {}  Predict: {}".format(text, predict_text)
-            # )
-    return right_cnt / task_cnt
+
+        print('Start training...')
+
+        while 1:
+            shuffle_idx = np.random.permutation(num_train_samples)
+            train_cost = 0
+            epoch_count = 1
+            start_time = time.time()
+
+            for cur_batch in range(num_batches_per_epoch):
+                index_list = [
+                    shuffle_idx[i % num_train_samples] for i in
+                    range(cur_batch * BATCH_SIZE, (cur_batch + 1) * BATCH_SIZE)
+                ]
+                batch_inputs, _, batch_labels = train_feeder.input_index_generate_batch(index_list)
+
+                feed = {
+                    model.inputs: batch_inputs,
+                    model.labels: batch_labels,
+                }
+
+                summary_str, batch_cost, step, _ = sess.run(
+                    [model.merged_summary, model.cost, model.global_step, model.train_op],
+                    feed
+                )
+                train_cost += batch_cost * BATCH_SIZE
+                train_writer.add_summary(summary_str, step)
+
+                if step % TRAINS_SAVE_STEPS == 0:
+                    saver.save(sess, SAVE_MODEL, global_step=step)
+                    logger.info('save checkpoint at step {0}', format(step))
+
+                if step % TRAINS_VALIDATION_STEPS == 0:
+                    acc_batch_total = 0
+                    lr = 0
+                    batch_time = time.time()
+
+                    for j in range(num_batches_per_epoch_val):
+                        index_val = [
+                            shuffle_idx_val[i % num_val_samples] for i in
+                            range(j * BATCH_SIZE, (j + 1) * BATCH_SIZE)
+                        ]
+
+                        val_inputs, _, val_labels = test_feeder.input_index_generate_batch(index_val)
+                        val_feed = {
+                            model.inputs: val_inputs,
+                            model.labels: val_labels,
+                        }
+
+                        dense_decoded, last_batch_err, lr = sess.run(
+                            [model.dense_decoded, model.cost, model.lrn_rate],
+                            val_feed
+                        )
+
+                        ori_labels = test_feeder.the_label(index_val)
+                        acc = utils.accuracy_calculation(
+                            ori_labels,
+                            dense_decoded,
+                            ignore_value=-1,
+                        )
+                        acc_batch_total += acc
+
+                    accuracy = (acc_batch_total * BATCH_SIZE) / num_val_samples
+                    avg_train_cost = train_cost / ((cur_batch + 1) * BATCH_SIZE)
+
+                    log = "Epoch: {}, Step: {} Accuracy = {:.3f}, Cost = {:.3f}, Time = {:.3f}, LearningRate: {}"
+                    print(log.format(epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr))
+                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
+                        break
+            if accuracy >= TRAINS_END_ACC:
+                compile_graph(accuracy)
+                print('Total Time: {}'.format(time.time() - start_time))
+                break
+            epoch_count += 1
 
 
-if __name__ == '__main__':
+def main(_):
     init()
     train_process()
     print('Training completed.')
-    quantize(LAST_COMPILE_MODEL_PATH, QUANTIZED_MODEL_PATH)
     pass
+
+
+if __name__ == '__main__':
+    tf.logging.set_verbosity(tf.logging.INFO)
+    tf.app.run()
