@@ -118,10 +118,10 @@ BLUR = cf_model['Pretreatment'].get('Blur')
 def _checkpoint(_name, _path):
     file_list = os.listdir(_path)
     checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if i.startswith(_name) and i.endswith('.meta')]
-    if not _checkpoint:
+    if not checkpoint:
         return None
     _checkpoint_step = [int(re.search('(?<=model-).*?(?=")', i).group()) for i in checkpoint]
-    return _checkpoint[_checkpoint_step.index(max(_checkpoint_step))]
+    return checkpoint[_checkpoint_step.index(max(_checkpoint_step))]
 
 
 COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
