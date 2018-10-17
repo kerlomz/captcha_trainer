@@ -17,15 +17,15 @@ System:
 # TestNum: The number of samples for each test batch.
 # - A test for every saved steps.
 # EndAcc: Finish the training when the accuracy reaches [EndAcc*100]%.
-# EndEpochs: Finish the training when the epoch reaches [epoch].
-# BatchSize: Number of inputs per batch.
-# LearningRate: Find the fastest relationship between the loss decline and the learning rate.
+# EndEpochs: Finish the training when the epoch is greater than the defined epoch.
 Trains:
   SavedSteps: 100
   ValidationSteps: 100
-  EndAcc: 0.95
+  EndAcc: 0.975
   EndEpochs: 1
   BatchSize: 40
   LearningRate: 0.001
+  DecayRate: 0.98
+  DecaySteps: 10000
 
 

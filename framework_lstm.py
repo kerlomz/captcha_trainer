@@ -25,34 +25,31 @@ class LSTM(object):
         self.merged_summary = tf.summary.merge_all()
 
     def _build_model(self):
-        filters = [1, 64, 128, 128, OUT_CHANNEL]
-        strides = [1, 2]
+
         feature_w, feature_h = IMAGE_WIDTH, IMAGE_HEIGHT
         max_cnn_layer_num = 0
         min_size = min(IMAGE_HEIGHT, IMAGE_WIDTH)
         while min_size > 1:
             min_size = (min_size + 1) // 2
             max_cnn_layer_num += 1
-        assert (CNN_LAYER_NUM <= max_cnn_layer_num, "CNN_LAYER_NUM should be less than {}!".format(max_cnn_layer_num))
+        assert (len(CNN_STRUCTURE) <= max_cnn_layer_num, "CNN_NEU_STRUCTURE should be less than {}!".format(max_cnn_layer_num))
 
         with tf.variable_scope('cnn'):
             x = self.inputs
-            for i in range(CNN_LAYER_NUM):
+            for i, neu in enumerate(CNN_STRUCTURE):
                 with tf.variable_scope('unit-%d' % (i + 1)):
-                    x = self._conv2d(x, 'cnn-%d' % (i + 1), 3, filters[i], filters[i + 1], strides[0])
+                    x = self._conv2d(x, 'cnn-%d' % (i + 1), CONV_KSIZE[i], FILTERS[i], FILTERS[i + 1], CONV_STRIDES[i])
                     x = self._batch_norm('bn%d' % (i + 1), x)
                     x = self._leaky_relu(x, LEAKINESS)
-                    x = self._max_pool(x, 2, strides[1])
-
+                    x = self._max_pool(x, POOL_KSIZE[i], POOL_STRIDES[i])
                     _, feature_h, feature_w, _ = x.get_shape().as_list()
 
         with tf.variable_scope('lstm'):
-            x = tf.transpose(x, [0, 2, 1, 3])
+            x = tf.transpose(x, perm=[0, 2, 1, 3])
             # Treat `feature_w` as max_time_step in lstm.
             x = tf.reshape(x, [BATCH_MAP[self.mode], feature_w, feature_h * OUT_CHANNEL])
             self.seq_len = tf.fill([x.get_shape().as_list()[0]], feature_w, name="seq_len")
 
-            # tf.nn.rnn_cell.RNNCell, tf.nn.rnn_cell.GRUCell
             cell = tf.nn.rnn_cell.LSTMCell(NUM_HIDDEN, state_is_tuple=True)
             if self.mode == RunMode.Trains:
                 cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, output_keep_prob=OUTPUT_KEEP_PROB)
@@ -77,7 +74,7 @@ class LSTM(object):
             )
 
             # Reshaping to apply the same weights over the time_steps
-            outputs = tf.reshape(outputs, [-1, NUM_HIDDEN])  # [batch_size * max_step_size, num_hidden]
+            outputs = tf.reshape(outputs, [-1, NUM_HIDDEN])
             with tf.variable_scope('output'):
                 weight_out = tf.get_variable(
                     name='weight',
@@ -141,7 +138,7 @@ class LSTM(object):
                 name='weight',
                 shape=[filter_size, filter_size, in_channels, out_channels],
                 dtype=tf.float32,
-                initializer=tf.glorot_uniform_initializer())  # tf.glorot_normal_initializer
+                initializer=tf.glorot_uniform_initializer())
 
             biases = tf.get_variable(
                 name='biases',

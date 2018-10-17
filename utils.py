@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+import cv2
 import numpy as np
 import PIL.Image
 from config import *
@@ -95,6 +96,7 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
     return count * 1.0 / len(original_seq)
 
 
+# Convert a sequence list to a sparse matrix
 def sparse_tuple_from_label(sequences, dtype=np.int32):
     indices = []
     values = []

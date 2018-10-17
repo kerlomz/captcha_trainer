@@ -4,11 +4,8 @@
 
 import os
 import re
-import cv2
 import yaml
-import random
 import platform
-import PIL.Image as pilImage
 from character import *
 from exception import exception, ConfigException
 
@@ -61,8 +58,7 @@ def char_set(_type):
     )
 
 
-TARGET_MODEL = cf_model['Model'].get('ModelName')
-
+"""CHARSET"""
 CHAR_SET = cf_model['Model'].get('CharSet')
 CHAR_EXCLUDE = cf_model['Model'].get('CharExclude')
 GEN_CHAR_SET = [i for i in char_set(CHAR_SET) if i not in CHAR_EXCLUDE]
@@ -70,19 +66,34 @@ CHAR_REPLACE = cf_model['Model'].get('CharReplace')
 CHAR_REPLACE = CHAR_REPLACE if CHAR_REPLACE else {}
 CHAR_SET_LEN = len(GEN_CHAR_SET)
 
+"""MODEL"""
 NEU_NAME = cf_system['System'].get('NeuralNet')
 NEU_NAME = NEU_NAME if NEU_NAME else 'CNN+LSTM+CTC'
-OUT_CHANNEL = 64
-FILTERS = [1, 64, 128, 128]
-FILTERS += [OUT_CHANNEL]
-CNN_LAYER_NUM = 4
+TARGET_MODEL = cf_model['Model'].get('ModelName')
+IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
+IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
+
+"""CNN"""
+CNN_STRUCTURE = cf_model.get(NEU_NAME).get('CNN')
+FILTERS = [1] + [i['Convolution'] for i in CNN_STRUCTURE]
+CONV_KSIZE = [i['ConvCoreSize'] for i in CNN_STRUCTURE]
+CONV_STRIDES = [i['ConvStrides'] for i in CNN_STRUCTURE]
+POOL_STRIDES = [i['PoolStrides'] for i in CNN_STRUCTURE]
+POOL_KSIZE = [i['PoolWindowSize'] for i in CNN_STRUCTURE]
+
+"""LSTM"""
+LSTM_STRUCTURE = cf_model.get(NEU_NAME).get('LSTM')
+OUT_CHANNEL = CNN_STRUCTURE[-1].get('Convolution')
+NUM_HIDDEN = LSTM_STRUCTURE.get('HiddenNum')
+OUTPUT_KEEP_PROB = LSTM_STRUCTURE.get('KeepProb')
+
 LEAKINESS = 0.01
-NUM_HIDDEN = 128
-OUTPUT_KEEP_PROB = 0.8
-DECAY_RATE = 0.98
-DECAY_STEPS = 10000
-NUM_CLASSES = CHAR_SET_LEN + 2
+NUM_CLASSES = CHAR_SET_LEN + 1
+
+"""OPTIMIZER"""
+# - The exponential decay rate for the 1st moment estimates.
 BATE1 = 0.9
+# - The exponential decay rate for the 2nd moment estimates.
 BATE2 = 0.999
 
 MODEL_TAG = '{}.model'.format(TARGET_MODEL)
@@ -90,29 +101,35 @@ CHECKPOINT_TAG = 'checkpoint'
 SAVE_MODEL = os.path.join(MODEL_PATH, MODEL_TAG)
 SAVE_CHECKPOINT = os.path.join(MODEL_PATH, CHECKPOINT_TAG)
 
+"""SYSTEM"""
 GPU_USAGE = cf_system['System'].get('DeviceUsage')
 
+"""PATH & LABEL"""
 TEST_PATH = cf_system['System'].get('TestPath')
 TEST_REGEX = cf_system['System'].get('TestRegex')
 TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
-
 TRAINS_PATH = cf_system['System'].get('TrainsPath')
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
 
+"""TRAINS"""
 TRAINS_SAVE_STEPS = cf_system['Trains'].get('SavedSteps')
 TRAINS_VALIDATION_STEPS = cf_system['Trains'].get('ValidationSteps')
 TRAINS_END_ACC = cf_system['Trains'].get('EndAcc')
 TRAINS_END_EPOCHS = cf_system['Trains'].get('EndEpochs')
 TRAINS_LEARNING_RATE = cf_system['Trains'].get('LearningRate')
+DECAY_RATE = cf_system['Trains'].get('DecayRate')
+DECAY_STEPS = cf_system['Trains'].get('DecaySteps')
 BATCH_SIZE = cf_system['Trains'].get('BatchSize')
 
-IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
-IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
-
+"""PRETREATMENT"""
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')
 SMOOTH = cf_model['Pretreatment'].get('Smoothing')
 BLUR = cf_model['Pretreatment'].get('Blur')
+
+"""COMPILE_MODEL"""
+COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
+QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
 
 
 def _checkpoint(_name, _path):
@@ -122,11 +139,6 @@ def _checkpoint(_name, _path):
         return None
     _checkpoint_step = [int(re.search('(?<=model-).*?(?=")', i).group()) for i in checkpoint]
     return checkpoint[_checkpoint_step.index(max(_checkpoint_step))]
-
-
-COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
-TF_LITE_MODEL_PATH = os.path.join(MODEL_PATH, "{}.tflite".format(TARGET_MODEL))
-QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
 
 
 def init():
@@ -171,8 +183,6 @@ def init():
 if '../' not in SYS_CONFIG_PATH:
     print('Loading Configuration...')
     print('---------------------------------------------------------------------------------')
-
-    # print("PROJECT_PARENT_PATH", PROJECT_PARENT_PATH)
     print("PROJECT_PATH", PROJECT_PATH)
     print('MODEL_PATH:', SAVE_MODEL)
     print('COMPILE_MODEL_PATH:', COMPILE_MODEL_PATH)
