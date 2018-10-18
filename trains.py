@@ -22,6 +22,7 @@ def compile_graph(acc):
     sess = tf.Session(graph=input_graph)
     with input_graph.as_default():
         model = framework_lstm.LSTM(RunMode.Predict)
+        _ = sess.run(model.batch_size, feed_dict={model.batch_size: BATCH_SIZE})
         model.build_graph()
         input_graph_def = input_graph.as_graph_def()
         saver = tf.train.Saver()
