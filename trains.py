@@ -16,21 +16,10 @@ logger = logging.getLogger('Training for OCR using CNN+LSTM+CTC')
 logger.setLevel(logging.INFO)
 
 
-def compile_graph(acc):
-    input_graph = tf.Graph()
+def compile_graph(sess, acc):
 
-    sess = tf.Session(graph=input_graph)
-    with input_graph.as_default():
-        model = framework_lstm.LSTM(RunMode.Predict)
-        _ = sess.run(model.batch_size, feed_dict={model.batch_size: BATCH_SIZE})
-        model.build_graph()
-        input_graph_def = input_graph.as_graph_def()
-        saver = tf.train.Saver()
-        saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
-        feed = {model.inputs: np.asarray(
-            [np.reshape(np.eye(IMAGE_WIDTH, IMAGE_HEIGHT), [IMAGE_HEIGHT, IMAGE_WIDTH, 1])]
-        )}
-        sess.run(model.dense_decoded, feed)
+    graph = tf.get_default_graph()
+    input_graph_def = graph.as_graph_def()
 
     for node in input_graph_def.node:
         if node.op == 'RefSwitch':
@@ -164,7 +153,7 @@ def train_process(mode=RunMode.Trains):
                     if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
                         break
             if accuracy >= TRAINS_END_ACC:
-                compile_graph(accuracy)
+                compile_graph(sess, accuracy)
                 print('Total Time: {}'.format(time.time() - start_time))
                 break
             epoch_count += 1
