@@ -10,6 +10,7 @@ import utils
 from config import *
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 from PIL import ImageFile
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 logger = logging.getLogger('Training for OCR using CNN+LSTM+CTC')
@@ -17,7 +18,6 @@ logger.setLevel(logging.INFO)
 
 
 def compile_graph(sess, acc):
-
     graph = tf.get_default_graph()
     input_graph_def = graph.as_graph_def()
 
@@ -49,6 +49,7 @@ def compile_graph(sess, acc):
 
 def train_process(mode=RunMode.Trains):
     model = framework_lstm.LSTM(mode)
+    model.build_graph()
     print('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
     print('Total {} Trains DataSets'.format(train_feeder.size))
@@ -74,8 +75,7 @@ def train_process(mode=RunMode.Trains):
     accuracy = 0
     with tf.Session(config=config) as sess:
         # Dynamically define batch size
-        _ = sess.run(model.batch_size, feed_dict={model.batch_size: BATCH_SIZE})
-        model.build_graph()
+
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
         train_writer = tf.summary.FileWriter('logs', sess.graph)
@@ -100,6 +100,7 @@ def train_process(mode=RunMode.Trains):
                 batch_inputs, _, batch_labels = train_feeder.input_index_generate_batch(index_list)
 
                 feed = {
+                    model.batch_size: BATCH_SIZE,
                     model.inputs: batch_inputs,
                     model.labels: batch_labels,
                 }
@@ -128,6 +129,7 @@ def train_process(mode=RunMode.Trains):
 
                         val_inputs, _, val_labels = test_feeder.input_index_generate_batch(index_val)
                         val_feed = {
+                            model.batch_size: BATCH_SIZE,
                             model.inputs: val_inputs,
                             model.labels: val_labels,
                         }

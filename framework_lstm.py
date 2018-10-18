@@ -4,17 +4,11 @@
 import tensorflow as tf
 from config import *
 
-BATCH_MAP = {
-    RunMode.Trains: BATCH_SIZE,
-    RunMode.Predict: 1
-}
-
-
 class LSTM(object):
 
     def __init__(self, mode):
         self.mode = mode
-        self.batch_size = tf.placeholder(tf.int16, name="batch_size")
+        self.batch_size = tf.placeholder(tf.int32, name="batch_size")
         self.inputs = tf.placeholder(tf.float32, [None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name='input')
         self.labels = tf.sparse_placeholder(tf.int32, name='labels')
         self._extra_train_ops = []
@@ -26,7 +20,6 @@ class LSTM(object):
         self.merged_summary = tf.summary.merge_all()
 
     def _build_model(self):
-
         feature_w, feature_h = IMAGE_WIDTH, IMAGE_HEIGHT
         max_cnn_layer_num = 0
         min_size = min(IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -48,8 +41,9 @@ class LSTM(object):
         with tf.variable_scope('lstm'):
             x = tf.transpose(x, perm=[0, 2, 1, 3])
             # Treat `feature_w` as max_time_step in lstm.
-            x = tf.reshape(x, [40, feature_w, feature_h * OUT_CHANNEL])
-            self.seq_len = tf.fill([x.get_shape().as_list()[0]], feature_w, name="seq_len")
+            x = tf.reshape(x, [self.batch_size, feature_w, feature_h * OUT_CHANNEL])
+
+            self.seq_len = tf.fill([self.batch_size], feature_w, name="seq_len")
 
             cell = tf.nn.rnn_cell.LSTMCell(NUM_HIDDEN, state_is_tuple=True)
             if self.mode == RunMode.Trains:
@@ -61,9 +55,9 @@ class LSTM(object):
 
             # Stacking rnn cells
             stack = tf.nn.rnn_cell.MultiRNNCell([cell, cell1], state_is_tuple=True)
-            initial_state = stack.zero_state(40, dtype=tf.float32)
 
-            # The second output is the last state and we will not use that
+            initial_state = stack.zero_state(tf.shape(self.inputs)[0], tf.float32)
+
             outputs, _ = tf.nn.dynamic_rnn(
                 cell=stack,
                 inputs=x,
