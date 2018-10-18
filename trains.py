@@ -59,8 +59,6 @@ def compile_graph(acc):
 
 def train_process(mode=RunMode.Trains):
     model = framework_lstm.LSTM(mode)
-    model.build_graph()
-
     print('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
     print('Total {} Trains DataSets'.format(train_feeder.size))
@@ -85,6 +83,9 @@ def train_process(mode=RunMode.Trains):
     )
     accuracy = 0
     with tf.Session(config=config) as sess:
+        # Dynamically define batch size
+        _ = sess.run(model.batch_size, feed_dict={model.batch_size: BATCH_SIZE})
+        model.build_graph()
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
         train_writer = tf.summary.FileWriter('logs', sess.graph)

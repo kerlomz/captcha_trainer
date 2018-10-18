@@ -14,6 +14,7 @@ class LSTM(object):
 
     def __init__(self, mode):
         self.mode = mode
+        self.batch_size = tf.placeholder(tf.int16, name="batch_size")
         self.inputs = tf.placeholder(tf.float32, [None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name='input')
         self.labels = tf.sparse_placeholder(tf.int32, name='labels')
         self._extra_train_ops = []
@@ -47,7 +48,7 @@ class LSTM(object):
         with tf.variable_scope('lstm'):
             x = tf.transpose(x, perm=[0, 2, 1, 3])
             # Treat `feature_w` as max_time_step in lstm.
-            x = tf.reshape(x, [BATCH_MAP[self.mode], feature_w, feature_h * OUT_CHANNEL])
+            x = tf.reshape(x, [40, feature_w, feature_h * OUT_CHANNEL])
             self.seq_len = tf.fill([x.get_shape().as_list()[0]], feature_w, name="seq_len")
 
             cell = tf.nn.rnn_cell.LSTMCell(NUM_HIDDEN, state_is_tuple=True)
@@ -60,7 +61,7 @@ class LSTM(object):
 
             # Stacking rnn cells
             stack = tf.nn.rnn_cell.MultiRNNCell([cell, cell1], state_is_tuple=True)
-            initial_state = stack.zero_state(BATCH_MAP[self.mode], dtype=tf.float32)
+            initial_state = stack.zero_state(40, dtype=tf.float32)
 
             # The second output is the last state and we will not use that
             outputs, _ = tf.nn.dynamic_rnn(
