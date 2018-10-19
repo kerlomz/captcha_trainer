@@ -90,10 +90,11 @@ def train_process(mode=RunMode.Trains):
             per_process_gpu_memory_fraction=GPU_USAGE)
     )
     accuracy = 0
+    epoch_count = 1
+
     with tf.Session(config=config) as sess:
         init_op = tf.global_variables_initializer()
         sess.run(init_op)
-
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
@@ -109,7 +110,6 @@ def train_process(mode=RunMode.Trains):
         while 1:
             shuffle_idx = np.random.permutation(num_train_samples)
             train_cost = 0
-            epoch_count = 1
             start_time = time.time()
 
             for cur_batch in range(num_batches_per_epoch):
