@@ -4,6 +4,8 @@
 # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
 # - The Default is .*?(?=_.*\.)
 # TrainsPath and TestPath: The local absolute path of your training and testing set.
+# TestSetNum: This is an optional parameter that is used when you want to extract some of the test set
+# - from the training set when you are not preparing the test set separately.
 System:
   NeuralNet: 'CNN+LSTM+CTC'
   DeviceUsage: 0.7
@@ -11,7 +13,7 @@ System:
   TrainRegex: '.*?(?=_)'
   TestPath: 'E:\Task\TestGroup\YourModelName\'
   TestRegex: '.*?(?=_)'
-  TestNum: 1000
+  TestSetNum: 1000
 
 # SavedSteps: A Session.run() execution is called a Epochs,
 # - Used to save training progress, Default value is 100.
