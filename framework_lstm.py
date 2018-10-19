@@ -4,6 +4,7 @@
 import tensorflow as tf
 from config import *
 
+
 class LSTM(object):
 
     def __init__(self, mode):
@@ -26,8 +27,9 @@ class LSTM(object):
         while min_size > 1:
             min_size = (min_size + 1) // 2
             max_cnn_layer_num += 1
-        assert (len(CNN_STRUCTURE) <= max_cnn_layer_num, "CNN_NEU_STRUCTURE should be less than {}!".format(max_cnn_layer_num))
-
+        assert (
+            len(CNN_STRUCTURE) <= max_cnn_layer_num,
+            "CNN_NEU_STRUCTURE should be less than {}!".format(max_cnn_layer_num))
         with tf.variable_scope('cnn'):
             x = self.inputs
             for i, neu in enumerate(CNN_STRUCTURE):

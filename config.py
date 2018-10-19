@@ -22,6 +22,12 @@ class RunMode(object):
     Predict = 'predict'
 
 
+TFRECORDS_NAME_MAP = {
+    RunMode.Trains: 'trains',
+    RunMode.Test: 'test'
+}
+
+
 PLATFORM = platform.system()
 
 SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
@@ -29,6 +35,7 @@ MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
 SYS_CONFIG_NAME = 'config.yaml'
 MODEL_CONFIG_NAME = 'model.yaml'
 MODEL_PATH = os.path.join(PROJECT_PATH, 'model')
+TFRECORDS_DIR = os.path.join(PROJECT_PATH, 'dataset')
 
 PATH_SPLIT = "\\" if PLATFORM == "Windows" else "/"
 
@@ -111,6 +118,10 @@ TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
 TRAINS_PATH = cf_system['System'].get('TrainsPath')
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
+
+SPLIT_DATASET = not TEST_PATH
+TEST_USE_TFRECORDS = isinstance(TEST_PATH, str) and TEST_PATH.endswith("tfrecords")
+TRAINS_USE_TFRECORDS = isinstance(TRAINS_PATH, str) and TRAINS_PATH.endswith("tfrecords")
 
 """TRAINS"""
 TRAINS_SAVE_STEPS = cf_system['Trains'].get('SavedSteps')

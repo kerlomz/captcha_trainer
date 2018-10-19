@@ -50,12 +50,21 @@ def compile_graph(sess, acc):
 def train_process(mode=RunMode.Trains):
     model = framework_lstm.LSTM(mode)
     model.build_graph()
+
     print('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
+    if TRAINS_USE_TFRECORDS:
+        train_feeder.read_sample_from_tfrecords()
+    else:
+        train_feeder.read_sample_from_files()
     print('Total {} Trains DataSets'.format(train_feeder.size))
 
     print('Loading Test DataSet...')
     test_feeder = utils.DataIterator(mode=RunMode.Test)
+    if TEST_USE_TFRECORDS:
+        test_feeder.read_sample_from_tfrecords()
+    else:
+        test_feeder.read_sample_from_files()
     print('Total {} Test DataSets'.format(test_feeder.size))
 
     num_train_samples = train_feeder.size
@@ -74,9 +83,12 @@ def train_process(mode=RunMode.Trains):
     )
     accuracy = 0
     with tf.Session(config=config) as sess:
-        # Dynamically define batch size
+        init_op = tf.global_variables_initializer()
+        sess.run(init_op)
 
-        sess.run(tf.global_variables_initializer())
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
         train_writer = tf.summary.FileWriter('logs', sess.graph)
         try:
@@ -97,7 +109,10 @@ def train_process(mode=RunMode.Trains):
                     shuffle_idx[i % num_train_samples] for i in
                     range(cur_batch * BATCH_SIZE, (cur_batch + 1) * BATCH_SIZE)
                 ]
-                batch_inputs, _, batch_labels = train_feeder.input_index_generate_batch(index_list)
+                if TRAINS_USE_TFRECORDS:
+                    batch_inputs, _, batch_labels = train_feeder.generate_batch_by_tfrecords(sess)
+                else:
+                    batch_inputs, _, batch_labels = train_feeder.generate_batch_by_index(index_list)
 
                 feed = {
                     model.batch_size: BATCH_SIZE,
@@ -126,8 +141,11 @@ def train_process(mode=RunMode.Trains):
                             shuffle_idx_val[i % num_val_samples] for i in
                             range(j * BATCH_SIZE, (j + 1) * BATCH_SIZE)
                         ]
+                        if TRAINS_USE_TFRECORDS:
+                            val_inputs, _, val_labels = test_feeder.generate_batch_by_tfrecords(sess)
+                        else:
+                            val_inputs, _, val_labels = test_feeder.generate_batch_by_index(index_val)
 
-                        val_inputs, _, val_labels = test_feeder.input_index_generate_batch(index_val)
                         val_feed = {
                             model.batch_size: BATCH_SIZE,
                             model.inputs: val_inputs,
@@ -138,8 +156,10 @@ def train_process(mode=RunMode.Trains):
                             [model.dense_decoded, model.cost, model.lrn_rate],
                             val_feed
                         )
-
-                        ori_labels = test_feeder.the_label(index_val)
+                        if TRAINS_USE_TFRECORDS:
+                            ori_labels = test_feeder.label_by_tfrecords()
+                        else:
+                            ori_labels = test_feeder.label_by_index(index_val)
                         acc = utils.accuracy_calculation(
                             ori_labels,
                             dense_decoded,
@@ -159,6 +179,9 @@ def train_process(mode=RunMode.Trains):
                 print('Total Time: {}'.format(time.time() - start_time))
                 break
             epoch_count += 1
+
+        coord.request_stop()
+        coord.join(threads)
 
 
 def main(_):
