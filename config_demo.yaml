@@ -2,14 +2,16 @@
 # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
 # - If you use the GPU version, you need to install some additional applications.
 # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
+# - The Default is .*?(?=_.*\.)
 # TrainsPath and TestPath: The local absolute path of your training and testing set.
 System:
   NeuralNet: 'CNN+LSTM+CTC'
   DeviceUsage: 0.7
   TrainsPath: 'E:\Task\Trains\YourModelName\'
-  TrainRegex: '.*?(?=_.*\.)'
+  TrainRegex: '.*?(?=_)'
   TestPath: 'E:\Task\TestGroup\YourModelName\'
-  TestRegex: '.*?(?=_.*\.)'
+  TestRegex: '.*?(?=_)'
+  TestNum: 1000
 
 # SavedSteps: A Session.run() execution is called a Epochs,
 # - Used to save training progress, Default value is 100.

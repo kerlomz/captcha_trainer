@@ -118,6 +118,9 @@ TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
 TRAINS_PATH = cf_system['System'].get('TrainsPath')
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
+TEST_SET_NUM = cf_system['System'].get('TestSetNum')
+TEST_SET_NUM = TEST_SET_NUM if TEST_SET_NUM else 1000
+HAS_TEST_SET = TEST_PATH and os.path.exists(TEST_PATH)
 
 SPLIT_DATASET = not TEST_PATH
 TEST_USE_TFRECORDS = isinstance(TEST_PATH, str) and TEST_PATH.endswith("tfrecords")

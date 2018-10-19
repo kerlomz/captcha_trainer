@@ -39,23 +39,35 @@ class DataIterator:
     def _encoder(code):
         if isinstance(code, bytes):
             code = code.decode('utf8')
+
+        for k, v in CHAR_REPLACE.items():
+            if not k or not v:
+                break
+            code.replace(k, v)
+
         code = code.lower() if 'LOWER' in CHAR_SET else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
         return [encode_maps()[c] for c in list(code)]
 
-    def read_sample_from_files(self):
-        for root, sub_folder, file_list in os.walk(self.data_dir):
-            for file_path in file_list:
-                image_name = os.path.join(root, file_path)
-                self.image_path.append(image_name)
-                # Get the label from the file name based on the regular expression.
-                code = re.search(
-                    REGEX_MAP[self.mode], image_name.split(PATH_SPLIT)[-1]
-                ).group()
-                # The manual verification code platform is not case sensitive,
-                # - it will affect the accuracy of the training set.
-                # Here is a case conversion based on the selected character set.
-                self.label_list.append(self._encoder(code))
+    def read_sample_from_files(self, data_set=None):
+        if data_set:
+            self.image_path = data_set
+            self.label_list = [
+                self._encoder(re.search(REGEX_MAP[self.mode], i.split(PATH_SPLIT)[-1]).group()) for i in data_set
+            ]
+        else:
+            for root, sub_folder, file_list in os.walk(self.data_dir):
+                for file_path in file_list:
+                    image_name = os.path.join(root, file_path)
+                    self.image_path.append(image_name)
+                    # Get the label from the file name based on the regular expression.
+                    code = re.search(
+                        REGEX_MAP[self.mode], image_name.split(PATH_SPLIT)[-1]
+                    ).group()
+                    # The manual verification code platform is not case sensitive,
+                    # - it will affect the accuracy of the training set.
+                    # Here is a case conversion based on the selected character set.
+                    self.label_list.append(self._encoder(code))
         self._size = len(self.label_list)
 
     def read_sample_from_tfrecords(self):

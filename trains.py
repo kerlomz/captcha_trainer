@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import time
+import random
 import logging
 import numpy as np
 import tensorflow as tf
@@ -50,13 +51,20 @@ def compile_graph(sess, acc):
 def train_process(mode=RunMode.Trains):
     model = framework_lstm.LSTM(mode)
     model.build_graph()
+    test_list, trains_list = None, None
+    if not HAS_TEST_SET:
+        trains_list = os.listdir(TRAINS_PATH)
+        random.shuffle(trains_list)
+        origin_list = [os.path.join(TRAINS_PATH, trains) for i, trains in enumerate(trains_list)]
+        test_list = origin_list[:TEST_SET_NUM]
+        trains_list = origin_list[TEST_SET_NUM:]
 
     print('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
     if TRAINS_USE_TFRECORDS:
         train_feeder.read_sample_from_tfrecords()
     else:
-        train_feeder.read_sample_from_files()
+        train_feeder.read_sample_from_files(trains_list)
     print('Total {} Trains DataSets'.format(train_feeder.size))
 
     print('Loading Test DataSet...')
@@ -64,7 +72,7 @@ def train_process(mode=RunMode.Trains):
     if TEST_USE_TFRECORDS:
         test_feeder.read_sample_from_tfrecords()
     else:
-        test_feeder.read_sample_from_files()
+        test_feeder.read_sample_from_files(test_list)
     print('Total {} Test DataSets'.format(test_feeder.size))
 
     num_train_samples = train_feeder.size
