@@ -182,7 +182,7 @@ def train_process(mode=RunMode.Trains):
                     print(log.format(epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr))
                     if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
                         break
-            if accuracy >= TRAINS_END_ACC:
+            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
                 compile_graph(sess, accuracy)
                 print('Total Time: {}'.format(time.time() - start_time))
                 break

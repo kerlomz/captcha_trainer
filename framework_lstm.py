@@ -97,6 +97,7 @@ class LSTM(object):
             labels=self.labels,
             inputs=self.predict,
             sequence_length=self.seq_len,
+            preprocess_collapse_repeated=True,
         )
         self.cost = tf.reduce_mean(self.loss)
         tf.summary.scalar('cost', self.cost)
