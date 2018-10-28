@@ -1,3 +1,7 @@
+# Project Introduction
+This project is based on CNN+LSTM+CTC to realize verification code identification. 
+This project is only for training the model, If you need to deploy the model, please move to https://github.com/kerlomz/captcha_platform
+
 # Attention
 1. Choose your version:
     This project uses GPU for training by default.
@@ -30,8 +34,7 @@
     # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
     # TrainsPath and TestPath: The local path of your training and testing set.
     System:
-      NeuralNet: 'CNNNet'
-      Device: 'gpu:0'
+      NeuralNet: 'CNN+LSTM+CTC'
       DeviceUsage: 0.7
       TrainsPath: 'E:\Task\Trains\YourModelName'
       TrainRegex: '.*?(?=_.*\.)'
@@ -68,33 +71,12 @@
     
 1. model.yaml  - Model Config
     ```yaml
-    # Convolution: The number of layers is at least 3.
-    # - The number below corresponds to the size of each layer of convolution.
-    # Provide flexible neural network construction,
-    # Adjust the neural network structure that suits you best
-    # [Convolution, Pool, Optimization: {Dropout}]
-    CNNNet:
-      Layer:
-        - Convolution: 32
-        - Pool: [1, 2, 2, 1]
-        - Optimization: Dropout
-        - Convolution: 64
-        - Pool: [1, 2, 2, 1]
-        - Optimization: Dropout
-        - Convolution: 64
-        - Pool: [1, 2, 2, 1]
-        - Optimization: Dropout
-      ConvCoreSize: 3
-      FullConnect: 1024
-    
     # ModelName: Corresponding to the model file in the model directory,
     # - such as YourModelName.pb, fill in YourModelName here.
     # CharSet: Provides a default optional built-in solution:
     # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
     # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET]
     # - Or you can use your own customized character set like: ['a', '1', '2'].
-    # ImageChannel: [1 - Gray Scale, 3 - RGB].
-    # CharLength: Captcha Length.
     # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
     # - which is convenient for users to freely combine character sets.
     # - If you don't want to manually define the character set manually,
@@ -102,32 +84,26 @@
     # - and set the characters to be excluded by CharExclude parameter.
     Model:
       ModelName: YourModelName
-      ImageChannel: 1
-      CharLength: 4
       CharSet: ALPHANUMERIC_LOWER
       CharExclude: []
+      CharReplace: {}
+      ImageWidth: 150
+      ImageHeight: 50
     
-    # Magnification: [ x2 -> from size(50, 50) to size(100,100)].
-    # OriginalColor: [false - Gray Scale, true - RGB].
     # Binaryzation: [-1: Off, >0 and < 255: On].
     # Smoothing: [-1: Off, >0: On].
     # Blur: [-1: Off, >0: On].
-    # Resize: [WIDTH, HEIGHT].
     Pretreatment:
-      Magnification: 0
-      OriginalColor: false
-      Binaryzation: 240
-      Smoothing: 3
-      Invert: false
-      Blur: 5
-    #  Resize: [160, 60]
+      Binaryzation: -1
+      Smoothing: -1
+      Blur: -1
     ```
 # Tools
 1. Pretreatment Previewer
     ```python -m tools.preview```
 2. Navigator (Currently only supports character set recommendations)
     ```python -m tools.navigator```
-3. Quantize
+3. Quantize(Deleted)
     ```python -m tools.quantize --input=***.pb --output=***.pb```
 4. PyInstaller Package
     ```

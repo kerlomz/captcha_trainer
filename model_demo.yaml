@@ -2,20 +2,36 @@
 # - The number below corresponds to the size of each layer of convolution.
 # Provide flexible neural network construction,
 # Adjust the neural network structure that suits you best
-# [Convolution, Pool, Optimization: {Dropout}]
-CNNNet:
-  Layer:
-    - Convolution: 32
-    - Pool: [1, 2, 2, 1]
-    - Optimization: Dropout
-    - Convolution: 64
-    - Pool: [1, 2, 2, 1]
-    - Optimization: Dropout
-    - Convolution: 64
-    - Pool: [1, 2, 2, 1]
-    - Optimization: Dropout
-  ConvCoreSize: 3
-  FullConnect: 1024
+# [Convolution, ConvCoreSize, ConvStrides, PoolWindowSize, MaxPoolStrides]
+CNN+LSTM+CTC:
+  CNN:
+    -
+      Convolution: 64
+      ConvCoreSize: 3
+      ConvStrides: 1
+      PoolWindowSize: 2
+      PoolStrides: 2
+    -
+      Convolution: 128
+      ConvCoreSize: 3
+      ConvStrides: 1
+      PoolWindowSize: 2
+      PoolStrides: 2
+    -
+      Convolution: 128
+      ConvCoreSize: 3
+      ConvStrides: 1
+      PoolWindowSize: 2
+      PoolStrides: 2
+    -
+      Convolution: 64
+      ConvCoreSize: 3
+      ConvStrides: 1
+      PoolWindowSize: 2
+      PoolStrides: 2
+  LSTM:
+    HiddenNum: 128
+    KeepProb: 0.8
 
 # ModelName: Corresponding to the model file in the model directory,
 # - such as YourModelName.pb, fill in YourModelName here.
@@ -23,8 +39,6 @@ CNNNet:
 # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET]
 # - Or you can use your own customized character set like: ['a', '1', '2'].
-# ImageChannel: [1 - Gray Scale, 3 - RGB].
-# CharLength: Captcha Length.
 # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
 # - which is convenient for users to freely combine character sets.
 # - If you don't want to manually define the character set manually,
@@ -32,22 +46,16 @@ CNNNet:
 # - and set the characters to be excluded by CharExclude parameter.
 Model:
   ModelName: YourModelName
-  ImageChannel: 1
-  CharLength: 4
   CharSet: ALPHANUMERIC_LOWER
   CharExclude: []
+  CharReplace: {}
+  ImageWidth: 150
+  ImageHeight: 50
 
-# Magnification: [ x2 -> from size(50, 50) to size(100,100)].
-# OriginalColor: [false - Gray Scale, true - RGB].
 # Binaryzation: [-1: Off, >0 and < 255: On].
 # Smoothing: [-1: Off, >0: On].
 # Blur: [-1: Off, >0: On].
-# Resize: [WIDTH, HEIGHT].
 Pretreatment:
-  Magnification: 0
-  OriginalColor: false
-  Binaryzation: 240
-  Smoothing: 3
-  Invert: false
-  Blur: 5
-#  Resize: [160, 60]
+  Binaryzation: -1
+  Smoothing: -1
+  Blur: -1

@@ -5,9 +5,7 @@
 import os
 import re
 import yaml
-import random
 import platform
-import PIL.Image as pilImage
 from character import *
 from exception import exception, ConfigException
 
@@ -17,6 +15,19 @@ from exception import exception, ConfigException
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 PROJECT_PATH = "."
 
+
+class RunMode(object):
+    Test = 'test'
+    Trains = 'trains'
+    Predict = 'predict'
+
+
+TFRECORDS_NAME_MAP = {
+    RunMode.Trains: 'trains',
+    RunMode.Test: 'test'
+}
+
+
 PLATFORM = platform.system()
 
 SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
@@ -24,6 +35,7 @@ MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
 SYS_CONFIG_NAME = 'config.yaml'
 MODEL_CONFIG_NAME = 'model.yaml'
 MODEL_PATH = os.path.join(PROJECT_PATH, 'model')
+TFRECORDS_DIR = os.path.join(PROJECT_PATH, 'dataset')
 
 PATH_SPLIT = "\\" if PLATFORM == "Windows" else "/"
 
@@ -53,125 +65,94 @@ def char_set(_type):
     )
 
 
-def parse_neural_structure(_net):
-    layer = ""
-    layer_structure = []
-    layer_num = 1
-    pre_input = 1
-    for i in _net:
-        key = list(i.keys())[0]
-        val = list(i.values())[0]
-        conv = {"index": layer_num, "input": pre_input, "output": val, "extra": []}
-        if key == 'Convolution':
-            layer += "\n - {} Layer: {} Layer-[{} * {}]".format(layer_num, key, val, val)
-            layer_structure.append(conv)
-            pre_input = val
-            layer_num += 1
-        if key == 'Pool':
-            layer += ", {} Layer-{}".format(key, val)
-            layer_structure[layer_num - 2]['extra'].append({"name": "pool", "window": val})
-        if key == 'Optimization':
-            layer += ", {} Layer".format(val)
-            layer_structure[layer_num - 2]['extra'].append({"name": "dropout"})
-    return layer[1:], layer_structure
-
-
-def fetch_file_list(path):
-    file_list = os.listdir(path)
-    if len(file_list) < 200:
-        exception("Insufficient Sample!", ConfigException.INSUFFICIENT_SAMPLE)
-    group = [os.path.join(path, image_file) for image_file in file_list]
-    random.shuffle(group)
-    return group
-
-
-TARGET_MODEL = cf_model['Model'].get('ModelName')
-
+"""CHARSET"""
 CHAR_SET = cf_model['Model'].get('CharSet')
 CHAR_EXCLUDE = cf_model['Model'].get('CharExclude')
-
 GEN_CHAR_SET = [i for i in char_set(CHAR_SET) if i not in CHAR_EXCLUDE]
-
+CHAR_REPLACE = cf_model['Model'].get('CharReplace')
+CHAR_REPLACE = CHAR_REPLACE if CHAR_REPLACE else {}
 CHAR_SET_LEN = len(GEN_CHAR_SET)
 
+"""MODEL"""
 NEU_NAME = cf_system['System'].get('NeuralNet')
+NEU_NAME = NEU_NAME if NEU_NAME else 'CNN+LSTM+CTC'
+TARGET_MODEL = cf_model['Model'].get('ModelName')
+IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
+IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
 
-CONV_NEU_LAYER = cf_model.get('CNNNet').get('Layer')
-CONV_NEU_LAYER_DESC, CONV_NEU_STRUCTURE = parse_neural_structure(CONV_NEU_LAYER)
+"""CNN"""
+CNN_STRUCTURE = cf_model.get(NEU_NAME).get('CNN')
+FILTERS = [1] + [i['Convolution'] for i in CNN_STRUCTURE]
+CONV_KSIZE = [i['ConvCoreSize'] for i in CNN_STRUCTURE]
+CONV_STRIDES = [i['ConvStrides'] for i in CNN_STRUCTURE]
+POOL_STRIDES = [i['PoolStrides'] for i in CNN_STRUCTURE]
+POOL_KSIZE = [i['PoolWindowSize'] for i in CNN_STRUCTURE]
 
-FULL_LAYER_FEATURE_NUM = cf_model['CNNNet'].get('FullConnect')
-CONV_CORE_SIZE = cf_model.get('CNNNet').get('ConvCoreSize')
+"""LSTM"""
+LSTM_STRUCTURE = cf_model.get(NEU_NAME).get('LSTM')
+OUT_CHANNEL = CNN_STRUCTURE[-1].get('Convolution')
+NUM_HIDDEN = LSTM_STRUCTURE.get('HiddenNum')
+OUTPUT_KEEP_PROB = LSTM_STRUCTURE.get('KeepProb')
 
-NEU_LAYER_NUM = len(CONV_NEU_STRUCTURE)
-MAX_POOL_NUM = len([i for i in CONV_NEU_LAYER if list(i.keys())[0] == 'Pool'])
+LEAKINESS = 0.01
+NUM_CLASSES = CHAR_SET_LEN + 1
 
-CONV_STRIDES = [1, 1, 1, 1]
-POOL_STRIDES = [1, 2, 2, 1]
-PADDING = 'SAME'
+"""OPTIMIZER"""
+# - The exponential decay rate for the 1st moment estimates.
+BATE1 = 0.9
+# - The exponential decay rate for the 2nd moment estimates.
+BATE2 = 0.999
 
 MODEL_TAG = '{}.model'.format(TARGET_MODEL)
 CHECKPOINT_TAG = 'checkpoint'
 SAVE_MODEL = os.path.join(MODEL_PATH, MODEL_TAG)
 SAVE_CHECKPOINT = os.path.join(MODEL_PATH, CHECKPOINT_TAG)
 
-DEVICE = cf_system['System'].get('Device')
+"""SYSTEM"""
 GPU_USAGE = cf_system['System'].get('DeviceUsage')
 
+"""PATH & LABEL"""
 TEST_PATH = cf_system['System'].get('TestPath')
 TEST_REGEX = cf_system['System'].get('TestRegex')
 TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
-
 TRAINS_PATH = cf_system['System'].get('TrainsPath')
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
+TEST_SET_NUM = cf_system['System'].get('TestSetNum')
+TEST_SET_NUM = TEST_SET_NUM if TEST_SET_NUM else 1000
+HAS_TEST_SET = TEST_PATH and os.path.exists(TEST_PATH)
 
-TRAINS_SAVE_STEP = cf_system['Trains'].get('SavedStep')
-COMPILE_ACC = cf_system['Trains'].get('CompileAcc')
+SPLIT_DATASET = not TEST_PATH
+TEST_USE_TFRECORDS = isinstance(TEST_PATH, str) and TEST_PATH.endswith("tfrecords")
+TRAINS_USE_TFRECORDS = isinstance(TRAINS_PATH, str) and TRAINS_PATH.endswith("tfrecords")
+
+"""TRAINS"""
+TRAINS_SAVE_STEPS = cf_system['Trains'].get('SavedSteps')
+TRAINS_VALIDATION_STEPS = cf_system['Trains'].get('ValidationSteps')
 TRAINS_END_ACC = cf_system['Trains'].get('EndAcc')
-TRAINS_END_STEP = cf_system['Trains'].get('EndStep')
+TRAINS_END_EPOCHS = cf_system['Trains'].get('EndEpochs')
 TRAINS_LEARNING_RATE = cf_system['Trains'].get('LearningRate')
-TRAINS_TEST_NUM = cf_system['Trains'].get('TestNum')
+DECAY_RATE = cf_system['Trains'].get('DecayRate')
+DECAY_STEPS = cf_system['Trains'].get('DecaySteps')
+BATCH_SIZE = cf_system['Trains'].get('BatchSize')
 
-_TEST_GROUP = fetch_file_list(TEST_PATH)
-_TRAIN_GROUP = fetch_file_list(TRAINS_PATH)
-
-IMAGE_CHANNEL = cf_model['Model'].get('ImageChannel')
-
-MAGNIFICATION = cf_model['Pretreatment'].get('Magnification')
-MAGNIFICATION = MAGNIFICATION if MAGNIFICATION and MAGNIFICATION > 0 and isinstance(MAGNIFICATION, int) else 1
-IMAGE_ORIGINAL_COLOR = cf_model['Pretreatment'].get('OriginalColor')
+"""PRETREATMENT"""
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')
-INVERT = cf_model['Pretreatment'].get('Invert')
 SMOOTH = cf_model['Pretreatment'].get('Smoothing')
 BLUR = cf_model['Pretreatment'].get('Blur')
-RESIZE = cf_model['Pretreatment'].get('Resize')
-RESIZE = tuple(RESIZE) if RESIZE else None
 
-_IMAGE_PATH = _TEST_GROUP[random.randint(0, len(_TEST_GROUP) - 1)]
-_TEST_IMAGE_SIZE = pilImage.open(_IMAGE_PATH).size
-_TRAIN_IMAGE_SIZE = pilImage.open(_TRAIN_GROUP[0]).size
-
-TEST_SAMPLE_LABEL = re.search(TEST_REGEX, _IMAGE_PATH.split(PATH_SPLIT)[-1]).group()
-
-MAX_CAPTCHA_LEN = cf_model['Model'].get('CharLength')
-MAX_CAPTCHA_LEN = MAX_CAPTCHA_LEN if MAX_CAPTCHA_LEN else len(TEST_SAMPLE_LABEL)
-IMAGE_WIDTH = RESIZE[0] if RESIZE else _TEST_IMAGE_SIZE[0] * MAGNIFICATION
-IMAGE_HEIGHT = RESIZE[1] if RESIZE else _TEST_IMAGE_SIZE[1] * MAGNIFICATION
-
-
-def checkpoint(_name, _path):
-    file_list = os.listdir(_path)
-    _checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if i.startswith(_name) and i.endswith('.meta')]
-    if not _checkpoint:
-        return None
-    _checkpoint_step = [int(re.search('(?<=model-).*?(?=")', i).group()) for i in _checkpoint]
-    return _checkpoint[_checkpoint_step.index(max(_checkpoint_step))]
-
-
-# COMPILE_TRAINS_PATH = os.path.join(MODEL_PATH, '{}.tfrecords'.format(TARGET_MODEL))
+"""COMPILE_MODEL"""
 COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
-TF_LITE_MODEL_PATH = os.path.join(MODEL_PATH, "{}.tflite".format(TARGET_MODEL))
 QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
+
+
+def _checkpoint(_name, _path):
+    file_list = os.listdir(_path)
+    checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if i.startswith(_name) and i.endswith('.meta')]
+    if not checkpoint:
+        return None
+    _checkpoint_step = [int(re.search('(?<=model-).*?(?=")', i).group()) for i in checkpoint]
+    return checkpoint[_checkpoint_step.index(max(_checkpoint_step))]
 
 
 def init():
@@ -207,33 +188,23 @@ def init():
             ConfigException.CHAR_SET_NOT_EXIST
         )
 
-    if _TEST_IMAGE_SIZE != _TRAIN_IMAGE_SIZE and not RESIZE:
-        exception("The image size of the test set must match the training set")
-
-    MODEL_FILE = checkpoint(TARGET_MODEL, MODEL_PATH)
-    CHECKPOINT = 'model_checkpoint_path: {}\nall_model_checkpoint_paths: {}'.format(MODEL_FILE, MODEL_FILE)
+    model_file = _checkpoint(TARGET_MODEL, MODEL_PATH)
+    checkpoint = 'model_checkpoint_path: {}\nall_model_checkpoint_paths: {}'.format(model_file, model_file)
     with open(SAVE_CHECKPOINT, 'w') as f:
-        f.write(CHECKPOINT)
+        f.write(checkpoint)
 
 
 if '../' not in SYS_CONFIG_PATH:
     print('Loading Configuration...')
     print('---------------------------------------------------------------------------------')
-
-    # print("PROJECT_PARENT_PATH", PROJECT_PARENT_PATH)
     print("PROJECT_PATH", PROJECT_PATH)
     print('MODEL_PATH:', SAVE_MODEL)
     print('COMPILE_MODEL_PATH:', COMPILE_MODEL_PATH)
     print('CHAR_SET_LEN:', CHAR_SET_LEN)
-    print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}{}'.format(
-        IMAGE_WIDTH, IMAGE_HEIGHT, ", MAGNIFICATION: {}".format(
-            MAGNIFICATION) if MAGNIFICATION and not RESIZE else "")
+    print('CHAR_REPLACE: {}'.format(CHAR_REPLACE))
+    print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}'.format(
+        IMAGE_WIDTH, IMAGE_HEIGHT)
     )
-    print('IMAGE_ORIGINAL_COLOR: {}'.format(IMAGE_ORIGINAL_COLOR))
-    print("MAX_CAPTCHA_LEN", MAX_CAPTCHA_LEN)
     print('NEURAL NETWORK: {}'.format(NEU_NAME))
-    print('{} LAYER CONV: \n{}\n - Full Connect Layer: {}'.format(
-        NEU_LAYER_NUM, CONV_NEU_LAYER_DESC, FULL_LAYER_FEATURE_NUM
-    ))
 
     print('---------------------------------------------------------------------------------')

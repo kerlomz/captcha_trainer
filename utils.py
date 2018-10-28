@@ -1,85 +1,178 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-import os
-import numpy as np
 import cv2
-import random
-from PIL import ImageFile
-from config import CHAR_SET_LEN, GEN_CHAR_SET, MAX_CAPTCHA_LEN
+import numpy as np
+import PIL.Image
+import tensorflow as tf
+from config import *
+from pretreatment import preprocessing
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+PATH_MAP = {
+    RunMode.Trains: TRAINS_PATH,
+    RunMode.Test: TEST_PATH
+}
 
-
-def char2pos(c):
-    return GEN_CHAR_SET.index(c)
-
-
-def pos2char(char_idx):
-    return GEN_CHAR_SET[char_idx]
-
-
-def vec2text(vec):
-    char_pos = vec.nonzero()[0]
-    text = []
-    for i, c in enumerate(char_pos):
-        char_idx = c % CHAR_SET_LEN
-        char_code = pos2char(char_idx)
-        text.append(char_code)
-    return "".join(text)
+REGEX_MAP = {
+    RunMode.Trains: TRAINS_REGEX,
+    RunMode.Test: TEST_REGEX
+}
 
 
-def text2vec(text):
-    text_len = len(text)
-    if text_len > MAX_CAPTCHA_LEN:
-        raise ValueError('Sample label {} exceeds the maximum length of the defined captcha label. \n'
-                         'Please match the value corresponding to CharLength of model.yaml'.format(text))
-    vector = np.zeros(MAX_CAPTCHA_LEN * CHAR_SET_LEN)
-    try:
-        for i, c in enumerate(text):
-            idx = i * CHAR_SET_LEN + char2pos(c)
-            vector[idx] = 1
-    except ValueError:
-        print("ValueError", text)
-    return vector
+def encode_maps():
+    return {char: i for i, char in enumerate(GEN_CHAR_SET, 0)}
 
 
-def path2list(path, shuffle=False):
+class DataIterator:
+    def __init__(self, mode: RunMode):
+        self.mode = mode
+        self.data_dir = PATH_MAP[mode]
+        self.image = []
+        self.image_path = []
+        self.label_list = []
+        self.image_batch = []
+        self.label_batch = []
+        self._label_batch = []
+        self._size = 0
 
-    file_list = os.listdir(path)
-    group = [os.path.join(path, image_file) for image_file in file_list if not image_file.startswith(".")]
-    if shuffle:
-        random.shuffle(group)
-    return group
+    @staticmethod
+    def _encoder(code):
+        if isinstance(code, bytes):
+            code = code.decode('utf8')
+
+        for k, v in CHAR_REPLACE.items():
+            if not k or not v:
+                break
+            code.replace(k, v)
+
+        code = code.lower() if 'LOWER' in CHAR_SET else code
+        code = code.upper() if 'UPPER' in CHAR_SET else code
+        return [encode_maps()[c] for c in list(code)]
+
+    def read_sample_from_files(self, data_set=None):
+        if data_set:
+            self.image_path = data_set
+            self.label_list = [
+                self._encoder(re.search(REGEX_MAP[self.mode], i.split(PATH_SPLIT)[-1]).group()) for i in data_set
+            ]
+        else:
+            for root, sub_folder, file_list in os.walk(self.data_dir):
+                for file_path in file_list:
+                    image_name = os.path.join(root, file_path)
+                    self.image_path.append(image_name)
+                    # Get the label from the file name based on the regular expression.
+                    code = re.search(
+                        REGEX_MAP[self.mode], image_name.split(PATH_SPLIT)[-1]
+                    ).group()
+                    # The manual verification code platform is not case sensitive,
+                    # - it will affect the accuracy of the training set.
+                    # Here is a case conversion based on the selected character set.
+                    self.label_list.append(self._encoder(code))
+        self._size = len(self.label_list)
+
+    def read_sample_from_tfrecords(self):
+        filename_queue = tf.train.string_input_producer([
+            os.path.join(TFRECORDS_DIR, TFRECORDS_NAME_MAP[self.mode]+".tfrecords")
+        ])
+        reader = tf.TFRecordReader()
+
+        self._size = len(
+            [_ for _ in tf.python_io.tf_record_iterator(
+                os.path.join(TFRECORDS_DIR, TFRECORDS_NAME_MAP[self.mode] + ".tfrecords")
+            )]
+        )
+
+        _, serialized_example = reader.read(filename_queue)
+        features = tf.parse_single_example(
+            serialized_example,
+            features={
+                'label': tf.FixedLenFeature([], tf.string),
+                'image': tf.FixedLenFeature([], tf.string),
+            }
+        )
+        image = tf.decode_raw(features['image'], tf.uint8)
+        image = tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+        label = tf.cast(features['label'], tf.string)
+
+        min_after_dequeue = 1000
+        capacity = min_after_dequeue + 3 * BATCH_SIZE
+        image_batch, label_batch = tf.train.shuffle_batch(
+            [image, label],
+            batch_size=BATCH_SIZE,
+            capacity=capacity,
+            min_after_dequeue=min_after_dequeue
+        )
+        self.image_batch = image_batch
+        self.label_batch = label_batch
+
+    @property
+    def size(self):
+        return self._size
+
+    def label_by_index(self, index_list):
+        return [self.label_list[i] for i in index_list]
+
+    def label_by_tfrecords(self):
+        return self._label_batch
+
+    @staticmethod
+    def _image(path):
+
+        im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        # The OpenCV cannot handle gif format images, it will return None.
+        if im is None:
+            pil_image = PIL.Image.open(path).convert("RGB")
+            im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
+        im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32) / 255.
+        im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
+        return np.reshape(im, [IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+
+    @staticmethod
+    def _get_input_lens(sequences):
+        lengths = np.asarray([OUT_CHANNEL for _ in sequences], dtype=np.int64)
+        return sequences, lengths
+
+    def generate_batch_by_index(self, index):
+        image_batch = [self._image(self.image_path[i]) for i in index]
+        label_batch = [self.label_list[i] for i in index]
+        return self._generate_batch(image_batch, label_batch)
+
+    def _generate_batch(self, image_batch, label_batch):
+        batch_inputs, batch_seq_len = self._get_input_lens(np.array(image_batch))
+        batch_labels = sparse_tuple_from_label(label_batch)
+        return batch_inputs, batch_seq_len, batch_labels
+
+    def generate_batch_by_tfrecords(self, sess):
+        _image, _label = sess.run([self.image_batch, self.label_batch])
+        image_batch = [i.astype(np.float32) / 255. for i in _image]
+        label_batch = [self._encoder(i) for i in _label]
+        self._label_batch = label_batch
+        return self._generate_batch(image_batch, label_batch)
 
 
-def convert2gray(img):
-    if len(img.shape) > 2:
-        gray = np.mean(img, -1)
-        return gray
-    else:
-        return img
+def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
+    if len(original_seq) != len(decoded_seq):
+        print('original lengths is different from the decoded_seq, please check again')
+        return 0
+    count = 0
+    for i, origin_label in enumerate(original_seq):
+        decoded_label = [j for j in decoded_seq[i] if j != ignore_value]
+        if origin_label == decoded_label:
+            count += 1
+
+    return count * 1.0 / len(original_seq)
 
 
-def preprocessing(pil_image, binaryzation=127, smooth=-1, blur=-1, original_color=False, invert=False):
-    _pil_image = pil_image
-    if not original_color:
-        _pil_image = _pil_image.convert("L")
-    image = np.array(_pil_image)
+# Convert a sequence list to a sparse matrix
+def sparse_tuple_from_label(sequences, dtype=np.int32):
+    indices = []
+    values = []
 
-    # if not original_color:
-    #     image = convert2gray(image)
-    if binaryzation > 0:
-        ret, thresh = cv2.threshold(image, binaryzation, 255, cv2.THRESH_BINARY_INV if invert else cv2.THRESH_BINARY)
-    else:
-        thresh = image
-    _image = thresh
-    if smooth != -1:
-        smooth = smooth + 1 if smooth % 2 == 0 else smooth
-        _smooth = cv2.medianBlur(thresh, smooth)
-        _image = _smooth
-    if blur != -1:
-        blur = blur + 1 if blur % 2 == 0 else blur
-        _blur = cv2.GaussianBlur(_image if smooth != -1 else thresh, (blur, blur), 0)
-        _image = _blur
-    return _image
+    for n, seq in enumerate(sequences):
+        indices.extend(zip([n] * len(seq), range(len(seq))))
+        values.extend(seq)
+
+    indices = np.asarray(indices, dtype=np.int64)
+    values = np.asarray(values, dtype=dtype)
+    shape = np.asarray([len(sequences), np.asarray(indices).max(0)[1] + 1], dtype=np.int64)
+    return indices, values, shape
