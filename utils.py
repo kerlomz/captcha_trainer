@@ -129,7 +129,7 @@ class DataIterator:
 
     @staticmethod
     def _get_input_lens(sequences):
-        lengths = np.asarray([OUT_CHANNEL for _ in sequences], dtype=np.int64)
+        lengths = np.asarray([len(_) for _ in sequences], dtype=np.int64)
         return sequences, lengths
 
     def generate_batch_by_index(self, index):
