@@ -22,6 +22,11 @@ REGEX_MAP = {
 def encode_maps():
     return {char: i for i, char in enumerate(GEN_CHAR_SET, 0)}
 
+# Training is not useful for decoding
+# Here is for debugging, positioning error source use
+# def decode_maps():
+#     return {i: char for i, char in enumerate(GEN_CHAR_SET, 0)}
+
 
 class DataIterator:
     def __init__(self, mode: RunMode):
@@ -44,10 +49,9 @@ class DataIterator:
             if not k or not v:
                 break
             code.replace(k, v)
-
         code = code.lower() if 'LOWER' in CHAR_SET else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
-        return [encode_maps()[c] for c in list(code)]
+        return [SPACE_INDEX if code == SPACE_TOKEN else encode_maps()[c] for c in list(code)]
 
     def read_sample_from_files(self, data_set=None):
         if data_set:
@@ -72,7 +76,7 @@ class DataIterator:
 
     def read_sample_from_tfrecords(self):
         filename_queue = tf.train.string_input_producer([
-            os.path.join(TFRECORDS_DIR, TFRECORDS_NAME_MAP[self.mode]+".tfrecords")
+            os.path.join(TFRECORDS_DIR, TFRECORDS_NAME_MAP[self.mode] + ".tfrecords")
         ])
         reader = tf.TFRecordReader()
 
@@ -109,37 +113,43 @@ class DataIterator:
     def size(self):
         return self._size
 
-    def label_by_index(self, index_list):
-        return [self.label_list[i] for i in index_list]
-
-    def label_by_tfrecords(self):
-        return self._label_batch
+    def labels(self):
+        if (TRAINS_USE_TFRECORDS and self.mode == RunMode.Trains) or (TEST_USE_TFRECORDS and self.mode == RunMode.Test):
+            return self.label_list
+        else:
+            return self.label_list
 
     @staticmethod
     def _image(path):
 
-        im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        # im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
-        if im is None:
-            pil_image = PIL.Image.open(path).convert("RGB")
-            im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
-        im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32) / 255.
+        # if im is None:
+        pil_image = PIL.Image.open(path).convert("RGB")
+        im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
+        im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
         im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
-        return np.reshape(im, [IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+        im = im.swapaxes(0, 1)
+        return np.array(im[:, :, np.newaxis] / 255.)
 
     @staticmethod
     def _get_input_lens(sequences):
         lengths = np.asarray([len(_) for _ in sequences], dtype=np.int64)
         return sequences, lengths
 
-    def generate_batch_by_index(self, index):
-        image_batch = [self._image(self.image_path[i]) for i in index]
-        label_batch = [self.label_list[i] for i in index]
+    def generate_batch_by_files(self, index=None):
+        if index:
+            image_batch = [self._image(self.image_path[i]) for i in index]
+            label_batch = [self.label_list[i] for i in index]
+        else:
+            image_batch = [self._image(i) for i in self.image_path]
+            label_batch = self.label_list
         return self._generate_batch(image_batch, label_batch)
 
     def _generate_batch(self, image_batch, label_batch):
         batch_inputs, batch_seq_len = self._get_input_lens(np.array(image_batch))
         batch_labels = sparse_tuple_from_label(label_batch)
+        self._label_batch = batch_labels
         return batch_inputs, batch_seq_len, batch_labels
 
     def generate_batch_by_tfrecords(self, sess):
@@ -151,15 +161,32 @@ class DataIterator:
 
 
 def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
-    if len(original_seq) != len(decoded_seq):
-        print('original lengths is different from the decoded_seq, please check again')
+    original_seq_len = len(original_seq)
+    decoded_seq_len = len(decoded_seq)
+    if original_seq_len != decoded_seq_len:
+        print(original_seq)
+        print('original lengths {} is different from the decoded_seq {}, please check again'.format(
+            original_seq_len,
+            decoded_seq_len
+        ))
         return 0
     count = 0
+    # Here is for debugging, positioning error source use
+    # error_sample = []
     for i, origin_label in enumerate(original_seq):
         decoded_label = [j for j in decoded_seq[i] if j != ignore_value]
+        if i < 5:
+            print(i, len(origin_label), len(decoded_label), origin_label, decoded_label)
         if origin_label == decoded_label:
             count += 1
-
+    # Training is not useful for decoding
+    # Here is for debugging, positioning error source use
+    #     if origin_label != decoded_label and len(error_sample) < 5:
+    #         error_sample.append({
+    #             "origin": "".join([decode_maps()[i] for i in origin_label]),
+    #             "decode": "".join([decode_maps()[i] for i in decoded_label])
+    #         })
+    # print(error_sample)
     return count * 1.0 / len(original_seq)
 
 
@@ -167,9 +194,8 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
 def sparse_tuple_from_label(sequences, dtype=np.int32):
     indices = []
     values = []
-
     for n, seq in enumerate(sequences):
-        indices.extend(zip([n] * len(seq), range(len(seq))))
+        indices.extend(zip([n] * len(seq), range(0, len(seq), 1)))
         values.extend(seq)
 
     indices = np.asarray(indices, dtype=np.int64)

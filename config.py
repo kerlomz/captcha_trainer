@@ -22,11 +22,28 @@ class RunMode(object):
     Predict = 'predict'
 
 
+class CNNNetwork(object):
+    CNN5 = 'CNN5'
+    DenseNet = 'DenseNet'
+
+
+class RecurrentNetwork:
+    LSTM = 'LSTM'
+    BLSTM = 'BLSTM'
+
+
+NETWORK_MAP = {
+    'CNN5': CNNNetwork.CNN5,
+    'DenseNet': CNNNetwork.DenseNet,
+    'LSTM': RecurrentNetwork.LSTM,
+    'BLSTM': RecurrentNetwork.BLSTM,
+}
+
+
 TFRECORDS_NAME_MAP = {
     RunMode.Trains: 'trains',
     RunMode.Test: 'test'
 }
-
 
 PLATFORM = platform.system()
 
@@ -69,39 +86,31 @@ def char_set(_type):
 CHAR_SET = cf_model['Model'].get('CharSet')
 CHAR_EXCLUDE = cf_model['Model'].get('CharExclude')
 GEN_CHAR_SET = [i for i in char_set(CHAR_SET) if i not in CHAR_EXCLUDE]
+GEN_CHAR_SET = [''] + GEN_CHAR_SET
+
+# fixed Not enough time for target transition sequence
+# GEN_CHAR_SET = SPACE_TOKEN + GEN_CHAR_SET
 CHAR_REPLACE = cf_model['Model'].get('CharReplace')
 CHAR_REPLACE = CHAR_REPLACE if CHAR_REPLACE else {}
 CHAR_SET_LEN = len(GEN_CHAR_SET)
 
 """MODEL"""
-NEU_NAME = cf_system['System'].get('NeuralNet')
-NEU_NAME = NEU_NAME if NEU_NAME else 'CNN+LSTM+CTC'
+# NEU_NETWORK = cf_system['NeuralNet']
 TARGET_MODEL = cf_model['Model'].get('ModelName')
 IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
 IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
 
-"""CNN"""
-CNN_STRUCTURE = cf_model.get(NEU_NAME).get('CNN')
-FILTERS = [1] + [i['Convolution'] for i in CNN_STRUCTURE]
-CONV_KSIZE = [i['ConvCoreSize'] for i in CNN_STRUCTURE]
-CONV_STRIDES = [i['ConvStrides'] for i in CNN_STRUCTURE]
-POOL_STRIDES = [i['PoolStrides'] for i in CNN_STRUCTURE]
-POOL_KSIZE = [i['PoolWindowSize'] for i in CNN_STRUCTURE]
-
-"""LSTM"""
-LSTM_STRUCTURE = cf_model.get(NEU_NAME).get('LSTM')
-OUT_CHANNEL = CNN_STRUCTURE[-1].get('Convolution')
-NUM_HIDDEN = LSTM_STRUCTURE.get('HiddenNum')
-OUTPUT_KEEP_PROB = LSTM_STRUCTURE.get('KeepProb')
+"""NEURAL NETWORK"""
+NEU_CNN = cf_system['NeuralNet'].get('CNNNetwork')
+NEU_CNN = NEU_CNN if NEU_CNN else 'CNN5'
+NEU_RECURRENT = cf_system['NeuralNet'].get('RecurrentNetwork')
+NEU_RECURRENT = NEU_RECURRENT if NEU_RECURRENT else 'BLSTM'
+NUM_HIDDEN = cf_system['NeuralNet'].get('HiddenNum')
+OUTPUT_KEEP_PROB = cf_system['NeuralNet'].get('KeepProb')
+LSTM_LAYER_NUM = 2
 
 LEAKINESS = 0.01
-NUM_CLASSES = CHAR_SET_LEN + 1
-
-"""OPTIMIZER"""
-# - The exponential decay rate for the 1st moment estimates.
-BATE1 = 0.9
-# - The exponential decay rate for the 2nd moment estimates.
-BATE2 = 0.999
+NUM_CLASSES = CHAR_SET_LEN + 2
 
 MODEL_TAG = '{}.model'.format(TARGET_MODEL)
 CHECKPOINT_TAG = 'checkpoint'
@@ -135,6 +144,7 @@ TRAINS_LEARNING_RATE = cf_system['Trains'].get('LearningRate')
 DECAY_RATE = cf_system['Trains'].get('DecayRate')
 DECAY_STEPS = cf_system['Trains'].get('DecaySteps')
 BATCH_SIZE = cf_system['Trains'].get('BatchSize')
+MOMENTUM = 0.9
 
 """PRETREATMENT"""
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')
@@ -148,7 +158,7 @@ QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_
 
 def _checkpoint(_name, _path):
     file_list = os.listdir(_path)
-    checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if i.startswith(_name) and i.endswith('.meta')]
+    checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if _name + ".model" in i and i.endswith('.meta')]
     if not checkpoint:
         return None
     _checkpoint_step = [int(re.search('(?<=model-).*?(?=")', i).group()) for i in checkpoint]
@@ -205,6 +215,6 @@ if '../' not in SYS_CONFIG_PATH:
     print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}'.format(
         IMAGE_WIDTH, IMAGE_HEIGHT)
     )
-    print('NEURAL NETWORK: {}'.format(NEU_NAME))
+    print('NEURAL NETWORK: {}'.format(cf_system['NeuralNet']))
 
     print('---------------------------------------------------------------------------------')

@@ -1,38 +1,3 @@
-# Convolution: The number of layers is at least 3.
-# - The number below corresponds to the size of each layer of convolution.
-# Provide flexible neural network construction,
-# Adjust the neural network structure that suits you best
-# [Convolution, ConvCoreSize, ConvStrides, PoolWindowSize, MaxPoolStrides]
-CNN+LSTM+CTC:
-  CNN:
-    -
-      Convolution: 64
-      ConvCoreSize: 3
-      ConvStrides: 1
-      PoolWindowSize: 2
-      PoolStrides: 2
-    -
-      Convolution: 128
-      ConvCoreSize: 3
-      ConvStrides: 1
-      PoolWindowSize: 2
-      PoolStrides: 2
-    -
-      Convolution: 128
-      ConvCoreSize: 3
-      ConvStrides: 1
-      PoolWindowSize: 2
-      PoolStrides: 2
-    -
-      Convolution: 64
-      ConvCoreSize: 3
-      ConvStrides: 1
-      PoolWindowSize: 2
-      PoolStrides: 2
-  LSTM:
-    HiddenNum: 128
-    KeepProb: 0.8
-
 # ModelName: Corresponding to the model file in the model directory,
 # - such as YourModelName.pb, fill in YourModelName here.
 # CharSet: Provides a default optional built-in solution:

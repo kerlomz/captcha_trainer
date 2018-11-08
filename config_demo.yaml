@@ -1,4 +1,3 @@
-# Device: [gpu:0, cpu:0] The default device is GPU.
 # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
 # - If you use the GPU version, you need to install some additional applications.
 # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
@@ -7,13 +6,23 @@
 # TestSetNum: This is an optional parameter that is used when you want to extract some of the test set
 # - from the training set when you are not preparing the test set separately.
 System:
-  NeuralNet: 'CNN+LSTM+CTC'
   DeviceUsage: 0.7
   TrainsPath: 'E:\Task\Trains\YourModelName\'
   TrainRegex: '.*?(?=_)'
   TestPath: 'E:\Task\TestGroup\YourModelName\'
   TestRegex: '.*?(?=_)'
   TestSetNum: 1000
+
+# CNNNetwork: [CNN5, DenseNet]
+# RecurrentNetwork: [BLSTM, LSTM]
+# - The recommended configuration is CNN5+BLSTM / DenseNet+BLSTM
+# HiddenNum: [64, 128, 256]
+# - This parameter indicates the number of nodes used to remember and store past states.
+NeuralNet:
+  CNNNetwork: CNN5
+  RecurrentNetwork: BLSTM
+  HiddenNum: 64
+  KeepProb: 0.98
 
 # SavedSteps: A Session.run() execution is called a Epochs,
 # - Used to save training progress, Default value is 100.
@@ -24,11 +33,11 @@ System:
 # EndEpochs: Finish the training when the epoch is greater than the defined epoch.
 Trains:
   SavedSteps: 100
-  ValidationSteps: 100
+  ValidationSteps: 500
   EndAcc: 0.975
   EndEpochs: 1
-  BatchSize: 40
-  LearningRate: 0.001
+  BatchSize: 64
+  LearningRate: 0.01
   DecayRate: 0.98
   DecaySteps: 10000
 

@@ -28,36 +28,48 @@ This project is only for training the model, If you need to deploy the model, pl
 # Configuration
 1. config.yaml - System Config
     ```yaml
-    # Device: [gpu:0, cpu:0] The default device is GPU.
     # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
     # - If you use the GPU version, you need to install some additional applications.
     # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
-    # TrainsPath and TestPath: The local path of your training and testing set.
+    # - The Default is .*?(?=_.*\.)
+    # TrainsPath and TestPath: The local absolute path of your training and testing set.
+    # TestSetNum: This is an optional parameter that is used when you want to extract some of the test set
+    # - from the training set when you are not preparing the test set separately.
     System:
-      NeuralNet: 'CNN+LSTM+CTC'
       DeviceUsage: 0.7
-      TrainsPath: 'E:\Task\Trains\YourModelName'
-      TrainRegex: '.*?(?=_.*\.)'
-      TestPath: 'E:\Task\TestGroup\YourModelName'
-      TestRegex: '.*?(?=_.*\.)'
+      TrainsPath: 'E:\Task\Trains\YourModelName\'
+      TrainRegex: '.*?(?=_)'
+      TestPath: 'E:\Task\TestGroup\YourModelName\'
+      TestRegex: '.*?(?=_)'
+      TestSetNum: 1000
     
-    # SavedStep: A Session.run() execution is called a Step,
+    # CNNNetwork: [CNN5, DenseNet]
+    # RecurrentNetwork: [BLSTM, LSTM]
+    # - The recommended configuration is CNN5+BLSTM / DenseNet+BLSTM
+    # HiddenNum: [64, 128, 256]
+    # - This parameter indicates the number of nodes used to remember and store past states.
+    NeuralNet:
+      CNNNetwork: CNN5
+      RecurrentNetwork: BLSTM
+      HiddenNum: 64
+      KeepProb: 0.98
+    
+    # SavedSteps: A Session.run() execution is called a Epochs,
     # - Used to save training progress, Default value is 100.
+    # ValidationSteps: Used to calculate accuracy, Default value is 100.
     # TestNum: The number of samples for each test batch.
     # - A test for every saved steps.
-    # CompileAcc: When the accuracy reaches the set threshold,
-    # - the model will be compiled together each time it is archived.
-    # - Available for specific usage scenarios.
     # EndAcc: Finish the training when the accuracy reaches [EndAcc*100]%.
-    # EndStep: Finish the training when the step is greater than the [-1: Off, EndStep >0: On] step.
-    # LearningRate: Find the fastest relationship between the loss decline and the learning rate.
+    # EndEpochs: Finish the training when the epoch is greater than the defined epoch.
     Trains:
-      SavedStep: 100
-      TestNum: 500
-      CompileAcc: 0.8
-      EndAcc: 0.95
-      EndStep: -1
-      LearningRate: 0.001
+      SavedSteps: 100
+      ValidationSteps: 500
+      EndAcc: 0.975
+      EndEpochs: 1
+      BatchSize: 256
+      LearningRate: 0.01
+      DecayRate: 0.98
+      DecaySteps: 5000
     ```
     There are several common examples of TrainRegex:
     i. apple_20181010121212.jpg
