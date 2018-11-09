@@ -1,5 +1,5 @@
 # Project Introduction
-This project is based on CNN+LSTM+CTC to realize verification code identification. 
+This project is based on CNN5/DenseNet+BLSTM/LSTM+CTC to realize verification code identification. 
 This project is only for training the model, If you need to deploy the model, please move to https://github.com/kerlomz/captcha_platform
 
 # Attention
