@@ -13,7 +13,7 @@ class GraphOCR(object):
         self.mode = mode
         self.network = cnn
         self.recurrent = recurrent
-        self.inputs = tf.placeholder(tf.float32, [None, IMAGE_WIDTH, IMAGE_HEIGHT, 1], name='input')
+        self.inputs = tf.placeholder(tf.float32, [None, RESIZE[0], RESIZE[1], 1], name='input')
         self.labels = tf.sparse_placeholder(tf.int32, name='labels')
         self._extra_train_ops = []
         self.seq_len = None

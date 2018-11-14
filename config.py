@@ -150,6 +150,8 @@ MOMENTUM = 0.9
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')
 SMOOTH = cf_model['Pretreatment'].get('Smoothing')
 BLUR = cf_model['Pretreatment'].get('Blur')
+RESIZE = cf_model['Pretreatment'].get('Resize')
+RESIZE = RESIZE if RESIZE else [IMAGE_WIDTH, IMAGE_HEIGHT]
 
 """COMPILE_MODEL"""
 COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))

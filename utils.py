@@ -128,7 +128,7 @@ class DataIterator:
         pil_image = PIL.Image.open(path).convert("RGB")
         im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
-        im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
+        im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
         im = im.swapaxes(0, 1)
         return np.array(im[:, :, np.newaxis] / 255.)
 

@@ -48,13 +48,26 @@ def compile_graph(acc):
 def train_process(mode=RunMode.Trains):
     model = framework.GraphOCR(mode, NETWORK_MAP[NEU_CNN], NETWORK_MAP[NEU_RECURRENT])
     model.build_graph()
-    test_list, trains_list = None, None
+
+    if isinstance(TRAINS_PATH, list):
+        origin_list = []
+        for trains_path in TRAINS_PATH:
+            origin_list += [os.path.join(trains_path, trains) for trains in os.listdir(trains_path)]
+    else:
+        origin_list = [os.path.join(TRAINS_PATH, trains) for trains in os.listdir(TRAINS_PATH)]
+    random.shuffle(origin_list)
     if not HAS_TEST_SET:
-        trains_list = os.listdir(TRAINS_PATH)
-        random.shuffle(trains_list)
-        origin_list = [os.path.join(TRAINS_PATH, trains) for i, trains in enumerate(trains_list)]
         test_list = origin_list[:TEST_SET_NUM]
         trains_list = origin_list[TEST_SET_NUM:]
+    else:
+        if isinstance(TEST_PATH, list):
+            test_list = []
+            for test_path in TEST_PATH:
+                test_list += [os.path.join(test_path, test) for test in os.listdir(test_path)]
+        else:
+            test_list = [os.path.join(TEST_PATH, test) for test in os.listdir(TEST_PATH)]
+        random.shuffle(test_list)
+        trains_list = origin_list
 
     print('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
