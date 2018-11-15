@@ -19,7 +19,6 @@ logger.setLevel(logging.INFO)
 
 
 def compile_graph(acc):
-
     input_graph = tf.Graph()
     sess = tf.Session(graph=input_graph)
 
@@ -43,6 +42,8 @@ def compile_graph(acc):
     last_compile_model_path = COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000)))
     with tf.gfile.FastGFile(last_compile_model_path, mode='wb') as gf:
         gf.write(output_graph_def.SerializeToString())
+
+    generate_config(acc)
 
 
 def train_process(mode=RunMode.Trains):
@@ -189,6 +190,14 @@ def train_process(mode=RunMode.Trains):
 
         coord.request_stop()
         coord.join(threads)
+
+
+def generate_config(acc):
+    with open(MODEL_CONFIG_PATH, "r", encoding="utf8") as current_fp:
+        text = "".join(current_fp.readlines())
+    text = text.replace(TARGET_MODEL, "{}_{}".format(TARGET_MODEL, int(acc * 10000)))
+    with open(os.path.join(OUTPUT_PATH, "{}_model.yaml".format(TARGET_MODEL)), "w", encoding="utf8") as save_fp:
+        save_fp.write(text)
 
 
 def main(_):

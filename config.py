@@ -52,6 +52,7 @@ MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
 SYS_CONFIG_NAME = 'config.yaml'
 MODEL_CONFIG_NAME = 'model.yaml'
 MODEL_PATH = os.path.join(PROJECT_PATH, 'model')
+OUTPUT_PATH = os.path.join(PROJECT_PATH, 'out')
 TFRECORDS_DIR = os.path.join(PROJECT_PATH, 'dataset')
 
 PATH_SPLIT = "\\" if PLATFORM == "Windows" else "/"
@@ -154,7 +155,7 @@ RESIZE = cf_model['Pretreatment'].get('Resize')
 RESIZE = RESIZE if RESIZE else [IMAGE_WIDTH, IMAGE_HEIGHT]
 
 """COMPILE_MODEL"""
-COMPILE_MODEL_PATH = os.path.join(MODEL_PATH, '{}.pb'.format(TARGET_MODEL))
+COMPILE_MODEL_PATH = os.path.join(OUTPUT_PATH, '{}.pb'.format(TARGET_MODEL))
 QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
 
 
@@ -170,6 +171,9 @@ def _checkpoint(_name, _path):
 def init():
     if not os.path.exists(MODEL_PATH):
         os.makedirs(MODEL_PATH)
+
+    if not os.path.exists(OUTPUT_PATH):
+        os.makedirs(OUTPUT_PATH)
 
     if not os.path.exists(SYS_CONFIG_PATH):
         exception(

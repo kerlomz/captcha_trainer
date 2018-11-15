@@ -20,6 +20,8 @@ Model:
 # Binaryzation: [-1: Off, >0 and < 255: On].
 # Smoothing: [-1: Off, >0: On].
 # Blur: [-1: Off, >0: On].
+# Resize: [WIDTH, HEIGHT]
+# - If the image size is too small, the training effect will be poor and you need to zoom in.
 Pretreatment:
   Binaryzation: -1
   Smoothing: -1

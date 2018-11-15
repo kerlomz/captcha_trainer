@@ -15,7 +15,10 @@ def check_charset(detail=False, case_sensitive=False, use_config=True):
     defined_upper = "UPPER" in CHAR_SET and use_config
     lower_case = case_insensitive or defined_lower
     upper_case = case_sensitive or defined_upper
-    samples = os.listdir(TRAINS_PATH)
+    samples = []
+    for trains_path in TRAINS_PATH:
+        samples += [trains for trains in os.listdir(trains_path)]
+    # samples = os.listdir(TRAINS_PATH)
     letters = char_set(CHAR_SET) if use_config else (alphanumeric if case_sensitive else alphanumeric_lower)
     trains_set_labels = [re.search(TRAINS_REGEX, i).group() for i in samples]
     char_exclude = []
@@ -60,4 +63,4 @@ def check_charset(detail=False, case_sensitive=False, use_config=True):
 
 
 if __name__ == '__main__':
-    check_charset(detail=False, case_sensitive=False, use_config=False)
+    check_charset(detail=True, case_sensitive=False, use_config=False)
