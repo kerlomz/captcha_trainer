@@ -13,8 +13,9 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def path2list(path, shuffle=False):
-    file_list = os.listdir(path)
-    group = [os.path.join(path, image_file) for image_file in file_list if not image_file.startswith(".")]
+    _path = path[0] if isinstance(path, list) else path
+    file_list = os.listdir(_path)
+    group = [os.path.join(_path, image_file) for image_file in file_list if not image_file.startswith(".")]
     if shuffle:
         random.shuffle(group)
     return group

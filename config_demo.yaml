@@ -37,6 +37,7 @@ Trains:
   EndAcc: 0.975
   EndEpochs: 1
   BatchSize: 64
+  TestBatchSize: 400
   LearningRate: 0.01
   DecayRate: 0.98
   DecaySteps: 10000

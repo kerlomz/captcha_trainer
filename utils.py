@@ -113,11 +113,12 @@ class DataIterator:
     def size(self):
         return self._size
 
-    def labels(self):
+    def labels(self, index):
         if (TRAINS_USE_TFRECORDS and self.mode == RunMode.Trains) or (TEST_USE_TFRECORDS and self.mode == RunMode.Test):
             return self.label_list
         else:
-            return self.label_list
+            return [self.label_list[i] for i in index]
+
 
     @staticmethod
     def _image(path):

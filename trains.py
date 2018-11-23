@@ -87,6 +87,12 @@ def train_process(mode=RunMode.Trains):
     print('Total {} Test DataSets'.format(test_feeder.size))
 
     num_train_samples = train_feeder.size
+    num_test_samples = test_feeder.size
+    if num_test_samples < TEST_BATCH_SIZE:
+        exception(
+            "The number of test sets cannot be less than the test batch size.",
+            ConfigException.INSUFFICIENT_SAMPLE
+        )
     num_batches_per_epoch = int(num_train_samples / BATCH_SIZE)
 
     config = tf.ConfigProto(
@@ -115,24 +121,14 @@ def train_process(mode=RunMode.Trains):
         print('Start training...')
 
         while 1:
-            shuffle_idx = np.random.permutation(num_train_samples)
+            shuffle_trains_idx = np.random.permutation(num_train_samples)
             train_cost = 0
             start_time = time.time()
-
-            if TRAINS_USE_TFRECORDS:
-                test_inputs, batch_seq_len, test_labels = test_feeder.generate_batch_by_tfrecords(sess)
-            else:
-                test_inputs, batch_seq_len, test_labels = test_feeder.generate_batch_by_files()
-
-            val_feed = {
-                model.inputs: test_inputs,
-                model.labels: test_labels
-            }
 
             for cur_batch in range(num_batches_per_epoch):
                 batch_time = time.time()
                 index_list = [
-                    shuffle_idx[i % num_train_samples] for i in
+                    shuffle_trains_idx[i % num_train_samples] for i in
                     range(cur_batch * BATCH_SIZE, (cur_batch + 1) * BATCH_SIZE)
                 ]
                 if TRAINS_USE_TFRECORDS:
@@ -162,15 +158,28 @@ def train_process(mode=RunMode.Trains):
                     logger.info('save checkpoint at step {0}', format(step))
 
                 if step % TRAINS_VALIDATION_STEPS == 0:
+                    shuffle_test_idx = np.random.permutation(num_test_samples)
                     batch_time = time.time()
+                    index_test = [
+                        shuffle_test_idx[i % num_test_samples] for i in
+                        range(cur_batch * TEST_BATCH_SIZE, (cur_batch + 1) * TEST_BATCH_SIZE)
+                    ]
+                    if TRAINS_USE_TFRECORDS:
+                        test_inputs, batch_seq_len, test_labels = test_feeder.generate_batch_by_tfrecords(sess)
+                    else:
+                        test_inputs, batch_seq_len, test_labels = test_feeder.generate_batch_by_files(index_test)
 
+                    val_feed = {
+                        model.inputs: test_inputs,
+                        model.labels: test_labels
+                    }
                     dense_decoded, last_batch_err, lr = sess.run(
                         [model.dense_decoded, model.last_batch_error, model.lrn_rate],
                         val_feed
                     )
 
                     accuracy = utils.accuracy_calculation(
-                        test_feeder.labels(),
+                        test_feeder.labels(index_test),
                         dense_decoded,
                         ignore_value=-1,
                     )
