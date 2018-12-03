@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import cv2
+import io
 import numpy as np
 import PIL.Image
 import tensorflow as tf
@@ -74,17 +75,11 @@ class DataIterator:
                     self.label_list.append(self._encoder(code))
         self._size = len(self.label_list)
 
-    def read_sample_from_tfrecords(self):
-        filename_queue = tf.train.string_input_producer([
-            os.path.join(TFRECORDS_DIR, TFRECORDS_NAME_MAP[self.mode] + ".tfrecords")
-        ])
+    def read_sample_from_tfrecords(self, path):
+        filename_queue = tf.train.string_input_producer([path])
         reader = tf.TFRecordReader()
 
-        self._size = len(
-            [_ for _ in tf.python_io.tf_record_iterator(
-                os.path.join(TFRECORDS_DIR, TFRECORDS_NAME_MAP[self.mode] + ".tfrecords")
-            )]
-        )
+        self._size = len([_ for _ in tf.python_io.tf_record_iterator(path)])
 
         _, serialized_example = reader.read(filename_queue)
         features = tf.parse_single_example(
@@ -94,20 +89,19 @@ class DataIterator:
                 'image': tf.FixedLenFeature([], tf.string),
             }
         )
-        image = tf.decode_raw(features['image'], tf.uint8)
-        image = tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+        image = tf.cast(features['image'], tf.string)
         label = tf.cast(features['label'], tf.string)
 
         min_after_dequeue = 1000
-        capacity = min_after_dequeue + 3 * BATCH_SIZE
-        image_batch, label_batch = tf.train.shuffle_batch(
+        batch = BATCH_SIZE if self.mode == RunMode.Trains else TEST_BATCH_SIZE
+        capacity = min_after_dequeue + 3 * batch
+        self.image_batch, self.label_batch = tf.train.shuffle_batch(
             [image, label],
-            batch_size=BATCH_SIZE,
+            batch_size=batch,
             capacity=capacity,
+            num_threads=64,
             min_after_dequeue=min_after_dequeue
         )
-        self.image_batch = image_batch
-        self.label_batch = label_batch
 
     @property
     def size(self):
@@ -119,14 +113,14 @@ class DataIterator:
         else:
             return [self.label_list[i] for i in index]
 
-
     @staticmethod
-    def _image(path):
+    def _image(path_or_bytes):
 
         # im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
         # if im is None:
-        pil_image = PIL.Image.open(path).convert("RGB")
+        path_or_stream = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, bytes) else path_or_bytes
+        pil_image = PIL.Image.open(path_or_stream).convert("RGB")
         im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
         im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
@@ -155,9 +149,10 @@ class DataIterator:
 
     def generate_batch_by_tfrecords(self, sess):
         _image, _label = sess.run([self.image_batch, self.label_batch])
-        image_batch = [i.astype(np.float32) / 255. for i in _image]
+        image_batch = [self._image(i) for i in _image]
         label_batch = [self._encoder(i) for i in _label]
         self._label_batch = label_batch
+        self.label_list = label_batch
         return self._generate_batch(image_batch, label_batch)
 
 
@@ -182,7 +177,7 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
             count += 1
     # Training is not useful for decoding
     # Here is for debugging, positioning error source use
-    #     if origin_label != decoded_label and len(error_sample) < 5:
+    #     if origin_label != decoded_label and len(error_sample) < 500:
     #         error_sample.append({
     #             "origin": "".join([decode_maps()[i] for i in origin_label]),
     #             "decode": "".join([decode_maps()[i] for i in decoded_label])

@@ -122,10 +122,18 @@ SAVE_CHECKPOINT = os.path.join(MODEL_PATH, CHECKPOINT_TAG)
 GPU_USAGE = cf_system['System'].get('DeviceUsage')
 
 """PATH & LABEL"""
-TEST_PATH = cf_system['System'].get('TestPath')
+TRAIN_PATH_IN_MODEL = cf_model.get('Trains')
+
+if TRAIN_PATH_IN_MODEL:
+    TRAINS_PATH = cf_model['Trains'].get('TrainsPath')
+    TEST_PATH = cf_model['Trains'].get('TestPath')
+else:
+    TRAINS_PATH = cf_system['System'].get('TrainsPath')
+    TEST_PATH = cf_system['System'].get('TestPath')
+
 TEST_REGEX = cf_system['System'].get('TestRegex')
 TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
-TRAINS_PATH = cf_system['System'].get('TrainsPath')
+
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
 TEST_SET_NUM = cf_system['System'].get('TestSetNum')

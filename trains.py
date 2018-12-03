@@ -50,40 +50,39 @@ def train_process(mode=RunMode.Trains):
     model = framework.GraphOCR(mode, NETWORK_MAP[NEU_CNN], NETWORK_MAP[NEU_RECURRENT])
     model.build_graph()
 
-    if isinstance(TRAINS_PATH, list):
-        origin_list = []
-        for trains_path in TRAINS_PATH:
-            origin_list += [os.path.join(trains_path, trains) for trains in os.listdir(trains_path)]
-    else:
-        origin_list = [os.path.join(TRAINS_PATH, trains) for trains in os.listdir(TRAINS_PATH)]
-    random.shuffle(origin_list)
-    if not HAS_TEST_SET:
-        test_list = origin_list[:TEST_SET_NUM]
-        trains_list = origin_list[TEST_SET_NUM:]
-    else:
-        if isinstance(TEST_PATH, list):
-            test_list = []
-            for test_path in TEST_PATH:
-                test_list += [os.path.join(test_path, test) for test in os.listdir(test_path)]
-        else:
-            test_list = [os.path.join(TEST_PATH, test) for test in os.listdir(TEST_PATH)]
-        random.shuffle(test_list)
-        trains_list = origin_list
-
     print('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
     if TRAINS_USE_TFRECORDS:
-        train_feeder.read_sample_from_tfrecords()
+        train_feeder.read_sample_from_tfrecords(TRAINS_PATH)
+        print('Loading Test DataSet...')
+        test_feeder = utils.DataIterator(mode=RunMode.Test)
+        test_feeder.read_sample_from_tfrecords(TEST_PATH)
     else:
+        if isinstance(TRAINS_PATH, list):
+            origin_list = []
+            for trains_path in TRAINS_PATH:
+                origin_list += [os.path.join(trains_path, trains) for trains in os.listdir(trains_path)]
+        else:
+            origin_list = [os.path.join(TRAINS_PATH, trains) for trains in os.listdir(TRAINS_PATH)]
+        random.shuffle(origin_list)
+        if not HAS_TEST_SET:
+            test_list = origin_list[:TEST_SET_NUM]
+            trains_list = origin_list[TEST_SET_NUM:]
+        else:
+            if isinstance(TEST_PATH, list):
+                test_list = []
+                for test_path in TEST_PATH:
+                    test_list += [os.path.join(test_path, test) for test in os.listdir(test_path)]
+            else:
+                test_list = [os.path.join(TEST_PATH, test) for test in os.listdir(TEST_PATH)]
+            random.shuffle(test_list)
+            trains_list = origin_list
         train_feeder.read_sample_from_files(trains_list)
-    print('Total {} Trains DataSets'.format(train_feeder.size))
-
-    print('Loading Test DataSet...')
-    test_feeder = utils.DataIterator(mode=RunMode.Test)
-    if TEST_USE_TFRECORDS:
-        test_feeder.read_sample_from_tfrecords()
-    else:
+        print('Loading Test DataSet...')
+        test_feeder = utils.DataIterator(mode=RunMode.Test)
         test_feeder.read_sample_from_files(test_list)
+
+    print('Total {} Trains DataSets'.format(train_feeder.size))
     print('Total {} Test DataSets'.format(test_feeder.size))
 
     num_train_samples = train_feeder.size
@@ -143,7 +142,7 @@ def train_process(mode=RunMode.Trains):
 
                 summary_str, batch_cost, step, _ = sess.run(
                     [model.merged_summary, model.cost, model.global_step, model.train_op],
-                    feed
+                    feed_dict=feed
                 )
                 train_cost += batch_cost * BATCH_SIZE
                 avg_train_cost = train_cost / ((cur_batch + 1) * BATCH_SIZE)
@@ -175,11 +174,10 @@ def train_process(mode=RunMode.Trains):
                     }
                     dense_decoded, last_batch_err, lr = sess.run(
                         [model.dense_decoded, model.last_batch_error, model.lrn_rate],
-                        val_feed
+                        feed_dict=val_feed
                     )
-
                     accuracy = utils.accuracy_calculation(
-                        test_feeder.labels(index_test),
+                        test_feeder.labels(None if TRAINS_USE_TFRECORDS else index_test),
                         dense_decoded,
                         ignore_value=-1,
                     )
