@@ -20,7 +20,7 @@ This project is only for training the model, If you need to deploy the model, pl
     virtualenv -p /usr/bin/python3 venv # venv is the name of the virtual environment.
     cd venv/ # venv is the name of the virtual environment.
     source bin/activate # to activate the current virtual environment.
-    cd captcha_platform # captcha_platform is the project path.
+    cd captcha_trainer # captcha_trainer is the project path.
     ```
 4. ```pip install -r requirements.txt```
 
@@ -66,10 +66,11 @@ This project is only for training the model, If you need to deploy the model, pl
       ValidationSteps: 500
       EndAcc: 0.975
       EndEpochs: 1
-      BatchSize: 256
+      BatchSize: 64
+      TestBatchSize: 400
       LearningRate: 0.01
       DecayRate: 0.98
-      DecaySteps: 5000
+      DecaySteps: 10000
     ```
     There are several common examples of TrainRegex:
     i. apple_20181010121212.jpg
@@ -83,8 +84,17 @@ This project is only for training the model, If you need to deploy the model, pl
     
 1. model.yaml  - Model Config
     ```yaml
+    # Sites: A bindable parameter used to select a model. 
+    # - If this parameter is defined, 
+    # - it can be identified by using the model_site parameter 
+    # - to identify a model that is inconsistent with the actual size of the current model.
     # ModelName: Corresponding to the model file in the model directory,
     # - such as YourModelName.pb, fill in YourModelName here.
+    # ModelType: This parameter is also used to locate the model. 
+    # - The difference from the sites is that if there is no corresponding site, 
+    # - the size will be used to assign the model. 
+    # - If a model of the corresponding size and corresponding to the ModelType is not found, 
+    # - the model belonging to the category is preferentially selected.
     # CharSet: Provides a default optional built-in solution:
     # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
     # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET]
@@ -95,7 +105,9 @@ This project is only for training the model, If you need to deploy the model, pl
     # - you can choose a built-in character set
     # - and set the characters to be excluded by CharExclude parameter.
     Model:
+      Sites: []
       ModelName: YourModelName
+      ModelType: 150x50
       CharSet: ALPHANUMERIC_LOWER
       CharExclude: []
       CharReplace: {}
@@ -115,8 +127,6 @@ This project is only for training the model, If you need to deploy the model, pl
     ```python -m tools.preview```
 2. Navigator (Currently only supports character set recommendations)
     ```python -m tools.navigator```
-3. Quantize(Deleted)
-    ```python -m tools.quantize --input=***.pb --output=***.pb```
 4. PyInstaller Package
     ```
     pip install pyinstaller
@@ -129,4 +139,4 @@ This project is only for training the model, If you need to deploy the model, pl
 This project use SATA License (Star And Thank Author License), so you have to star this project before using. Read the license carefully.
 
 # Introduction
-https://www.jianshu.com/p/b1a5427db6e2
+https://www.jianshu.com/p/80ef04b16efc
