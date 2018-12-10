@@ -94,6 +94,8 @@ GEN_CHAR_SET = [''] + GEN_CHAR_SET
 CHAR_REPLACE = cf_model['Model'].get('CharReplace')
 CHAR_REPLACE = CHAR_REPLACE if CHAR_REPLACE else {}
 CHAR_SET_LEN = len(GEN_CHAR_SET)
+CASE_SENSITIVE = cf_model['Model'].get('CaseSensitive')
+CASE_SENSITIVE = CASE_SENSITIVE if CASE_SENSITIVE else False
 
 """MODEL"""
 # NEU_NETWORK = cf_system['NeuralNet']

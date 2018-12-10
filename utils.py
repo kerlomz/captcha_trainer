@@ -50,7 +50,7 @@ class DataIterator:
             if not k or not v:
                 break
             code.replace(k, v)
-        code = code.lower() if 'LOWER' in CHAR_SET else code
+        code = code.lower() if 'LOWER' in CHAR_SET or not CASE_SENSITIVE else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
         return [SPACE_INDEX if code == SPACE_TOKEN else encode_maps()[c] for c in list(code)]
 
