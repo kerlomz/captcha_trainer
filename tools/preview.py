@@ -26,8 +26,17 @@ TRAINS_GROUP = path2list(TRAINS_PATH, True)
 
 def fetch():
     image_path = TRAINS_GROUP[random.randint(0, len(TRAINS_GROUP))]
-    image = Pil_Image.open(image_path).convert('L')
-    captcha_image = preprocessing(np.array(image), BINARYZATION, SMOOTH, BLUR)
+    image = Pil_Image.open(image_path)
+    rgb = image.split()
+    size = image.size
+    if len(rgb) > 3:
+        a = rgb[-1]
+        print(a.show())
+        background = Pil_Image.new('RGB', size, (255, 255, 255))
+        background.paste(image, (0, 0, size[0], size[1]), image)
+        image = background
+    image = image.convert('L')
+    captcha_image = preprocessing(np.array(image), BINARYZATION, SMOOTH, BLUR, REPLACE_TRANSPARENT)
     captcha_image = Pil_Image.fromarray(captcha_image)
     captcha_image = captcha_image.resize((IMAGE_WIDTH, IMAGE_HEIGHT))
     return image_path, ImageTk.PhotoImage(captcha_image)

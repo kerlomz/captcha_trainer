@@ -120,8 +120,17 @@ class DataIterator:
         # The OpenCV cannot handle gif format images, it will return None.
         # if im is None:
         path_or_stream = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, bytes) else path_or_bytes
-        pil_image = PIL.Image.open(path_or_stream).convert("RGB")
-        im = cv2.cvtColor(np.asarray(pil_image), cv2.COLOR_RGB2GRAY)
+        pil_image = PIL.Image.open(path_or_stream)
+        rgb = pil_image.split()
+        size = pil_image.size
+
+        if len(rgb) > 3 and REPLACE_TRANSPARENT:
+            background = PIL.Image.new('RGB', pil_image.size, (255, 255, 255))
+            background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
+            pil_image = background
+
+        pil_image = pil_image.convert('L')
+        im = np.array(pil_image)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
         im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
         im = im.swapaxes(0, 1)
