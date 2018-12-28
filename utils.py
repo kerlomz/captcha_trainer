@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-import cv2
 import io
-import numpy as np
+
 import PIL.Image
+import cv2
+import numpy as np
 import tensorflow as tf
+
 from config import *
 from pretreatment import preprocessing
 
@@ -22,6 +24,7 @@ REGEX_MAP = {
 
 def encode_maps():
     return {char: i for i, char in enumerate(GEN_CHAR_SET, 0)}
+
 
 # Training is not useful for decoding
 # Here is for debugging, positioning error source use
@@ -52,14 +55,31 @@ class DataIterator:
             code.replace(k, v)
         code = code.lower() if 'LOWER' in CHAR_SET or not CASE_SENSITIVE else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
-        return [SPACE_INDEX if code == SPACE_TOKEN else encode_maps()[c] for c in list(code)]
+        try:
+            return [SPACE_INDEX if code == SPACE_TOKEN else encode_maps()[c] for c in list(code)]
+        except KeyError as e:
+            exception(
+                'The sample label {} contains invalid charset: {}.'.format(
+                    code, e.args[0]
+                ), ConfigException.SAMPLE_LABEL_ERROR
+            )
 
     def read_sample_from_files(self, data_set=None):
         if data_set:
             self.image_path = data_set
-            self.label_list = [
-                self._encoder(re.search(REGEX_MAP[self.mode], i.split(PATH_SPLIT)[-1]).group()) for i in data_set
-            ]
+            try:
+                self.label_list = [
+                    self._encoder(re.search(REGEX_MAP[self.mode], i.split(PATH_SPLIT)[-1]).group()) for i in data_set
+                ]
+            except AttributeError as e:
+                regex_not_found = "group" in e.args[0]
+                exception(
+                    "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
+                        "TrainRegex" if self.mode == RunMode.Trains else "TestRegex",
+                        TRAINS_REGEX if self.mode == RunMode.Trains else TEST_REGEX
+                    ),
+                    ConfigException.GET_LABEL_REGEX_ERROR
+                )
         else:
             for root, sub_folder, file_list in os.walk(self.data_dir):
                 for file_path in file_list:
@@ -68,7 +88,16 @@ class DataIterator:
                     # Get the label from the file name based on the regular expression.
                     code = re.search(
                         REGEX_MAP[self.mode], image_name.split(PATH_SPLIT)[-1]
-                    ).group()
+                    )
+                    if not code:
+                        exception(
+                            "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
+                                "TrainRegex" if self.mode == RunMode.Trains else "TestRegex",
+                                TRAINS_REGEX if self.mode == RunMode.Trains else TEST_REGEX
+                            ),
+                            ConfigException.GET_LABEL_REGEX_ERROR
+                        )
+                    code = code.group()
                     # The manual verification code platform is not case sensitive,
                     # - it will affect the accuracy of the training set.
                     # Here is a case conversion based on the selected character set.
