@@ -149,8 +149,8 @@ class GraphOCR(object):
             labels=self.labels,
             inputs=self.predict,
             sequence_length=self.seq_len,
-            ctc_merge_repeated=True,
-            preprocess_collapse_repeated=False
+            ctc_merge_repeated=CTC_MERGE_REPEATED,
+            preprocess_collapse_repeated=PREPROCESS_COLLAPSE_REPEATED
         )
         self.cost = tf.reduce_mean(self.loss)
         tf.summary.scalar('cost', self.cost)

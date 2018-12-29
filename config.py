@@ -158,6 +158,10 @@ BATCH_SIZE = cf_system['Trains'].get('BatchSize')
 TEST_BATCH_SIZE = cf_system['Trains'].get('TestBatchSize')
 TEST_BATCH_SIZE = TEST_BATCH_SIZE if TEST_BATCH_SIZE else 200
 MOMENTUM = 0.9
+PREPROCESS_COLLAPSE_REPEATED = cf_system['Trains'].get('PreprocessCollapseRepeated')
+PREPROCESS_COLLAPSE_REPEATED = PREPROCESS_COLLAPSE_REPEATED if PREPROCESS_COLLAPSE_REPEATED is not None else False
+CTC_MERGE_REPEATED = cf_system['Trains'].get('CTCMergeRepeated')
+CTC_MERGE_REPEATED = CTC_MERGE_REPEATED if CTC_MERGE_REPEATED is not None else True
 
 """PRETREATMENT"""
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')
