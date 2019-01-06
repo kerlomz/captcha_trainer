@@ -73,13 +73,14 @@ class DataIterator:
                 ]
             except AttributeError as e:
                 regex_not_found = "group" in e.args[0]
-                exception(
-                    "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
-                        "TrainRegex" if self.mode == RunMode.Trains else "TestRegex",
-                        TRAINS_REGEX if self.mode == RunMode.Trains else TEST_REGEX
-                    ),
-                    ConfigException.GET_LABEL_REGEX_ERROR
-                )
+                if regex_not_found:
+                    exception(
+                        "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
+                            "TrainRegex" if self.mode == RunMode.Trains else "TestRegex",
+                            TRAINS_REGEX if self.mode == RunMode.Trains else TEST_REGEX
+                        ),
+                        ConfigException.GET_LABEL_REGEX_ERROR
+                    )
         else:
             for root, sub_folder, file_list in os.walk(self.data_dir):
                 for file_path in file_list:

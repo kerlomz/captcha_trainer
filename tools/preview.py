@@ -36,7 +36,7 @@ def fetch():
         background.paste(image, (0, 0, size[0], size[1]), image)
         image = background
     image = image.convert('L')
-    captcha_image = preprocessing(np.array(image), BINARYZATION, SMOOTH, BLUR, REPLACE_TRANSPARENT)
+    captcha_image = preprocessing(np.array(image), BINARYZATION, SMOOTH, BLUR)
     captcha_image = Pil_Image.fromarray(captcha_image)
     captcha_image = captcha_image.resize((IMAGE_WIDTH, IMAGE_HEIGHT))
     return image_path, ImageTk.PhotoImage(captcha_image)

@@ -73,8 +73,7 @@ def _convert_dataset(file_list, mode):
     sys.stdout.flush()
 
 
-if __name__ == '__main__':
-
+def run():
     if _dataset_exists(TFRECORDS_DIR):
         print('Exists!')
     else:
@@ -101,3 +100,7 @@ if __name__ == '__main__':
         _convert_dataset(test_dataset, mode=RunMode.Test)
         _convert_dataset(trains_dataset, mode=RunMode.Trains)
         print("Done!")
+
+
+if __name__ == '__main__':
+    run()

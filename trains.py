@@ -152,11 +152,11 @@ def train_process(mode=RunMode.Trains):
                 if step % 100 == 0:
                     print('Step: {} Time: {:.3f}, Cost = {:.3f}'.format(step, time.time() - batch_time, avg_train_cost))
 
-                if step % TRAINS_SAVE_STEPS == 0:
+                if step % TRAINS_SAVE_STEPS == 0 and step != 0:
                     saver.save(sess, SAVE_MODEL, global_step=step)
                     logger.info('save checkpoint at step {0}', format(step))
 
-                if step % TRAINS_VALIDATION_STEPS == 0:
+                if step % TRAINS_VALIDATION_STEPS == 0 and step != 0:
                     shuffle_test_idx = np.random.permutation(num_test_samples)
                     batch_time = time.time()
                     index_test = [
