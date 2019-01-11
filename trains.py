@@ -202,7 +202,7 @@ def train_process(mode=RunMode.Trains):
 def generate_config(acc):
     with open(MODEL_CONFIG_PATH, "r", encoding="utf8") as current_fp:
         text = "".join(current_fp.readlines())
-    text = text.replace(TARGET_MODEL, "{}_{}".format(TARGET_MODEL, int(acc * 10000)))
+        text = text.replace("ModelName: {}".format(TARGET_MODEL), "ModelName: {}_{}".format(TARGET_MODEL, int(acc * 10000)))
     with open(os.path.join(OUTPUT_PATH, "{}_model.yaml".format(TARGET_MODEL)), "w", encoding="utf8") as save_fp:
         save_fp.write(text)
 
