@@ -30,8 +30,6 @@ def fetch():
     rgb = image.split()
     size = image.size
     if len(rgb) > 3:
-        a = rgb[-1]
-        print(a.show())
         background = Pil_Image.new('RGB', size, (255, 255, 255))
         background.paste(image, (0, 0, size[0], size[1]), image)
         image = background
