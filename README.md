@@ -140,3 +140,7 @@ This project use SATA License (Star And Thank Author License), so you have to st
 
 # Introduction
 https://www.jianshu.com/p/80ef04b16efc
+
+# Donate
+Thank you very much for your support of my project.
+![赞助](https://kerlomz-business.oss-cn-hangzhou.aliyuncs.com/WeChat%20Image_20190212111824.jpg)
