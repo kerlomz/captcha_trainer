@@ -1,6 +1,6 @@
 # 项目介绍
 
-该项目是基于 CNN5/DenseNet+BLSTM/LSTM+CTC 来实现验证码识别，. 
+验证码识别 - 该项目是基于 CNN5/DenseNet+BLSTM/LSTM+CTC 来实现验证码识别. 
 该项目仅用于训练，如果需要部署模型请移步：
 
 https://github.com/kerlomz/captcha_platform （通用WEB服务，HTTP请求调用）
