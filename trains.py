@@ -84,6 +84,8 @@ def train_process(mode=RunMode.Trains):
 
     print('Total {} Trains DataSets'.format(train_feeder.size))
     print('Total {} Test DataSets'.format(test_feeder.size))
+    if test_feeder.size >= train_feeder.size:
+        exception("The number of training sets cannot be less than the test set.", )
 
     num_train_samples = train_feeder.size
     num_test_samples = test_feeder.size
@@ -149,8 +151,8 @@ def train_process(mode=RunMode.Trains):
 
                 train_writer.add_summary(summary_str, step)
 
-                if step % 100 == 0:
-                    print('Step: {} Time: {:.3f}, Cost = {:.3f}'.format(step, time.time() - batch_time, avg_train_cost))
+                if step % 100 == 0 and step != 0:
+                    print('Step: {} Time: {:.3f}, Cost = {:.4f}'.format(step, time.time() - batch_time, avg_train_cost))
 
                 if step % TRAINS_SAVE_STEPS == 0 and step != 0:
                     saver.save(sess, SAVE_MODEL, global_step=step)
@@ -181,7 +183,7 @@ def train_process(mode=RunMode.Trains):
                         dense_decoded,
                         ignore_value=-1,
                     )
-                    log = "Epoch: {}, Step: {}, Accuracy = {:.3f}, Cost = {:.3f}, " \
+                    log = "Epoch: {}, Step: {}, Accuracy = {:.3f}, Cost = {:.4f}, " \
                           "Time = {:.3f}, LearningRate: {}, LastBatchError: {}"
                     print(log.format(
                         epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr, last_batch_err

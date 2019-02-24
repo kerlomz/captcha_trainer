@@ -39,7 +39,6 @@ NETWORK_MAP = {
     'BLSTM': RecurrentNetwork.BLSTM,
 }
 
-
 TFRECORDS_NAME_MAP = {
     RunMode.Trains: 'trains',
     RunMode.Test: 'test'
@@ -133,11 +132,12 @@ else:
     TRAINS_PATH = cf_system['System'].get('TrainsPath')
     TEST_PATH = cf_system['System'].get('TestPath')
 
-TEST_REGEX = cf_system['System'].get('TestRegex')
-TEST_REGEX = TEST_REGEX if TEST_REGEX else ".*?(?=_.*\.)"
-
 TRAINS_REGEX = cf_system['System'].get('TrainRegex')
-TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_.*\.)"
+TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_)"
+
+TEST_REGEX = cf_system['System'].get('TestRegex')
+TEST_REGEX = TEST_REGEX if TEST_REGEX else (TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_)")
+
 TEST_SET_NUM = cf_system['System'].get('TestSetNum')
 TEST_SET_NUM = TEST_SET_NUM if TEST_SET_NUM else 1000
 HAS_TEST_SET = TEST_PATH and (os.path.exists(TEST_PATH) if isinstance(TEST_PATH, str) else True)
@@ -178,7 +178,8 @@ QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_
 
 def _checkpoint(_name, _path):
     file_list = os.listdir(_path)
-    checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if _name + ".model" in i and i.endswith('.meta')]
+    checkpoint = ['"{}"'.format(i.split(".meta")[0]) for i in file_list if
+                  _name + ".model" in i and i.endswith('.meta')]
     if not checkpoint:
         return None
     _checkpoint_step = [int(re.search('(?<=model-).*?(?=")', i).group()) for i in checkpoint]

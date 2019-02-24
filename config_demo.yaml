@@ -7,11 +7,11 @@
 # - from the training set when you are not preparing the test set separately.
 System:
   DeviceUsage: 0.7
-  TrainsPath: 'E:\Task\Trains\YourModelName\'
   TrainRegex: '.*?(?=_)'
-  TestPath: 'E:\Task\TestGroup\YourModelName\'
   TestRegex: '.*?(?=_)'
-  TestSetNum: 1000
+  TrainsPath: './dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords'
+  TestPath: './dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords'
+  TestSetNum: 300
 
 # CNNNetwork: [CNN5, DenseNet]
 # RecurrentNetwork: [BLSTM, LSTM]
@@ -37,7 +37,7 @@ Trains:
   EndAcc: 0.975
   EndEpochs: 1
   BatchSize: 64
-  TestBatchSize: 400
+  TestBatchSize: 300
   LearningRate: 0.01
   DecayRate: 0.98
   DecaySteps: 10000
