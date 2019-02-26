@@ -85,6 +85,8 @@ class DataIterator:
             for root, sub_folder, file_list in os.walk(self.data_dir):
                 for file_path in file_list:
                     image_name = os.path.join(root, file_path)
+                    if file_path in IGNORE_FILES:
+                        continue
                     self.image_path.append(image_name)
                     # Get the label from the file name based on the regular expression.
                     code = re.search(

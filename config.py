@@ -14,6 +14,7 @@ from exception import exception, ConfigException
 # Just disables the warning, doesn't enable AVX/FMA
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 PROJECT_PATH = "."
+IGNORE_FILES = ['.DS_Store']
 
 
 class RunMode(object):
@@ -150,6 +151,8 @@ TRAINS_USE_TFRECORDS = isinstance(TRAINS_PATH, str) and TRAINS_PATH.endswith("tf
 TRAINS_SAVE_STEPS = cf_system['Trains'].get('SavedSteps')
 TRAINS_VALIDATION_STEPS = cf_system['Trains'].get('ValidationSteps')
 TRAINS_END_ACC = cf_system['Trains'].get('EndAcc')
+TRAINS_END_COST = cf_system['Trains'].get('EndCost')
+TRAINS_END_COST = TRAINS_END_COST if TRAINS_END_COST else 1
 TRAINS_END_EPOCHS = cf_system['Trains'].get('EndEpochs')
 TRAINS_LEARNING_RATE = cf_system['Trains'].get('LearningRate')
 DECAY_RATE = cf_system['Trains'].get('DecayRate')

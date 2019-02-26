@@ -125,7 +125,7 @@ def train_process(mode=RunMode.Trains):
             shuffle_trains_idx = np.random.permutation(num_train_samples)
             train_cost = 0
             start_time = time.time()
-
+            _avg_train_cost = 0
             for cur_batch in range(num_batches_per_epoch):
                 batch_time = time.time()
                 index_list = [
@@ -189,7 +189,8 @@ def train_process(mode=RunMode.Trains):
                         epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr, last_batch_err
                     ))
 
-                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
+                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and avg_train_cost <= TRAINS_END_COST:
+                        _avg_train_cost = avg_train_cost
                         break
             if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
                 compile_graph(accuracy)
