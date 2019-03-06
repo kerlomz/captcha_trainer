@@ -190,8 +190,13 @@ class DataIterator:
 
     def generate_batch_by_tfrecords(self, sess):
         _image, _label = sess.run([self.image_batch, self.label_batch])
-        image_batch = [self._image(i) for i in _image]
-        label_batch = [self._encoder(i) for i in _label]
+        image_batch, label_batch = [], []
+        for (i1, i2) in zip(_image, _label):
+            try:
+                image_batch.append(self._image(i1))
+                label_batch.append(self._encoder(i2))
+            except OSError:
+                continue
         self._label_batch = label_batch
         self.label_list = label_batch
         return self._generate_batch(image_batch, label_batch)

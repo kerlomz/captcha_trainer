@@ -188,11 +188,10 @@ def train_process(mode=RunMode.Trains):
                     print(log.format(
                         epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr, last_batch_err
                     ))
-
+                    _avg_train_cost = avg_train_cost
                     if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and avg_train_cost <= TRAINS_END_COST:
-                        _avg_train_cost = avg_train_cost
                         break
-            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS:
+            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and _avg_train_cost <= TRAINS_END_COST:
                 compile_graph(accuracy)
                 print('Total Time: {}'.format(time.time() - start_time))
                 break
