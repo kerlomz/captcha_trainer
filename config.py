@@ -3,9 +3,12 @@
 # Author: kerlomz <kerlomz@gmail.com>
 
 import os
-import re
-import yaml
 import platform
+import re
+from enum import Enum, unique
+
+import yaml
+
 from character import *
 from exception import exception, ConfigException
 
@@ -23,12 +26,14 @@ class RunMode(object):
     Predict = 'predict'
 
 
-class CNNNetwork(object):
+@unique
+class CNNNetwork(Enum):
     CNN5 = 'CNN5'
     DenseNet = 'DenseNet'
 
 
-class RecurrentNetwork:
+@unique
+class RecurrentNetwork(Enum):
     LSTM = 'LSTM'
     BLSTM = 'BLSTM'
 
