@@ -5,8 +5,16 @@ import os
 import json
 import PIL.Image as pil_image
 
-charset = "ALPHANUMERIC_LOWER"
 
+class RecurrentNetwork:
+    LSTM = 'LSTM'
+    BLSTM = 'BLSTM'
+    SRU = 'SRU'
+    BSRU = 'BSRU'
+
+
+charset = "ALPHANUMERIC_LOWER"
+network = RecurrentNetwork.BLSTM
 trains_path = [
     r"D:\TrainSet\***",
 ]
@@ -68,17 +76,17 @@ else:
     r_height = height
 resize = "[{}, {}]".format(width if r_height == height else 150, r_height)
 
-model_name = 'tutorial-mix-CNN5BLSTM-{}'.format(size_str)
+model_name = 'sell-mix-CNN5{}-{}'.format(network, size_str)
 trains_path = json.dumps(trains_path, ensure_ascii=False).replace("]", "  ]")
 result = model.replace("@trains_path", trains_path).replace("@model_name", model_name).replace("@resize", resize).replace("@size_str", size_str).replace("@width", str(width)).replace("@height", str(height)).replace("@charset", charset)
 print(result)
 
-with open("model.yaml".format(size_str), "w") as f:
+with open("model.yaml".format(size_str), "w", encoding="utf8") as f:
     f.write(result)
 
 from make_dataset import run
 from trains import main
 run()
-with open("model.yaml".format(size_str), "w") as f:
+with open("model1.yaml".format(size_str), "w") as f:
     f.write("\n".join(result.split("\n")[:-3]).replace("#  TrainsPath", "  TrainsPath").replace("#  TestPath", "  TestPath"))
 main(None)

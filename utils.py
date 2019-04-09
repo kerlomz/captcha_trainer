@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import io
-
+import time
 import PIL.Image
 import cv2
 import numpy as np
@@ -36,12 +36,9 @@ class DataIterator:
     def __init__(self, mode: RunMode):
         self.mode = mode
         self.data_dir = PATH_MAP[mode]
-        self.image = []
+        self.next_element = None
         self.image_path = []
         self.label_list = []
-        self.image_batch = []
-        self.label_batch = []
-        self._label_batch = []
         self._size = 0
 
     @staticmethod
@@ -107,15 +104,11 @@ class DataIterator:
                     self.label_list.append(self._encoder(code))
         self._size = len(self.label_list)
 
-    def read_sample_from_tfrecords(self, path):
-        filename_queue = tf.train.string_input_producer([path])
-        reader = tf.TFRecordReader()
+    @staticmethod
+    def parse_example(serial_example):
 
-        self._size = len([_ for _ in tf.python_io.tf_record_iterator(path)])
-
-        _, serialized_example = reader.read(filename_queue)
         features = tf.parse_single_example(
-            serialized_example,
+            serial_example,
             features={
                 'label': tf.FixedLenFeature([], tf.string),
                 'image': tf.FixedLenFeature([], tf.string),
@@ -124,16 +117,37 @@ class DataIterator:
         image = tf.cast(features['image'], tf.string)
         label = tf.cast(features['label'], tf.string)
 
+        return image, label
+
+    @staticmethod
+    def get_label_and_lens(sequences):
+        """
+        Args:
+            sequences:a list of lists of dtype where each element is a sequence
+        Returns:
+            A tuple with(flat_labels,per_lebel_len_list)
+        """
+        flat_labels = []
+        labels_len = []
+
+        for n, seq in enumerate(sequences):
+            flat_labels.extend(seq)
+            labels_len.append(len(seq))
+
+        flat_labels = np.asarray(flat_labels, dtype=np.int32)
+        labels_len = np.asarray(labels_len, dtype=np.int32)
+        return flat_labels, labels_len
+
+    def read_sample_from_tfrecords(self, path):
+        self._size = len([_ for _ in tf.python_io.tf_record_iterator(path)])
+
         min_after_dequeue = 1000
         batch = BATCH_SIZE if self.mode == RunMode.Trains else TEST_BATCH_SIZE
-        capacity = min_after_dequeue + 3 * batch
-        self.image_batch, self.label_batch = tf.train.shuffle_batch(
-            [image, label],
-            batch_size=batch,
-            capacity=capacity,
-            num_threads=64,
-            min_after_dequeue=min_after_dequeue
-        )
+
+        dataset_train = tf.data.TFRecordDataset(path).map(self.parse_example)
+        dataset_train = dataset_train.shuffle(min_after_dequeue).batch(batch).repeat()
+        iterator = dataset_train.make_one_shot_iterator()
+        self.next_element = iterator.get_next()
 
     @property
     def size(self):
@@ -189,7 +203,8 @@ class DataIterator:
         return batch_inputs, batch_seq_len, batch_labels
 
     def generate_batch_by_tfrecords(self, sess):
-        _image, _label = sess.run([self.image_batch, self.label_batch])
+        _image, _label = sess.run(self.next_element)
+
         image_batch, label_batch = [], []
         for (i1, i2) in zip(_image, _label):
             try:
@@ -197,12 +212,13 @@ class DataIterator:
                 label_batch.append(self._encoder(i2))
             except OSError:
                 continue
-        self._label_batch = label_batch
         self.label_list = label_batch
         return self._generate_batch(image_batch, label_batch)
 
 
-def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
+def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
+    if ignore_value is None:
+        ignore_value = [-1, 0]
     original_seq_len = len(original_seq)
     decoded_seq_len = len(decoded_seq)
     if original_seq_len != decoded_seq_len:
@@ -216,7 +232,7 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
     # Here is for debugging, positioning error source use
     # error_sample = []
     for i, origin_label in enumerate(original_seq):
-        decoded_label = [j for j in decoded_seq[i] if j != ignore_value]
+        decoded_label = [j for j in decoded_seq[i] if j not in ignore_value]
         if i < 5:
             print(i, len(origin_label), len(decoded_label), origin_label, decoded_label)
         if origin_label == decoded_label:
@@ -232,7 +248,6 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=-1):
     return count * 1.0 / len(original_seq)
 
 
-# Convert a sequence list to a sparse matrix
 def sparse_tuple_from_label(sequences, dtype=np.int32):
     indices = []
     values = []
@@ -244,3 +259,4 @@ def sparse_tuple_from_label(sequences, dtype=np.int32):
     values = np.asarray(values, dtype=dtype)
     shape = np.asarray([len(sequences), np.asarray(indices).max(0)[1] + 1], dtype=np.int64)
     return indices, values, shape
+

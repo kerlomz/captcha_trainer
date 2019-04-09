@@ -29,20 +29,26 @@ class RunMode(object):
 @unique
 class CNNNetwork(Enum):
     CNN5 = 'CNN5'
-    DenseNet = 'DenseNet'
+    ResNet = 'ResNet'
 
 
 @unique
 class RecurrentNetwork(Enum):
     LSTM = 'LSTM'
     BLSTM = 'BLSTM'
+    SRU = 'SRU'
+    BSRU = 'BSRU'
+    GRU = 'GRU'
 
 
 NETWORK_MAP = {
     'CNN5': CNNNetwork.CNN5,
-    'DenseNet': CNNNetwork.DenseNet,
+    'ResNet': CNNNetwork.ResNet,
     'LSTM': RecurrentNetwork.LSTM,
     'BLSTM': RecurrentNetwork.BLSTM,
+    'SRU': RecurrentNetwork.SRU,
+    'BSRU': RecurrentNetwork.BSRU,
+    'GRU': RecurrentNetwork.GRU,
 }
 
 TFRECORDS_NAME_MAP = {
@@ -170,6 +176,10 @@ PREPROCESS_COLLAPSE_REPEATED = cf_system['Trains'].get('PreprocessCollapseRepeat
 PREPROCESS_COLLAPSE_REPEATED = PREPROCESS_COLLAPSE_REPEATED if PREPROCESS_COLLAPSE_REPEATED is not None else False
 CTC_MERGE_REPEATED = cf_system['Trains'].get('CTCMergeRepeated')
 CTC_MERGE_REPEATED = CTC_MERGE_REPEATED if CTC_MERGE_REPEATED is not None else True
+CTC_BEAM_WIDTH = cf_system['Trains'].get('CTCBeamWidth')
+CTC_BEAM_WIDTH = CTC_BEAM_WIDTH if CTC_BEAM_WIDTH is not None else 1
+CTC_TOP_PATHS = cf_system['Trains'].get('CTCTopPaths')
+CTC_TOP_PATHS = CTC_TOP_PATHS if CTC_TOP_PATHS is not None else 1
 
 """PRETREATMENT"""
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')

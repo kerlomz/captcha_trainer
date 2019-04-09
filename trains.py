@@ -97,6 +97,7 @@ def train_process(mode=RunMode.Trains):
     num_batches_per_epoch = int(num_train_samples / BATCH_SIZE)
 
     config = tf.ConfigProto(
+        inter_op_parallelism_threads=100,
         allow_soft_placement=True,
         log_device_placement=False,
         gpu_options=tf.GPUOptions(
@@ -109,8 +110,6 @@ def train_process(mode=RunMode.Trains):
     with tf.Session(config=config) as sess:
         init_op = tf.global_variables_initializer()
         sess.run(init_op)
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=2)
         train_writer = tf.summary.FileWriter('logs', sess.graph)
@@ -174,19 +173,19 @@ def train_process(mode=RunMode.Trains):
                         model.inputs: test_inputs,
                         model.labels: test_labels
                     }
-                    dense_decoded, last_batch_err, lr = sess.run(
-                        [model.dense_decoded, model.last_batch_error, model.lrn_rate],
+                    dense_decoded, lr = sess.run(
+                        [model.dense_decoded, model.lrn_rate],
                         feed_dict=val_feed
                     )
                     accuracy = utils.accuracy_calculation(
                         test_feeder.labels(None if TRAINS_USE_TFRECORDS else index_test),
                         dense_decoded,
-                        ignore_value=-1,
+                        ignore_value=[0, -1],
                     )
                     log = "Epoch: {}, Step: {}, Accuracy = {:.3f}, Cost = {:.4f}, " \
-                          "Time = {:.3f}, LearningRate: {}, LastBatchError: {}"
+                          "Time = {:.3f}, LearningRate: {}"
                     print(log.format(
-                        epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr, last_batch_err
+                        epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr
                     ))
                     _avg_train_cost = avg_train_cost
                     if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and avg_train_cost <= TRAINS_END_COST:
@@ -196,9 +195,6 @@ def train_process(mode=RunMode.Trains):
                 print('Total Time: {}'.format(time.time() - start_time))
                 break
             epoch_count += 1
-
-        coord.request_stop()
-        coord.join(threads)
 
 
 def generate_config(acc):

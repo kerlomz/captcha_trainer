@@ -13,9 +13,9 @@ System:
   TestPath: './dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords'
   TestSetNum: 300
 
-# CNNNetwork: [CNN5, DenseNet]
-# RecurrentNetwork: [BLSTM, LSTM]
-# - The recommended configuration is CNN5+BLSTM / DenseNet+BLSTM
+# CNNNetwork: [CNN5, ResNet]
+# RecurrentNetwork: [BLSTM, LSTM, SRU, BSRU, GRU]
+# - The recommended configuration is CNN5+BLSTM / ResNet+BLSTM
 # HiddenNum: [64, 128, 256]
 # - This parameter indicates the number of nodes used to remember and store past states.
 NeuralNet:
@@ -41,5 +41,9 @@ Trains:
   LearningRate: 0.01
   DecayRate: 0.98
   DecaySteps: 10000
+  PreprocessCollapseRepeated: False
+  CTCMergeRepeated: True
+  CTCBeamWidth: 5
+  CTCTopPaths: 1
 
 
