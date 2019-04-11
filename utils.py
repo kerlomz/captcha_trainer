@@ -175,12 +175,14 @@ class DataIterator:
             background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
             pil_image = background
 
-        pil_image = pil_image.convert('L')
+        if IMAGE_CHANNEL == 1:
+            pil_image = pil_image.convert('L')
+
         im = np.array(pil_image)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
         im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
         im = im.swapaxes(0, 1)
-        return np.array(im[:, :, np.newaxis] / 255.)
+        return np.array(im[:, :, np.newaxis] if IMAGE_CHANNEL == 1 else im[:, :] / 255.)
 
     @staticmethod
     def _get_input_lens(sequences):

@@ -113,6 +113,8 @@ CASE_SENSITIVE = CASE_SENSITIVE if CASE_SENSITIVE is not None else True
 TARGET_MODEL = cf_model['Model'].get('ModelName')
 IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
 IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
+IMAGE_CHANNEL = cf_model['Model'].get('ImageChannel')
+IMAGE_CHANNEL = IMAGE_CHANNEL if IMAGE_CHANNEL else 1
 
 """NEURAL NETWORK"""
 NEU_CNN = cf_system['NeuralNet'].get('CNNNetwork')

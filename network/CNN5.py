@@ -3,6 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
 from network.utils import NetworkUtils
+from config import IMAGE_CHANNEL
 
 
 class CNN5(object):
@@ -16,7 +17,7 @@ class CNN5(object):
     def build(self):
         with tf.variable_scope('cnn'):
             with tf.variable_scope('unit-1'):
-                x = self.utils.conv2d(self.inputs, 'cnn-1', 7, 1, self.filters[0], self.strides[0])
+                x = self.utils.conv2d(self.inputs, 'cnn-1', 7, IMAGE_CHANNEL, self.filters[0], self.strides[0])
                 x = self.utils.batch_norm('bn1', x)
                 x = self.utils.leaky_relu(x, 0.01)
                 x = self.utils.max_pool(x, 2, self.strides[0])
