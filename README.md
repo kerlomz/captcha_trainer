@@ -1,6 +1,6 @@
 # 项目介绍
 
-验证码识别 - 该项目是基于 CNN5/DenseNet+BLSTM/LSTM+CTC 来实现验证码识别. 
+验证码识别 - 该项目是基于 CNN5/ResNet+BLSTM/LSTM/GRU/SRU/BSRU+CTC 来实现验证码识别. 
 该项目仅用于训练，如果需要部署模型请移步：
 
 https://github.com/kerlomz/captcha_platform （通用WEB服务，HTTP请求调用）
@@ -158,14 +158,18 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
      SavedSteps: 100
      ValidationSteps: 500
      EndAcc: 0.98
-     EndEpochs: 1
+     EndCost: 1
+     EndEpochs: 2
      BatchSize: 64
      TestBatchSize: 300
      LearningRate: 0.01
      DecayRate: 0.98
      DecaySteps: 100000
      PreprocessCollapseRepeated: False
-     CTCMergeRepeated: True
+     CTCMergeRepeated: True  
+     CTCBeamWidth: 5
+     CTCTopPaths: 1
+  
    ```
 
    There are several common examples of TrainRegex:

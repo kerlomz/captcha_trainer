@@ -35,6 +35,7 @@ Trains:
   SavedSteps: 100
   ValidationSteps: 500
   EndAcc: 0.975
+  EndCost: 1
   EndEpochs: 1
   BatchSize: 64
   TestBatchSize: 300
