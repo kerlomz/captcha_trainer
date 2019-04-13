@@ -23,7 +23,6 @@ class GraphOCR(object):
         self.recurrent = recurrent
         self.inputs = tf.placeholder(tf.float32, [None, RESIZE[0], RESIZE[1], IMAGE_CHANNEL], name='input')
         self.labels = tf.sparse_placeholder(tf.int32, name='labels')
-        self._extra_train_ops = []
         self.seq_len = None
         self.merged_summary = None
 
@@ -47,11 +46,11 @@ class GraphOCR(object):
         self.seq_len = tf.fill([tf.shape(x)[0]], shape_list[1], name="seq_len")
 
         if self.recurrent == RecurrentNetwork.LSTM:
-            recurrent_network_builder = LSTM(self.mode, x, self.seq_len)
+            recurrent_network_builder = LSTM(self.utils, x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.BLSTM:
-            recurrent_network_builder = BLSTM(self.mode, self.utils, x, self.seq_len)
+            recurrent_network_builder = BLSTM(self.utils, x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.GRU:
-            recurrent_network_builder = GRU(self.inputs, self.seq_len)
+            recurrent_network_builder = GRU(x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.SRU:
             recurrent_network_builder = SRU(x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.BSRU:
@@ -125,7 +124,7 @@ class GraphOCR(object):
         )
 
         # Storing adjusted smoothed mean and smoothed variance operations
-        train_ops = [self.optimizer] + self._extra_train_ops
+        train_ops = [self.optimizer] + self.utils.extra_train_ops
         self.train_op = tf.group(*train_ops)
 
         # Option 2: tf.contrib.ctc.ctc_beam_search_decoder

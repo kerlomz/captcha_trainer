@@ -28,6 +28,7 @@ Model:
   ImageWidth: 150
   ImageHeight: 50
   ImageChannel: 1
+  Version: 1.0
 
 # Binaryzation: [-1: Off, >0 and < 255: On].
 # Smoothing: [-1: Off, >0: On].

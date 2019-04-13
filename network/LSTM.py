@@ -8,8 +8,8 @@ from network.utils import NetworkUtils
 
 class LSTM(object):
 
-    def __init__(self, mode, inputs: tf.Tensor, seq_len: tf.Tensor):
-        self.mode = mode
+    def __init__(self, utils: NetworkUtils, inputs: tf.Tensor, seq_len: tf.Tensor):
+        self.mode = utils.mode
         self.inputs = inputs
         self.seq_len = seq_len
 
@@ -31,8 +31,7 @@ class LSTM(object):
 
 class BLSTM(object):
 
-    def __init__(self, mode, utils: NetworkUtils, inputs: tf.Tensor, seq_len: tf.Tensor):
-        self.mode = mode
+    def __init__(self, utils: NetworkUtils, inputs: tf.Tensor, seq_len: tf.Tensor):
         self.utils = utils
         self.inputs = inputs
         self.seq_len = seq_len

@@ -97,7 +97,6 @@ def train_process(mode=RunMode.Trains):
     num_batches_per_epoch = int(num_train_samples / BATCH_SIZE)
 
     config = tf.ConfigProto(
-        inter_op_parallelism_threads=100,
         allow_soft_placement=True,
         log_device_placement=False,
         gpu_options=tf.GPUOptions(
@@ -151,7 +150,7 @@ def train_process(mode=RunMode.Trains):
                 train_writer.add_summary(summary_str, step)
 
                 if step % 100 == 0 and step != 0:
-                    print('Step: {} Time: {:.3f}, Cost = {:.4f}'.format(step, time.time() - batch_time, avg_train_cost))
+                    print('Step: {} Time: {:.3f}, Cost = {:.5f}'.format(step, time.time() - batch_time, avg_train_cost))
 
                 if step % TRAINS_SAVE_STEPS == 0 and step != 0:
                     saver.save(sess, SAVE_MODEL, global_step=step)
@@ -182,7 +181,7 @@ def train_process(mode=RunMode.Trains):
                         dense_decoded,
                         ignore_value=[0, -1],
                     )
-                    log = "Epoch: {}, Step: {}, Accuracy = {:.3f}, Cost = {:.4f}, " \
+                    log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
                           "Time = {:.3f}, LearningRate: {}"
                     print(log.format(
                         epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr

@@ -9,7 +9,7 @@ from tensorflow.python.training import moving_averages
 class NetworkUtils(object):
 
     def __init__(self, mode):
-        self._extra_train_ops = []
+        self.extra_train_ops = []
         self.mode = mode
 
     @staticmethod
@@ -275,8 +275,8 @@ class NetworkUtils(object):
                 # Add update operation for batch mean and standard deviation (sliding average)
                 # moving_mean = moving_mean * decay + mean * (1 - decay)
                 # moving_variance = moving_variance * decay + variance * (1 - decay)
-                self._extra_train_ops.append(moving_averages.assign_moving_average(moving_mean, mean, 0.9))
-                self._extra_train_ops.append(moving_averages.assign_moving_average(moving_variance, variance, 0.9))
+                self.extra_train_ops.append(moving_averages.assign_moving_average(moving_mean, mean, 0.9))
+                self.extra_train_ops.append(moving_averages.assign_moving_average(moving_variance, variance, 0.9))
             else:
                 # Obtain the batch mean and standard deviation accumulated during training.
                 mean = tf.get_variable(

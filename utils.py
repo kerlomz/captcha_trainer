@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import io
-import time
 import PIL.Image
 import cv2
 import numpy as np
@@ -118,25 +117,6 @@ class DataIterator:
         label = tf.cast(features['label'], tf.string)
 
         return image, label
-
-    @staticmethod
-    def get_label_and_lens(sequences):
-        """
-        Args:
-            sequences:a list of lists of dtype where each element is a sequence
-        Returns:
-            A tuple with(flat_labels,per_lebel_len_list)
-        """
-        flat_labels = []
-        labels_len = []
-
-        for n, seq in enumerate(sequences):
-            flat_labels.extend(seq)
-            labels_len.append(len(seq))
-
-        flat_labels = np.asarray(flat_labels, dtype=np.int32)
-        labels_len = np.asarray(labels_len, dtype=np.int32)
-        return flat_labels, labels_len
 
     def read_sample_from_tfrecords(self, path):
         self._size = len([_ for _ in tf.python_io.tf_record_iterator(path)])
