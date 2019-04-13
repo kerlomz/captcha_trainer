@@ -2,14 +2,16 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import sys
+
 import tensorflow as tf
+
 from config import *
-from network.utils import NetworkUtils
 from network.CNN5 import CNN5
-from network.ResNet import ResNet50
-from network.LSTM import LSTM, BLSTM
-from network.SRU import SRU, BSRU
 from network.GRU import GRU
+from network.LSTM import LSTM, BLSTM
+from network.ResNet import ResNet50
+from network.SRU import SRU, BSRU
+from network.utils import NetworkUtils
 
 
 class GraphOCR(object):
@@ -43,22 +45,22 @@ class GraphOCR(object):
 
         shape_list = x.get_shape().as_list()
         self.seq_len = tf.fill([tf.shape(x)[0]], shape_list[1], name="seq_len")
+
         if self.recurrent == RecurrentNetwork.LSTM:
-            outputs = LSTM(self.mode, x, self.seq_len).build()
-
+            recurrent_network_builder = LSTM(self.mode, x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.BLSTM:
-            outputs = BLSTM(self.mode, self.utils, x, self.seq_len).build()
+            recurrent_network_builder = BLSTM(self.mode, self.utils, x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.GRU:
-            outputs = GRU(self.inputs, self.seq_len).build()
-
+            recurrent_network_builder = GRU(self.inputs, self.seq_len)
         elif self.recurrent == RecurrentNetwork.SRU:
-            outputs = SRU(x, self.seq_len).build()
-
+            recurrent_network_builder = SRU(x, self.seq_len)
         elif self.recurrent == RecurrentNetwork.BSRU:
-            outputs = BSRU(self.utils, x, self.seq_len)
+            recurrent_network_builder = BSRU(self.utils, x, self.seq_len)
         else:
             print('This recurrent neural network is not supported at this time.')
             sys.exit(-1)
+
+        outputs = recurrent_network_builder.build()
 
         # Reshaping to apply the same weights over the time_steps
         outputs = tf.reshape(outputs, [-1, NUM_HIDDEN * 2])
@@ -144,4 +146,3 @@ class GraphOCR(object):
         )
 
         self.dense_decoded = tf.sparse.to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
-
