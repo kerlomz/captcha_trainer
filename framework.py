@@ -4,7 +4,7 @@
 import sys
 
 import tensorflow as tf
-
+from distutils.version import StrictVersion
 from config import *
 from network.CNN5 import CNN5
 from network.GRU import GRU
@@ -143,5 +143,7 @@ class GraphOCR(object):
             beam_width=CTC_BEAM_WIDTH,
             top_paths=CTC_TOP_PATHS,
         )
-
-        self.dense_decoded = tf.sparse.to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
+        if StrictVersion(tf.__version__) >= StrictVersion('1.12.0'):
+            self.dense_decoded = tf.sparse.to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
+        else:
+            self.dense_decoded = tf.sparse_tensor_to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
