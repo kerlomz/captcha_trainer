@@ -21,6 +21,7 @@ class SRU(object):
 
             stack = tf.contrib.rnn.MultiRNNCell([cell1, cell2], state_is_tuple=True)
             outputs, _ = tf.nn.dynamic_rnn(stack, self.inputs, self.seq_len, dtype=tf.float32)
+        return outputs
 
 
 class BSRU(object):
