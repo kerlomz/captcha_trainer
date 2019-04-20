@@ -76,11 +76,11 @@ MODEL_CONFIG_PATH = MODEL_CONFIG_PATH if os.path.exists(MODEL_CONFIG_PATH) else 
 
 with open(SYS_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
     sys_stream = sys_fp.read()
-    cf_system = yaml.load(sys_stream)
+    cf_system = yaml.load(sys_stream, Loader=yaml.SafeLoader)
 
 with open(MODEL_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
     sys_stream = sys_fp.read()
-    cf_model = yaml.load(sys_stream)
+    cf_model = yaml.load(sys_stream, Loader=yaml.SafeLoader)
 
 
 def char_set(_type):
