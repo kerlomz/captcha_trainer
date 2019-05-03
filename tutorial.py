@@ -87,6 +87,6 @@ with open("model.yaml".format(size_str), "w", encoding="utf8") as f:
 from make_dataset import run
 from trains import main
 run()
-with open("model.yaml".format(size_str), "w") as f:
+with open("model.yaml".format(size_str), "w", encoding="utf8") as f:
     f.write("\n".join(result.split("\n")[:-3]).replace("#  TrainsPath", "  TrainsPath").replace("#  TestPath", "  TestPath"))
 main(None)

@@ -40,7 +40,7 @@ def compile_graph(acc):
     )
 
     last_compile_model_path = COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000)))
-    with tf.gfile.FastGFile(last_compile_model_path, mode='wb') as gf:
+    with tf.gfile.GFile(last_compile_model_path, mode='wb') as gf:
         gf.write(output_graph_def.SerializeToString())
 
     generate_config(acc)
@@ -146,7 +146,7 @@ def train_process(mode=RunMode.Trains):
                 )
                 train_cost += batch_cost * BATCH_SIZE
                 avg_train_cost = train_cost / ((cur_batch + 1) * BATCH_SIZE)
-
+                _avg_train_cost = avg_train_cost
                 train_writer.add_summary(summary_str, step)
 
                 if step % 100 == 0 and step != 0:
@@ -186,7 +186,7 @@ def train_process(mode=RunMode.Trains):
                     print(log.format(
                         epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr
                     ))
-                    _avg_train_cost = avg_train_cost
+
                     if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and avg_train_cost <= TRAINS_END_COST:
                         break
             if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and _avg_train_cost <= TRAINS_END_COST:
