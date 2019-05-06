@@ -41,7 +41,7 @@ Trains:
   TestBatchSize: 300
   LearningRate: 0.01
   DecayRate: 0.98
-  DecaySteps: 10000
+  DecaySteps: 1000
   PreprocessCollapseRepeated: False
   CTCMergeRepeated: True
   CTCBeamWidth: 5

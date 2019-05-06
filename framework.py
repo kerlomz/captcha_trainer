@@ -12,6 +12,7 @@ from network.LSTM import LSTM, BLSTM
 from network.ResNet import ResNet50
 from network.SRU import SRU, BSRU
 from network.utils import NetworkUtils
+from optimizer.AdaBound import AdaBoundOptimizer
 
 
 class GraphOCR(object):
@@ -114,14 +115,30 @@ class GraphOCR(object):
         )
         tf.summary.scalar('learning_rate', self.lrn_rate)
 
-        self.optimizer = tf.train.MomentumOptimizer(
+        self.optimizer = AdaBoundOptimizer(
             learning_rate=self.lrn_rate,
-            use_nesterov=True,
-            momentum=MOMENTUM,
+            final_lr=0.1,
+            beta1=0.9,
+            beta2=0.999,
+            amsbound=True
         ).minimize(
-            self.cost,
+            loss=self.cost,
             global_step=self.global_step
         )
+        # self.optimizer = tf.train.AdamOptimizer(
+        #     learning_rate=self.lrn_rate
+        # ).minimize(
+        #     self.cost,
+        #     global_step=self.global_step
+        # )
+        # self.optimizer = tf.train.MomentumOptimizer(
+        #     learning_rate=self.lrn_rate,
+        #     use_nesterov=True,
+        #     momentum=MOMENTUM,
+        # ).minimize(
+        #     self.cost,
+        #     global_step=self.global_step
+        # )
 
         # Storing adjusted smoothed mean and smoothed variance operations
         train_ops = [self.optimizer] + self.utils.extra_train_ops
