@@ -30,7 +30,8 @@ def compile_graph(acc):
         )
         model.build_graph()
         input_graph_def = sess.graph.as_graph_def()
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(var_list=tf.global_variables())
+        logger.info(tf.train.latest_checkpoint(MODEL_PATH))
         saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
 
     output_graph_def = convert_variables_to_constants(
@@ -97,9 +98,10 @@ def train_process(mode=RunMode.Trains):
     num_batches_per_epoch = int(num_train_samples / BATCH_SIZE)
 
     config = tf.ConfigProto(
-        allow_soft_placement=True,
+        # allow_soft_placement=True,
         log_device_placement=False,
         gpu_options=tf.GPUOptions(
+            allocator_type='BFC',
             # allow_growth=True,  # it will cause fragmentation.
             per_process_gpu_memory_fraction=GPU_USAGE)
     )
@@ -116,7 +118,6 @@ def train_process(mode=RunMode.Trains):
             saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
         except ValueError:
             pass
-
         print('Start training...')
 
         while 1:

@@ -17,6 +17,23 @@ class NetworkUtils(object):
         padding = tf.constant([[0, 0], [pad[0], pad[0]], [pad[1], pad[1]], [0, 0]])
         return tf.pad(x, padding, 'CONSTANT')
 
+    def cnn_layers(self, inputs, filter_size, filters, strides):
+        x = inputs
+        for i in range(len(filter_size)):
+            with tf.variable_scope('unit-{}'.format(i + 1)):
+                x = self.conv2d(
+                    x=x,
+                    name='cnn-{}'.format(i + 1),
+                    filter_size=filter_size[i],
+                    in_channels=filters[i][0],
+                    out_channels=filters[i][1],
+                    strides=strides[i][0]
+                )
+                x = self.batch_norm('bn{}'.format(i + 1), x)
+                x = self.leaky_relu(x, 0.01)
+                x = self.max_pool(x, 2, strides[i][1])
+        return x
+
     @staticmethod
     def conv2d(x, name, filter_size, in_channels, out_channels, strides, padding='SAME'):
         # n = filter_size * filter_size * out_channels
@@ -256,44 +273,26 @@ class NetworkUtils(object):
                 initializer=tf.constant_initializer(1.0, tf.float32)
             )
 
-            if self.mode == RunMode.Trains:
-                # Calculate the mean and standard deviation for each channel.
-                mean, variance = tf.nn.moments(x, [0, 1, 2], name='moments')
-                # New or build batch average, standard deviation used in the test phase.
-                moving_mean = tf.get_variable(
-                    'moving_mean',
-                    params_shape, tf.float32,
-                    initializer=tf.constant_initializer(0.0, tf.float32),
-                    trainable=False
-                )
-                moving_variance = tf.get_variable(
-                    'moving_variance',
-                    params_shape, tf.float32,
-                    initializer=tf.constant_initializer(1.0, tf.float32),
-                    trainable=False
-                )
-                # Add update operation for batch mean and standard deviation (sliding average)
-                # moving_mean = moving_mean * decay + mean * (1 - decay)
-                # moving_variance = moving_variance * decay + variance * (1 - decay)
-                self.extra_train_ops.append(moving_averages.assign_moving_average(moving_mean, mean, 0.9))
-                self.extra_train_ops.append(moving_averages.assign_moving_average(moving_variance, variance, 0.9))
-            else:
-                # Obtain the batch mean and standard deviation accumulated during training.
-                mean = tf.get_variable(
-                    'moving_mean',
-                    params_shape, tf.float32,
-                    initializer=tf.constant_initializer(0.0, tf.float32),
-                    trainable=False
-                )
-                variance = tf.get_variable(
-                    'moving_variance',
-                    params_shape, tf.float32,
-                    initializer=tf.constant_initializer(1.0, tf.float32),
-                    trainable=False
-                )
-                # Add to histogram summary.
-                tf.summary.histogram(mean.op.name, mean)
-                tf.summary.histogram(variance.op.name, variance)
+            # Calculate the mean and standard deviation for each channel.
+            mean, variance = tf.nn.moments(x, [0, 1, 2], name='moments')
+            # New or build batch average, standard deviation used in the test phase.
+            moving_mean = tf.get_variable(
+                'moving_mean',
+                params_shape, tf.float32,
+                initializer=tf.constant_initializer(0.0, tf.float32),
+                trainable=self.mode == RunMode.Trains
+            )
+            moving_variance = tf.get_variable(
+                'moving_variance',
+                params_shape, tf.float32,
+                initializer=tf.constant_initializer(1.0, tf.float32),
+                trainable=self.mode == RunMode.Trains
+            )
+            # Add update operation for batch mean and standard deviation (sliding average)
+            # moving_mean = moving_mean * decay + mean * (1 - decay)
+            # moving_variance = moving_variance * decay + variance * (1 - decay)
+            self.extra_train_ops.append(moving_averages.assign_moving_average(moving_mean, mean, 0.9))
+            self.extra_train_ops.append(moving_averages.assign_moving_average(moving_variance, variance, 0.9))
 
             # BN Layer：((x-mean)/var)*gamma+beta
             y = tf.nn.batch_normalization(x, mean, variance, beta, gamma, 0.001)
