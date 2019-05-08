@@ -3,7 +3,6 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
 from config import *
-from tensorflow.python.training import moving_averages
 
 
 class NetworkUtils(object):
@@ -256,45 +255,34 @@ class NetworkUtils(object):
         return _inputs
 
     def batch_norm(self, name, x):
-        with tf.variable_scope(name):
-            params_shape = [x.get_shape()[-1]]
-            # offset
-            beta = tf.get_variable(
-                'beta',
-                params_shape,
-                tf.float32,
-                initializer=tf.constant_initializer(0.0, tf.float32)
-            )
-            # scale
-            gamma = tf.get_variable(
-                'gamma',
-                params_shape,
-                tf.float32,
-                initializer=tf.constant_initializer(1.0, tf.float32)
-            )
+        return tf.layers.batch_normalization(x, training=self.mode == RunMode.Trains, name=name)
 
-            # Calculate the mean and standard deviation for each channel.
-            mean, variance = tf.nn.moments(x, [0, 1, 2], name='moments')
-            # New or build batch average, standard deviation used in the test phase.
-            moving_mean = tf.get_variable(
-                'moving_mean',
-                params_shape, tf.float32,
-                initializer=tf.constant_initializer(0.0, tf.float32),
-                trainable=self.mode == RunMode.Trains
-            )
-            moving_variance = tf.get_variable(
-                'moving_variance',
-                params_shape, tf.float32,
-                initializer=tf.constant_initializer(1.0, tf.float32),
-                trainable=self.mode == RunMode.Trains
-            )
-            # Add update operation for batch mean and standard deviation (sliding average)
-            # moving_mean = moving_mean * decay + mean * (1 - decay)
-            # moving_variance = moving_variance * decay + variance * (1 - decay)
-            self.extra_train_ops.append(moving_averages.assign_moving_average(moving_mean, mean, 0.9))
-            self.extra_train_ops.append(moving_averages.assign_moving_average(moving_variance, variance, 0.9))
+    def conv_block(self, x, growth_rate, dropout_rate=None):
+        _x = self.batch_norm(name=None, x=x)
+        _x = self.leaky_relu(_x)
 
-            # BN Layer：((x-mean)/var)*gamma+beta
-            y = tf.nn.batch_normalization(x, mean, variance, beta, gamma, 0.001)
-            y.set_shape(x.get_shape())
-            return y
+        _x = tf.layers.conv2d(_x, growth_rate, 3, 1, 'SAME')
+        if dropout_rate is not None:
+            _x = tf.nn.dropout(_x, dropout_rate)
+        return _x
+
+    def dense_block(self, x, nb_layers, growth_rate, nb_filter, dropout_rate=0.2):
+        for i in range(nb_layers):
+            cb = self.conv_block(x, growth_rate, dropout_rate)
+            x = tf.concat([x, cb], 3)
+            nb_filter += growth_rate
+        return x, nb_filter
+
+    def transition_block(self, x, filters, dropout_kp=None, pool_type=1):
+        _x = self.batch_norm(name=None, x=x)
+        _x = self.leaky_relu(_x)
+        _x = tf.layers.conv2d(_x, filters=filters, kernel_size=1, strides=(1, 1), padding="SAME")
+        if dropout_kp is not None:
+            _x = tf.nn.dropout(_x, dropout_kp)
+        if pool_type == 2:
+            _x = tf.nn.avg_pool(_x, [1, 2, 2, 1], [1, 2, 2, 1], "VALID")
+        elif pool_type == 1:
+            _x = tf.nn.avg_pool(_x, [1, 2, 2, 1], [1, 2, 1, 1], "SAME")
+        elif pool_type == 3:
+            _x = tf.nn.avg_pool(_x, [1, 2, 2, 1], [1, 1, 2, 1], "SAME")
+        return _x, filters
