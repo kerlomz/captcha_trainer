@@ -66,6 +66,7 @@ if __name__ == '__main__':
             # allow_soft_placement=True,
             # log_device_placement=True,
             gpu_options=tf.GPUOptions(
+                allocator_type='BFC',
                 # allow_growth=True,  # it will cause fragmentation.
                 per_process_gpu_memory_fraction=0.1
             ))

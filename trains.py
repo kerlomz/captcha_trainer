@@ -102,7 +102,7 @@ def train_process(mode=RunMode.Trains):
         log_device_placement=False,
         gpu_options=tf.GPUOptions(
             allocator_type='BFC',
-            # allow_growth=True,  # it will cause fragmentation.
+            allow_growth=True,  # it will cause fragmentation.
             per_process_gpu_memory_fraction=GPU_USAGE)
     )
     accuracy = 0

@@ -6,10 +6,11 @@ import sys
 import tensorflow as tf
 from distutils.version import StrictVersion
 from config import *
-from network.CNN5 import CNN5
+from network.CNN import CNN3, CNN5
 from network.GRU import GRU
 from network.LSTM import LSTM, BLSTM
 from network.ResNet import ResNet50
+from network.DenseNet import DenseNet
 from network.SRU import SRU, BSRU
 from network.utils import NetworkUtils
 from optimizer.AdaBound import AdaBoundOptimizer
@@ -44,6 +45,10 @@ class GraphOCR(object):
             sys.exit(-1)
 
         shape_list = x.get_shape().as_list()
+        # time_major = True: [max_time_step, batch_size, num_classes]
+        # time_major = False: [batch_size, max_time_step, num_classes]
+        print("CNN Output: {}".format(x.get_shape()))
+
         self.seq_len = tf.fill([tf.shape(x)[0]], shape_list[1], name="seq_len")
 
         if self.recurrent == RecurrentNetwork.LSTM:
@@ -115,34 +120,39 @@ class GraphOCR(object):
         )
         tf.summary.scalar('learning_rate', self.lrn_rate)
 
-        self.optimizer = AdaBoundOptimizer(
-            learning_rate=self.lrn_rate,
-            final_lr=0.1,
-            beta1=0.9,
-            beta2=0.999,
-            amsbound=True
-        ).minimize(
-            loss=self.cost,
-            global_step=self.global_step
-        )
-        # self.optimizer = tf.train.AdamOptimizer(
-        #     learning_rate=self.lrn_rate
-        # ).minimize(
-        #     self.cost,
-        #     global_step=self.global_step
-        # )
-        # self.optimizer = tf.train.MomentumOptimizer(
-        #     learning_rate=self.lrn_rate,
-        #     use_nesterov=True,
-        #     momentum=MOMENTUM,
-        # ).minimize(
-        #     self.cost,
-        #     global_step=self.global_step
-        # )
-
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        print(update_ops)
+        with tf.control_dependencies(update_ops):
+            self.train_op = AdaBoundOptimizer(
+                learning_rate=self.lrn_rate,
+                final_lr=0.1,
+                beta1=0.9,
+                beta2=0.999,
+                amsbound=True
+            ).minimize(
+                loss=self.cost,
+                global_step=self.global_step
+            )
+            # self.optimizer = tf.train.AdamOptimizer(
+            #     learning_rate=self.lrn_rate
+            # ).minimize(
+            #     self.cost,
+            #     global_step=self.global_step
+            # )
+            # self.optimizer = tf.train.MomentumOptimizer(
+            #     learning_rate=self.lrn_rate,
+            #     use_nesterov=True,
+            #     momentum=MOMENTUM,
+            # ).minimize(
+            #     self.cost,
+            #     global_step=self.global_step
+            # )
         # Storing adjusted smoothed mean and smoothed variance operations
-        train_ops = [self.optimizer] + self.utils.extra_train_ops
-        self.train_op = tf.group(*train_ops)
+        # update_ops = tf.group(*tf.get_collection(tf.GraphKeys.UPDATE_OPS))
+        # train_ops = [self.optimizer] + self.utils.extra_train_ops
+        # self.train_op = tf.group(self.optimizer, update_ops)
+        # self.train_op = self.optimizer
+        # self.train_op = tf.group(*train_ops)
 
         # Option 2: tf.contrib.ctc.ctc_beam_search_decoder
         # (it's slower but you'll get better results)
@@ -160,6 +170,7 @@ class GraphOCR(object):
             beam_width=CTC_BEAM_WIDTH,
             top_paths=CTC_TOP_PATHS,
         )
+
         if StrictVersion(tf.__version__) >= StrictVersion('1.12.0'):
             self.dense_decoded = tf.sparse.to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
         else:
