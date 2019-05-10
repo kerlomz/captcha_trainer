@@ -7,7 +7,9 @@ import numpy as np
 import PIL.Image as PIL_Image
 import tensorflow as tf
 from config import *
+from constants import RunMode
 from pretreatment import preprocessing
+from framework import GraphOCR
 
 
 def get_image_batch(img_bytes):
@@ -75,9 +77,20 @@ if __name__ == '__main__':
 
     with graph.as_default():
         sess.run(tf.global_variables_initializer())
+        # with tf.gfile.GFile(COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(0.95 * 10000))), "rb") as f:
+        #     graph_def_file = f.read()
+        # graph_def.ParseFromString(graph_def_file)
+        # print('{}.meta'.format(tf_checkpoint))
+        model = GraphOCR(
+            RunMode.Predict,
+            NETWORK_MAP[NEU_CNN],
+            NETWORK_MAP[NEU_RECURRENT]
+        )
+        model.build_graph()
+        saver = tf.train.Saver(tf.global_variables())
+
+        saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
         _ = tf.import_graph_def(graph_def, name="")
-        saver = tf.train.import_meta_graph('{}.meta'.format(tf_checkpoint))
-        saver.restore(sess, tf_checkpoint)
 
     dense_decoded_op = sess.graph.get_tensor_by_name("dense_decoded:0")
     x_op = sess.graph.get_tensor_by_name('input:0')

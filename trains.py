@@ -151,7 +151,7 @@ def train_process(mode=RunMode.Trains):
                 train_writer.add_summary(summary_str, step)
 
                 if step % 100 == 0 and step != 0:
-                    print('Step: {} Time: {:.3f}, Cost = {:.5f}'.format(step, time.time() - batch_time, avg_train_cost))
+                    print('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}'.format(step, time.time() - batch_time, avg_train_cost))
 
                 if step % TRAINS_SAVE_STEPS == 0 and step != 0:
                     saver.save(sess, SAVE_MODEL, global_step=step)
@@ -183,7 +183,7 @@ def train_process(mode=RunMode.Trains):
                         ignore_value=[0, -1],
                     )
                     log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
-                          "Time = {:.3f}, LearningRate: {}"
+                          "Time = {:.3f} sec/batch, LearningRate: {}"
                     print(log.format(
                         epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr
                     ))
@@ -192,7 +192,7 @@ def train_process(mode=RunMode.Trains):
                         break
             if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and _avg_train_cost <= TRAINS_END_COST:
                 compile_graph(accuracy)
-                print('Total Time: {}'.format(time.time() - start_time))
+                print('Total Time: {} sec.'.format(time.time() - start_time))
                 break
             epoch_count += 1
 
