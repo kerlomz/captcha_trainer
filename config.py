@@ -5,11 +5,10 @@
 import os
 import platform
 import re
-from enum import Enum, unique
-
 import yaml
 
 from character import *
+from constants import *
 from exception import exception, ConfigException
 
 # Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2
@@ -20,30 +19,11 @@ PROJECT_PATH = "."
 IGNORE_FILES = ['.DS_Store']
 
 
-class RunMode(object):
-    Test = 'test'
-    Trains = 'trains'
-    Predict = 'predict'
-
-
-@unique
-class CNNNetwork(Enum):
-    CNN5 = 'CNN5'
-    ResNet = 'ResNet'
-
-
-@unique
-class RecurrentNetwork(Enum):
-    LSTM = 'LSTM'
-    BLSTM = 'BLSTM'
-    SRU = 'SRU'
-    BSRU = 'BSRU'
-    GRU = 'GRU'
-
-
 NETWORK_MAP = {
     'CNN5': CNNNetwork.CNN5,
     'ResNet': CNNNetwork.ResNet,
+    'DenseNet': CNNNetwork.DenseNet,
+    'CapsNet': CNNNetwork.CapsNet,
     'LSTM': RecurrentNetwork.LSTM,
     'BLSTM': RecurrentNetwork.BLSTM,
     'SRU': RecurrentNetwork.SRU,
@@ -51,16 +31,21 @@ NETWORK_MAP = {
     'GRU': RecurrentNetwork.GRU,
 }
 
-TFRECORDS_NAME_MAP = {
-    RunMode.Trains: 'trains',
-    RunMode.Test: 'test'
+
+OPTIMIZER_MAP = {
+    'AdaBound': Optimizer.AdaBound,
+    'Adam': Optimizer.Adam,
+    'Momentum': Optimizer.Momentum,
+    'SGD': Optimizer.SGD,
+    'AdaGrad': Optimizer.AdaGrad,
+    'RMSProp': Optimizer.RMSProp
 }
 
 PLATFORM = platform.system()
 
-SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
+# SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
 MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
-SYS_CONFIG_NAME = 'config.yaml'
+# SYS_CONFIG_NAME = 'config.yaml'
 MODEL_CONFIG_NAME = 'model.yaml'
 MODEL_PATH = os.path.join(PROJECT_PATH, 'model')
 OUTPUT_PATH = os.path.join(PROJECT_PATH, 'out')
@@ -68,15 +53,15 @@ TFRECORDS_DIR = os.path.join(PROJECT_PATH, 'dataset')
 
 PATH_SPLIT = "\\" if PLATFORM == "Windows" else "/"
 
-SYS_CONFIG_PATH = os.path.join(PROJECT_PATH, SYS_CONFIG_NAME)
-SYS_CONFIG_PATH = SYS_CONFIG_PATH if os.path.exists(SYS_CONFIG_PATH) else os.path.join("../", SYS_CONFIG_NAME)
+# SYS_CONFIG_PATH = os.path.join(PROJECT_PATH, SYS_CONFIG_NAME)
+# SYS_CONFIG_PATH = SYS_CONFIG_PATH if os.path.exists(SYS_CONFIG_PATH) else os.path.join("../", SYS_CONFIG_NAME)
 
 MODEL_CONFIG_PATH = os.path.join(PROJECT_PATH, MODEL_CONFIG_NAME)
 MODEL_CONFIG_PATH = MODEL_CONFIG_PATH if os.path.exists(MODEL_CONFIG_PATH) else os.path.join("../", MODEL_CONFIG_NAME)
 
-with open(SYS_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
-    sys_stream = sys_fp.read()
-    cf_system = yaml.load(sys_stream, Loader=yaml.SafeLoader)
+# with open(SYS_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
+#     sys_stream = sys_fp.read()
+#     cf_system = yaml.load(sys_stream, Loader=yaml.SafeLoader)
 
 with open(MODEL_CONFIG_PATH, 'r', encoding="utf-8") as sys_fp:
     sys_stream = sys_fp.read()
@@ -117,13 +102,25 @@ IMAGE_CHANNEL = cf_model['Model'].get('ImageChannel')
 IMAGE_CHANNEL = IMAGE_CHANNEL if IMAGE_CHANNEL else 1
 
 """NEURAL NETWORK"""
-NEU_CNN = cf_system['NeuralNet'].get('CNNNetwork')
+NEU_CNN = cf_model['NeuralNet'].get('CNNNetwork')
 NEU_CNN = NEU_CNN if NEU_CNN else 'CNN5'
-NEU_RECURRENT = cf_system['NeuralNet'].get('RecurrentNetwork')
+NEU_RECURRENT = cf_model['NeuralNet'].get('RecurrentNetwork')
 NEU_RECURRENT = NEU_RECURRENT if NEU_RECURRENT else 'BLSTM'
-NUM_HIDDEN = cf_system['NeuralNet'].get('HiddenNum')
-OUTPUT_KEEP_PROB = cf_system['NeuralNet'].get('KeepProb')
+NUM_HIDDEN = cf_model['NeuralNet'].get('HiddenNum')
+OUTPUT_KEEP_PROB = cf_model['NeuralNet'].get('KeepProb')
 LSTM_LAYER_NUM = 2
+NEU_OPTIMIZER = cf_model['NeuralNet'].get('Optimizer')
+NEU_OPTIMIZER = NEU_OPTIMIZER if NEU_OPTIMIZER else 'AdaBound'
+PREPROCESS_COLLAPSE_REPEATED = cf_model['NeuralNet'].get('PreprocessCollapseRepeated')
+PREPROCESS_COLLAPSE_REPEATED = PREPROCESS_COLLAPSE_REPEATED if PREPROCESS_COLLAPSE_REPEATED is not None else False
+CTC_MERGE_REPEATED = cf_model['NeuralNet'].get('CTCMergeRepeated')
+CTC_MERGE_REPEATED = CTC_MERGE_REPEATED if CTC_MERGE_REPEATED is not None else True
+CTC_BEAM_WIDTH = cf_model['NeuralNet'].get('CTCBeamWidth')
+CTC_BEAM_WIDTH = CTC_BEAM_WIDTH if CTC_BEAM_WIDTH is not None else 1
+CTC_TOP_PATHS = cf_model['NeuralNet'].get('CTCTopPaths')
+CTC_TOP_PATHS = CTC_TOP_PATHS if CTC_TOP_PATHS is not None else 1
+CTC_LOSS_TIME_MAJOR = True
+
 
 LEAKINESS = 0.01
 NUM_CLASSES = CHAR_SET_LEN + 2
@@ -134,25 +131,23 @@ SAVE_MODEL = os.path.join(MODEL_PATH, MODEL_TAG)
 SAVE_CHECKPOINT = os.path.join(MODEL_PATH, CHECKPOINT_TAG)
 
 """SYSTEM"""
-GPU_USAGE = cf_system['System'].get('DeviceUsage')
+GPU_USAGE = cf_model['System'].get('DeviceUsage')
 
 """PATH & LABEL"""
 TRAIN_PATH_IN_MODEL = cf_model.get('Trains')
 
-if TRAIN_PATH_IN_MODEL:
-    TRAINS_PATH = cf_model['Trains'].get('TrainsPath')
-    TEST_PATH = cf_model['Trains'].get('TestPath')
-else:
-    TRAINS_PATH = cf_system['System'].get('TrainsPath')
-    TEST_PATH = cf_system['System'].get('TestPath')
 
-TRAINS_REGEX = cf_system['System'].get('TrainRegex')
+TRAINS_PATH = cf_model['Trains'].get('TrainsPath')
+TEST_PATH = cf_model['Trains'].get('TestPath')
+DATASET_PATH = cf_model['Trains'].get('DatasetPath')
+
+TRAINS_REGEX = cf_model['Trains'].get('TrainRegex')
 TRAINS_REGEX = TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_)"
 
-TEST_REGEX = cf_system['System'].get('TestRegex')
+TEST_REGEX = cf_model['Trains'].get('TestRegex')
 TEST_REGEX = TEST_REGEX if TEST_REGEX else (TRAINS_REGEX if TRAINS_REGEX else ".*?(?=_)")
 
-TEST_SET_NUM = cf_system['System'].get('TestSetNum')
+TEST_SET_NUM = cf_model['Trains'].get('TestSetNum')
 TEST_SET_NUM = TEST_SET_NUM if TEST_SET_NUM else 1000
 HAS_TEST_SET = TEST_PATH and (os.path.exists(TEST_PATH) if isinstance(TEST_PATH, str) else True)
 
@@ -161,27 +156,22 @@ TEST_USE_TFRECORDS = isinstance(TEST_PATH, str) and TEST_PATH.endswith("tfrecord
 TRAINS_USE_TFRECORDS = isinstance(TRAINS_PATH, str) and TRAINS_PATH.endswith("tfrecords")
 
 """TRAINS"""
-TRAINS_SAVE_STEPS = cf_system['Trains'].get('SavedSteps')
-TRAINS_VALIDATION_STEPS = cf_system['Trains'].get('ValidationSteps')
-TRAINS_END_ACC = cf_system['Trains'].get('EndAcc')
-TRAINS_END_COST = cf_system['Trains'].get('EndCost')
+TRAINS_SAVE_STEPS = cf_model['Trains'].get('SavedSteps')
+TRAINS_VALIDATION_STEPS = cf_model['Trains'].get('ValidationSteps')
+TRAINS_END_ACC = cf_model['Trains'].get('EndAcc')
+TRAINS_END_COST = cf_model['Trains'].get('EndCost')
 TRAINS_END_COST = TRAINS_END_COST if TRAINS_END_COST else 1
-TRAINS_END_EPOCHS = cf_system['Trains'].get('EndEpochs')
-TRAINS_LEARNING_RATE = cf_system['Trains'].get('LearningRate')
-DECAY_RATE = cf_system['Trains'].get('DecayRate')
-DECAY_STEPS = cf_system['Trains'].get('DecaySteps')
-BATCH_SIZE = cf_system['Trains'].get('BatchSize')
-TEST_BATCH_SIZE = cf_system['Trains'].get('TestBatchSize')
-TEST_BATCH_SIZE = TEST_BATCH_SIZE if TEST_BATCH_SIZE else 200
+TRAINS_END_EPOCHS = cf_model['Trains'].get('EndEpochs')
+TRAINS_LEARNING_RATE = cf_model['Trains'].get('LearningRate')
+DECAY_RATE = cf_model['Trains'].get('DecayRate')
+DECAY_RATE = DECAY_RATE if DECAY_RATE else 0.98
+DECAY_STEPS = cf_model['Trains'].get('DecaySteps')
+DECAY_STEPS = DECAY_STEPS if DECAY_STEPS else 10000
+BATCH_SIZE = cf_model['Trains'].get('BatchSize')
+BATCH_SIZE = BATCH_SIZE if BATCH_SIZE else 64
+TEST_BATCH_SIZE = cf_model['Trains'].get('TestBatchSize')
+TEST_BATCH_SIZE = TEST_BATCH_SIZE if TEST_BATCH_SIZE else 300
 MOMENTUM = 0.9
-PREPROCESS_COLLAPSE_REPEATED = cf_system['Trains'].get('PreprocessCollapseRepeated')
-PREPROCESS_COLLAPSE_REPEATED = PREPROCESS_COLLAPSE_REPEATED if PREPROCESS_COLLAPSE_REPEATED is not None else False
-CTC_MERGE_REPEATED = cf_system['Trains'].get('CTCMergeRepeated')
-CTC_MERGE_REPEATED = CTC_MERGE_REPEATED if CTC_MERGE_REPEATED is not None else True
-CTC_BEAM_WIDTH = cf_system['Trains'].get('CTCBeamWidth')
-CTC_BEAM_WIDTH = CTC_BEAM_WIDTH if CTC_BEAM_WIDTH is not None else 1
-CTC_TOP_PATHS = cf_system['Trains'].get('CTCTopPaths')
-CTC_TOP_PATHS = CTC_TOP_PATHS if CTC_TOP_PATHS is not None else 1
 
 """PRETREATMENT"""
 BINARYZATION = cf_model['Pretreatment'].get('Binaryzation')
@@ -213,15 +203,15 @@ def init():
     if not os.path.exists(OUTPUT_PATH):
         os.makedirs(OUTPUT_PATH)
 
-    if not os.path.exists(SYS_CONFIG_PATH):
-        exception(
-            'Configuration File "{}" No Found. '
-            'If it is used for the first time, please copy one from {} as {}'.format(
-                SYS_CONFIG_NAME,
-                SYS_CONFIG_DEMO_NAME,
-                SYS_CONFIG_NAME
-            ), ConfigException.SYS_CONFIG_PATH_NOT_EXIST
-        )
+    # if not os.path.exists(SYS_CONFIG_PATH):
+    #     exception(
+    #         'Configuration File "{}" No Found. '
+    #         'If it is used for the first time, please copy one from {} as {}'.format(
+    #             SYS_CONFIG_NAME,
+    #             SYS_CONFIG_DEMO_NAME,
+    #             SYS_CONFIG_NAME
+    #         ), ConfigException.SYS_CONFIG_PATH_NOT_EXIST
+    #     )
 
     if not os.path.exists(MODEL_CONFIG_PATH):
         exception(
@@ -248,7 +238,7 @@ def init():
         f.write(checkpoint)
 
 
-if '../' not in SYS_CONFIG_PATH:
+if '../' not in MODEL_CONFIG_PATH:
     print('Loading Configuration...')
     print('---------------------------------------------------------------------------------')
     print("PROJECT_PATH", PROJECT_PATH)
@@ -259,6 +249,6 @@ if '../' not in SYS_CONFIG_PATH:
     print('IMAGE_WIDTH: {}, IMAGE_HEIGHT: {}'.format(
         IMAGE_WIDTH, IMAGE_HEIGHT)
     )
-    print('NEURAL NETWORK: {}'.format(cf_system['NeuralNet']))
+    print('NEURAL NETWORK: {}'.format(cf_model['NeuralNet']))
 
     print('---------------------------------------------------------------------------------')

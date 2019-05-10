@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+import math
 import tensorflow as tf
 from config import *
 
@@ -15,6 +16,18 @@ class NetworkUtils(object):
     def zero_padding(x, pad=(3, 3)):
         padding = tf.constant([[0, 0], [pad[0], pad[0]], [pad[1], pad[1]], [0, 0]])
         return tf.pad(x, padding, 'CONSTANT')
+
+    @staticmethod
+    def msra_initializer(kl, dl):
+        """ MSRA weight initializer
+        (https://arxiv.org/pdf/1502.01852.pdf)
+        Keyword arguments:
+        kl -- kernel size
+        dl -- filter numbers
+        """
+
+        stddev = math.sqrt(2. / (kl ** 2 * dl))
+        return tf.truncated_normal_initializer(stddev=stddev)
 
     def cnn_layers(self, inputs, filter_size, filters, strides):
         x = inputs
@@ -33,16 +46,15 @@ class NetworkUtils(object):
                 x = self.max_pool(x, 2, strides[i][1])
         return x
 
-    @staticmethod
-    def conv2d(x, name, filter_size, in_channels, out_channels, strides, padding='SAME'):
+    def conv2d(self, x, name, filter_size, in_channels, out_channels, strides, padding='SAME'):
         # n = filter_size * filter_size * out_channels
         with tf.variable_scope(name):
             kernel = tf.get_variable(
                 name='DW',
                 shape=[filter_size, filter_size, in_channels, out_channels],
                 dtype=tf.float32,
-                initializer=tf.contrib.layers.xavier_initializer()
-                # initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / n))
+                # initializer=tf.contrib.layers.xavier_initializer(),
+                initializer=self.msra_initializer(filter_size, in_channels),
             )
 
             b = tf.get_variable(
@@ -261,7 +273,14 @@ class NetworkUtils(object):
         _x = self.batch_norm(name=None, x=x)
         _x = self.leaky_relu(_x)
 
-        _x = tf.layers.conv2d(_x, growth_rate, 3, 1, 'SAME')
+        _x = tf.layers.conv2d(
+            inputs=_x,
+            filters=growth_rate,
+            kernel_size=3,
+            strides=(1, 1),
+            padding='SAME',
+            kernel_initializer=self.msra_initializer(3, growth_rate)
+        )
         if dropout_rate is not None:
             _x = tf.nn.dropout(_x, dropout_rate)
         return _x
@@ -276,7 +295,14 @@ class NetworkUtils(object):
     def transition_block(self, x, filters, dropout_kp=None, pool_type=1):
         _x = self.batch_norm(name=None, x=x)
         _x = self.leaky_relu(_x)
-        _x = tf.layers.conv2d(_x, filters=filters, kernel_size=1, strides=(1, 1), padding="SAME")
+        _x = tf.layers.conv2d(
+            inputs=_x,
+            filters=filters,
+            kernel_size=1,
+            strides=(1, 1),
+            padding='SAME',
+            kernel_initializer=self.msra_initializer(3, filters)
+        )
         if dropout_kp is not None:
             _x = tf.nn.dropout(_x, dropout_kp)
         if pool_type == 2:

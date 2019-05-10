@@ -8,16 +8,12 @@ import numpy as np
 import tensorflow as tf
 
 from config import *
+from constants import RunMode
 from pretreatment import preprocessing
 
 PATH_MAP = {
     RunMode.Trains: TRAINS_PATH,
     RunMode.Test: TEST_PATH
-}
-
-REGEX_MAP = {
-    RunMode.Trains: TRAINS_REGEX,
-    RunMode.Test: TEST_REGEX
 }
 
 
@@ -39,9 +35,16 @@ class DataIterator:
         self.image_path = []
         self.label_list = []
         self._size = 0
+        self.max_length = 0
+        self.is_first = True
 
-    @staticmethod
-    def _encoder(code):
+    def padding(self, label):
+        label_len = len(label)
+        if label_len < self.max_length:
+            return label + (self.max_length - label_len) * [0]
+        return label
+
+    def _encoder(self, code):
         if isinstance(code, bytes):
             code = code.decode('utf8')
 
@@ -52,7 +55,7 @@ class DataIterator:
         code = code.lower() if 'LOWER' in CHAR_SET or not CASE_SENSITIVE else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
         try:
-            return [SPACE_INDEX if code == SPACE_TOKEN else encode_maps()[c] for c in list(code)]
+            return self.padding([encode_maps()[c] for c in list(code)])
         except KeyError as e:
             exception(
                 'The sample label {} contains invalid charset: {}.'.format(
@@ -65,15 +68,15 @@ class DataIterator:
             self.image_path = data_set
             try:
                 self.label_list = [
-                    self._encoder(re.search(REGEX_MAP[self.mode], i.split(PATH_SPLIT)[-1]).group()) for i in data_set
+                    self._encoder(re.search(TRAINS_REGEX, i.split(PATH_SPLIT)[-1]).group()) for i in data_set
                 ]
             except AttributeError as e:
                 regex_not_found = "group" in e.args[0]
                 if regex_not_found:
                     exception(
                         "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
-                            "TrainRegex" if self.mode == RunMode.Trains else "TestRegex",
-                            TRAINS_REGEX if self.mode == RunMode.Trains else TEST_REGEX
+                            "TrainRegex",
+                            TRAINS_REGEX
                         ),
                         ConfigException.GET_LABEL_REGEX_ERROR
                     )
@@ -86,13 +89,13 @@ class DataIterator:
                     self.image_path.append(image_name)
                     # Get the label from the file name based on the regular expression.
                     code = re.search(
-                        REGEX_MAP[self.mode], image_name.split(PATH_SPLIT)[-1]
+                        TRAINS_REGEX, image_name.split(PATH_SPLIT)[-1]
                     )
                     if not code:
                         exception(
                             "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
-                                "TrainRegex" if self.mode == RunMode.Trains else "TestRegex",
-                                TRAINS_REGEX if self.mode == RunMode.Trains else TEST_REGEX
+                                "TrainRegex",
+                                TRAINS_REGEX
                             ),
                             ConfigException.GET_LABEL_REGEX_ERROR
                         )
@@ -176,6 +179,11 @@ class DataIterator:
         else:
             image_batch = [self._image(i) for i in self.image_path]
             label_batch = self.label_list
+
+        if self.is_first:
+            self.max_length = self._max_length(label_batch)
+            self.is_first = False
+
         return self._generate_batch(image_batch, label_batch)
 
     def _generate_batch(self, image_batch, label_batch):
@@ -184,8 +192,21 @@ class DataIterator:
         self._label_batch = batch_labels
         return batch_inputs, batch_seq_len, batch_labels
 
+    @staticmethod
+    def _max_length(dataset_list):
+        dataset_list = list(dataset_list)
+        if not dataset_list:
+            raise ValueError("Unable to find maximum character length, the dataset is empty!")
+        if isinstance(dataset_list[0], bytes):
+            dataset_list = [_.decode() for _ in dataset_list]
+        return max([len(_) for _ in dataset_list])
+
     def generate_batch_by_tfrecords(self, sess):
         _image, _label = sess.run(self.next_element)
+
+        if self.is_first:
+            self.max_length = self._max_length(_label)
+            self.is_first = False
 
         image_batch, label_batch = [], []
         for (i1, i2) in zip(_image, _label):

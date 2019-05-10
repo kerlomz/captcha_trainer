@@ -6,11 +6,12 @@ import sys
 import tensorflow as tf
 from distutils.version import StrictVersion
 from config import *
-from network.CNN import CNN3, CNN5
+from network.CNN import CNN5
 from network.GRU import GRU
 from network.LSTM import LSTM, BLSTM
 from network.ResNet import ResNet50
 from network.DenseNet import DenseNet
+from network.CapsNetV2 import CapsNet
 from network.SRU import SRU, BSRU
 from network.utils import NetworkUtils
 from optimizer.AdaBound import AdaBoundOptimizer
@@ -34,11 +35,18 @@ class GraphOCR(object):
         self.merged_summary = tf.summary.merge_all()
 
     def _build_model(self):
+
         if self.network == CNNNetwork.CNN5:
             x = CNN5(inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.ResNet:
             x = ResNet50(inputs=self.inputs, utils=self.utils).build()
+
+        elif self.network == CNNNetwork.DenseNet:
+            x = DenseNet(inputs=self.inputs, utils=self.utils).build()
+
+        elif self.network == CNNNetwork.CapsNet:
+            x = CapsNet(inputs=self.inputs).build()
 
         else:
             print('This cnn neural network is not supported at this time.')
@@ -75,10 +83,10 @@ class GraphOCR(object):
                 name='weight',
                 shape=[outputs.get_shape()[1] if self.network == CNNNetwork.ResNet else NUM_HIDDEN * 2, NUM_CLASSES],
                 dtype=tf.float32,
-                initializer=tf.truncated_normal_initializer(stddev=0.1),
+                initializer=tf.contrib.layers.xavier_initializer(),
+                # initializer=tf.truncated_normal_initializer(stddev=0.1),
+                # initializer=tf.glorot_normal_initializer(),
                 # initializer=tf.glorot_uniform_initializer(),
-                # initializer=tf.contrib.layers.xavier_initializer(),
-                # initializer=tf.truncated_normal([NUM_HIDDEN, NUM_CLASSES], stddev=0.1),
             )
             biases_out = tf.get_variable(
                 name='biases',
@@ -105,12 +113,11 @@ class GraphOCR(object):
             ctc_merge_repeated=CTC_MERGE_REPEATED,
             preprocess_collapse_repeated=PREPROCESS_COLLAPSE_REPEATED,
             ignore_longer_outputs_than_inputs=False,
-            time_major=True
+            time_major=CTC_LOSS_TIME_MAJOR
         )
 
         self.cost = tf.reduce_mean(self.loss)
         tf.summary.scalar('cost', self.cost)
-
         self.lrn_rate = tf.train.exponential_decay(
             TRAINS_LEARNING_RATE,
             self.global_step,
@@ -121,38 +128,58 @@ class GraphOCR(object):
         tf.summary.scalar('learning_rate', self.lrn_rate)
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        print(update_ops)
-        with tf.control_dependencies(update_ops):
-            self.train_op = AdaBoundOptimizer(
-                learning_rate=self.lrn_rate,
-                final_lr=0.1,
-                beta1=0.9,
-                beta2=0.999,
-                amsbound=True
-            ).minimize(
-                loss=self.cost,
-                global_step=self.global_step
-            )
-            # self.optimizer = tf.train.AdamOptimizer(
-            #     learning_rate=self.lrn_rate
-            # ).minimize(
-            #     self.cost,
-            #     global_step=self.global_step
-            # )
-            # self.optimizer = tf.train.MomentumOptimizer(
-            #     learning_rate=self.lrn_rate,
-            #     use_nesterov=True,
-            #     momentum=MOMENTUM,
-            # ).minimize(
-            #     self.cost,
-            #     global_step=self.global_step
-            # )
+        # print(update_ops)
         # Storing adjusted smoothed mean and smoothed variance operations
-        # update_ops = tf.group(*tf.get_collection(tf.GraphKeys.UPDATE_OPS))
-        # train_ops = [self.optimizer] + self.utils.extra_train_ops
-        # self.train_op = tf.group(self.optimizer, update_ops)
-        # self.train_op = self.optimizer
-        # self.train_op = tf.group(*train_ops)
+        with tf.control_dependencies(update_ops):
+            if OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.AdaBound:
+                self.train_op = AdaBoundOptimizer(
+                    learning_rate=self.lrn_rate,
+                    final_lr=0.1,
+                    beta1=0.9,
+                    beta2=0.999,
+                    amsbound=True
+                ).minimize(
+                    loss=self.cost,
+                    global_step=self.global_step
+                )
+            elif OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.Adam:
+                self.train_op = tf.train.AdamOptimizer(
+                    learning_rate=self.lrn_rate
+                ).minimize(
+                    self.cost,
+                    global_step=self.global_step
+                )
+            elif OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.Momentum:
+                self.train_op = tf.train.MomentumOptimizer(
+                    learning_rate=self.lrn_rate,
+                    use_nesterov=True,
+                    momentum=MOMENTUM,
+                ).minimize(
+                    self.cost,
+                    global_step=self.global_step
+                )
+            elif OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.SGD:
+                self.train_op = tf.train.GradientDescentOptimizer(
+                    learning_rate=self.lrn_rate,
+                ).minimize(
+                    self.cost,
+                    global_step=self.global_step
+                )
+            elif OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.AdaGrad:
+                self.train_op = tf.train.AdagradOptimizer(
+                    learning_rate=self.lrn_rate,
+                ).minimize(
+                    self.cost,
+                    global_step=self.global_step
+                )
+            elif OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.RMSProp:
+                self.train_op = tf.train.RMSPropOptimizer(
+                    learning_rate=self.lrn_rate,
+                    decay=DECAY_RATE,
+                ).minimize(
+                    self.cost,
+                    global_step=self.global_step
+                )
 
         # Option 2: tf.contrib.ctc.ctc_beam_search_decoder
         # (it's slower but you'll get better results)
@@ -175,3 +202,7 @@ class GraphOCR(object):
             self.dense_decoded = tf.sparse.to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
         else:
             self.dense_decoded = tf.sparse_tensor_to_dense(self.decoded[0], default_value=-1, name="dense_decoded")
+
+
+if __name__ == '__main__':
+    GraphOCR(RunMode.Predict, CNNNetwork.CNN3, RecurrentNetwork.BLSTM).build_graph()
