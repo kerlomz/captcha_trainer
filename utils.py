@@ -38,11 +38,11 @@ class DataIterator:
         self.max_length = 0
         self.is_first = True
 
-    def padding(self, label):
-        label_len = len(label)
-        if label_len < self.max_length:
-            return label + (self.max_length - label_len) * [0]
-        return label
+    # def padding(self, label):
+    #     label_len = len(label)
+    #     if label_len < self.max_length:
+    #         return label + (self.max_length - label_len) * [0]
+    #     return label
 
     def _encoder(self, code):
         if isinstance(code, bytes):
@@ -55,7 +55,8 @@ class DataIterator:
         code = code.lower() if 'LOWER' in CHAR_SET or not CASE_SENSITIVE else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
         try:
-            return self.padding([encode_maps()[c] for c in list(code)])
+            return [encode_maps()[c] for c in list(code)]
+            # return self.padding([encode_maps()[c] for c in list(code)])
         except KeyError as e:
             exception(
                 'The sample label {} contains invalid charset: {}.'.format(
@@ -221,7 +222,7 @@ class DataIterator:
 
 def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
     if ignore_value is None:
-        ignore_value = [-1, 0]
+        ignore_value = [-1]
     original_seq_len = len(original_seq)
     decoded_seq_len = len(decoded_seq)
     if original_seq_len != decoded_seq_len:
