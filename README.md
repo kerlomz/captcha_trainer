@@ -113,121 +113,106 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 
 ## 2. 配置化
 
-1. config.yaml - System Config
+
+1. model.yaml  - Model Config
 
    ```yaml
    # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
-   # - If you use the GPU version, you need to install some additional applications.
-   # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
-   # - The Default is .*?(?=_.*\.)
-   # TrainsPath and TestPath: The local absolute path of your training and testing set.
-   # TestSetNum: This is an optional parameter that is used when you want to extract some of the test set
-   # - from the training set when you are not preparing the test set separately.
-   System:
-     DeviceUsage: 0.5
-     TrainRegex: '.*?(?=_)'
-     TestRegex: '.*?(?=_)'
-     TestSetNum: 300
-   
-   # CNNNetwork: [CNN5, DenseNet]
-   # RecurrentNetwork: [BLSTM, LSTM]
-   # - The recommended configuration is CNN5+BLSTM / DenseNet+BLSTM
-   # HiddenNum: [64, 128, 256]
-   # - This parameter indicates the number of nodes used to remember and store past states.
-   NeuralNet:
-     CNNNetwork: CNN5
-     RecurrentNetwork: BLSTM
-     HiddenNum: 64
-     KeepProb: 0.99
-   
-   # SavedEpochs: A Session.run() execution is called a Epochs,
-   # - Used to save traininsed to calculate accuracy, Default value is 100.
-   # TestNum: The number of samples for each test batch.
-   # - A test for every saved steps.
-   # CompileAcc: When the accuracy reaches the set threshold,
-   # - the model will be compiled together each time it is archived.
-   # - Available for specific usage scenarios.
-   # EndAcc: Finish the training when the accuracy reaches [EndAcc*100]%.
-   # EndEpochs: Finish the training when the epoch is greater than the defined epoch.
-   # PreprocessCollapseRepe ated: If True, then a preprocessing step runs
-   # - before loss calculation, wherein repeated labels passed to the loss
-   # - are merged into single labels.  This is useful if the training labels come
-   # - from, e.g., forced alignments and therefore have unnecessary repetitions.
-   # CTCMergeRepeated: If False, then deep within the CTC calculation,
-   # - repeated non-blank labels will not be merged and are interpreted
-   # - as individual labels. This is a simplified (non-standard) version of CTC.
-   Trains:
-     SavedSteps: 100
-     ValidationSteps: 500
-     EndAcc: 0.98
-     EndCost: 1
-     EndEpochs: 2
-     BatchSize: 64
-     TestBatchSize: 300
-     LearningRate: 0.01
-     DecayRate: 0.98
-     DecaySteps: 100000
-     PreprocessCollapseRepeated: False
-     CTCMergeRepeated: True  
-     CTCBeamWidth: 5
-     CTCTopPaths: 1
-  
-   ```
-
-   There are several common examples of TrainRegex:
-   i. apple_20181010121212.jpg
-
-   ```
-   .*?(?=_.*\.)
-   ```
-
-   ii apple.png
-
-   ```
-   .*?(?=\.)
-   ```
-
-2. model.yaml  - Model Config
-
-   ```yaml
-   # Sites: A bindable parameter used to select a model. 
-   # - If this parameter is defined, 
-   # - it can be identified by using the model_site parameter 
-   # - to identify a model that is inconsistent with the actual size of the current model.
-   # ModelName: Corresponding to the model file in the model directory,
-   # - such as YourModelName.pb, fill in YourModelName here.
-   # ModelType: This parameter is also used to locate the model. 
-   # - The difference from the sites is that if there is no corresponding site, 
-   # - the size will be used to assign the model. 
-   # - If a model of the corresponding size and corresponding to the ModelType is not found, 
-   # - the model belonging to the category is preferentially selected.
-   # CharSet: Provides a default optional built-in solution:
-   # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
-   # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET]
-   # - Or you can use your own customized character set like: ['a', '1', '2'].
-   # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
-   # - which is convenient for users to freely combine character sets.
-   # - If you don't want to manually define the character set manually,
-   # - you can choose a built-in character set
-   # - and set the characters to be excluded by CharExclude parameter.
-   Model:
-     Sites: []
-     ModelName: YourModelName
-     ModelType: 150x50
-     CharSet: ALPHANUMERIC_LOWER
-     CharExclude: []
-     CharReplace: {}
-     ImageWidth: 150
-     ImageHeight: 50
-   
-   # Binaryzation: [-1: Off, >0 and < 255: On].
-   # Smoothing: [-1: Off, >0: On].
-   # Blur: [-1: Off, >0: On].
-   Pretreatment:
-     Binaryzation: -1
-     Smoothing: -1
-     Blur: -1
-     Resize: [150, 50]
+    # - If you use the GPU version, you need to install some additional applications.
+    System:
+      DeviceUsage: 0.7
+    
+    # ModelName: Corresponding to the model file in the model directory,
+    # - such as YourModelName.pb, fill in YourModelName here.
+    # CharSet: Provides a default optional built-in solution:
+    # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
+    # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
+    # - Or you can use your own customized character set like: ['a', '1', '2'].
+    # CharMaxLength: Maximum length of characters， used for label padding.
+    # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
+    # - which is convenient for users to freely combine character sets.
+    # - If you don't want to manually define the character set manually,
+    # - you can choose a built-in character set
+    # - and set the characters to be excluded by CharExclude parameter.
+    Model:
+      Sites: [
+        'YourModelName'
+      ]
+      ModelName: YourModelName
+      ModelType: 150x50
+      CharSet: ALPHANUMERIC_LOWER
+      CharExclude: []
+      CharReplace: {}
+      ImageWidth: 150
+      ImageHeight: 50
+    
+    # Binaryzation: [-1: Off, >0 and < 255: On].
+    # Smoothing: [-1: Off, >0: On].
+    # Blur: [-1: Off, >0: On].
+    # Resize: [WIDTH, HEIGHT]
+    # - If the image size is too small, the training effect will be poor and you need to zoom in.
+    # ReplaceTransparent: [True, False]
+    # - True: Convert transparent images in RGBA format to opaque RGB format,
+    # - False: Keep the original image
+    Pretreatment:
+      Binaryzation: -1
+      Smoothing: -1
+      Blur: -1
+      Resize: [150, 50]
+      ReplaceTransparent: True
+    
+    # CNNNetwork: [CNN5, ResNet, DenseNet]
+    # RecurrentNetwork: [BLSTM, LSTM, SRU, BSRU, GRU]
+    # - The recommended configuration is CNN5+BLSTM / ResNet+BLSTM
+    # HiddenNum: [64, 128, 256]
+    # - This parameter indicates the number of nodes used to remember and store past states.
+    # Optimizer: Loss function algorithm for calculating gradient.
+    # - [AdaBound, Adam, Momentum]
+    NeuralNet:
+      CNNNetwork: CNN5
+      RecurrentNetwork: BLSTM
+      HiddenNum: 64
+      KeepProb: 0.98
+      Optimizer: AdaBound
+      PreprocessCollapseRepeated: False
+      CTCMergeRepeated: True
+      CTCBeamWidth: 1
+      CTCTopPaths: 1
+    
+    # TrainsPath and TestPath: The local absolute path of your training and testing set.
+    # DatasetPath: Package a sample of the TFRecords format from this path.
+    # TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
+    # - The Default is .*?(?=_.*\.)
+    # TestSetNum: This is an optional parameter that is used when you want to extract some of the test set
+    # - from the training set when you are not preparing the test set separately.
+    # SavedSteps: A Session.run() execution is called a Step,
+    # - Used to save training progress, Default value is 100.
+    # ValidationSteps: Used to calculate accuracy, Default value is 500.
+    # TestSetNum: The number of test sets, if an automatic allocation strategy is used (TestPath not set).
+    # EndAcc: Finish the training when the accuracy reaches [EndAcc*100]% and other conditions.
+    # EndCost: Finish the training when the cost reaches EndCost and other conditions.
+    # EndEpochs: Finish the training when the epoch is greater than the defined epoch and other conditions.
+    # BatchSize: Number of samples selected for one training step.
+    # TestBatchSize: Number of samples selected for one validation step.
+    # LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
+    Trains:
+      TrainsPath: './dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords'
+      TestPath: './dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords'
+      DatasetPath: [
+        "D:/***"
+      ]
+      TrainRegex: '.*?(?=_)'
+      TestSetNum: 300
+      SavedSteps: 100
+      ValidationSteps: 500
+      EndAcc: 0.95
+      EndCost: 0.1
+      EndEpochs: 2
+      BatchSize: 128
+      TestBatchSize: 300
+      LearningRate: 0.001
+      DecayRate: 0.98
+      DecaySteps: 10000
    ```
 
 # 工具集
@@ -235,10 +220,7 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 1. 预处理预览工具，只支持为打包的训练集查看
    ```python -m tools.preview```
 
-2. 新手指南 （只支持字符集推荐，我觉得是个鸡肋各位请忽略）
-   ```python -m tools.navigator```
-
-3. PyInstaller 一键打包（训练的话支持不好，部署的打包效果不错）
+2. PyInstaller 一键打包（训练的话支持不好，部署的打包效果不错）
 
    ```
    pip install pyinstaller
@@ -249,6 +231,9 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 
 1. 命令行或终端运行：```python trains.py```
 2. 使用 PyCharm 运行，右键 Run
+3. **新手专用**: 使用IDE工具修改 tutorial.py 配置内容并运行，集推荐配置，打包样本，运行于一体。
+
+
 
 # 开源许可
 

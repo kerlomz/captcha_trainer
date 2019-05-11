@@ -79,7 +79,9 @@ NeuralNet:
 Trains:
   TrainsPath: './dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords'
   TestPath: './dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords'
-  DatasetPath: []
+  DatasetPath: [
+    "D:/***"
+  ]
   TrainRegex: '.*?(?=_)'
   TestSetNum: 300
   SavedSteps: 100
