@@ -23,7 +23,6 @@ NETWORK_MAP = {
     'CNN5': CNNNetwork.CNN5,
     'ResNet': CNNNetwork.ResNet,
     'DenseNet': CNNNetwork.DenseNet,
-    'CapsNet': CNNNetwork.CapsNet,
     'LSTM': RecurrentNetwork.LSTM,
     'BLSTM': RecurrentNetwork.BLSTM,
     'SRU': RecurrentNetwork.SRU,
