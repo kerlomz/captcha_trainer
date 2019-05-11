@@ -11,7 +11,6 @@ from network.GRU import GRU
 from network.LSTM import LSTM, BLSTM
 from network.ResNet import ResNet50
 from network.DenseNet import DenseNet
-from network.CapsNetV2 import CapsNet
 from network.SRU import SRU, BSRU
 from network.utils import NetworkUtils
 from optimizer.AdaBound import AdaBoundOptimizer
@@ -44,9 +43,6 @@ class GraphOCR(object):
 
         elif self.network == CNNNetwork.DenseNet:
             x = DenseNet(inputs=self.inputs, utils=self.utils).build()
-
-        elif self.network == CNNNetwork.CapsNet:
-            x = CapsNet(inputs=self.inputs).build()
 
         else:
             print('This cnn neural network is not supported at this time.')
@@ -205,4 +201,4 @@ class GraphOCR(object):
 
 
 if __name__ == '__main__':
-    GraphOCR(RunMode.Predict, CNNNetwork.CNN3, RecurrentNetwork.BLSTM).build_graph()
+    GraphOCR(RunMode.Predict, CNNNetwork.CNN5, RecurrentNetwork.BLSTM).build_graph()

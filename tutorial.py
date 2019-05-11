@@ -8,7 +8,7 @@ from constants import *
 
 # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
-charset = SimpleCharset.ALPHANUMERIC_LOWER_MIX_CHINESE_3500
+charset = SimpleCharset.ALPHANUMERIC_LOWER
 
 cnn_network = CNNNetwork.CNN5
 recurrent_network = RecurrentNetwork.BLSTM
@@ -82,7 +82,7 @@ NeuralNet:
   CNNNetwork: @cnn_network
   RecurrentNetwork: @recurrent_network
   HiddenNum: @hidden_num
-  KeepProb: 0.90
+  KeepProb: 0.98
   Optimizer: @optimizer
   PreprocessCollapseRepeated: False
   CTCMergeRepeated: True

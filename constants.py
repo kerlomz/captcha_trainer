@@ -16,7 +16,6 @@ class CNNNetwork(Enum):
     CNN5 = 'CNN5'
     ResNet = 'ResNet'
     DenseNet = 'DenseNet'
-    CapsNet = 'CapsNet'
 
 
 @unique
