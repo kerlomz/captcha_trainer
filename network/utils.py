@@ -228,10 +228,14 @@ class NetworkUtils(object):
 
     @staticmethod
     def max_pool(x, ksize, strides):
+        if isinstance(ksize, int):
+            ksize = [ksize, ksize]
+        if isinstance(strides, int):
+            strides = [strides, strides]
         return tf.nn.max_pool(
             x,
-            ksize=[1, ksize, ksize, 1],
-            strides=[1, strides, strides, 1],
+            ksize=[1, ksize[0], ksize[1], 1],
+            strides=[1, strides[0], strides[1], 1],
             padding='SAME',
             name='max_pool'
         )
@@ -267,7 +271,7 @@ class NetworkUtils(object):
         return _inputs
 
     def batch_norm(self, name, x):
-        return tf.layers.batch_normalization(x, training=self.mode == RunMode.Trains, name=name)
+        return tf.layers.batch_normalization(x, training=self.mode == RunMode.Trains, fused=True, name=name)
 
     def conv_block(self, x, growth_rate, dropout_rate=None):
         _x = self.batch_norm(name=None, x=x)

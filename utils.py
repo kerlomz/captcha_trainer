@@ -238,7 +238,17 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
     for i, origin_label in enumerate(original_seq):
         decoded_label = [j for j in decoded_seq[i] if j not in ignore_value]
         if i < 5:
-            print(i, len(origin_label), len(decoded_label), origin_label, decoded_label)
+            print(
+                "{} {} {} {} {} --> {} {}".format(
+                    i,
+                    len(origin_label),
+                    len(decoded_label),
+                    origin_label,
+                    decoded_label,
+                    [GEN_CHAR_SET[_] for _ in origin_label],
+                    [GEN_CHAR_SET[_] for _ in decoded_label]
+                )
+            )
         if origin_label == decoded_label:
             count += 1
     # Training is not useful for decoding
@@ -263,4 +273,3 @@ def sparse_tuple_from_label(sequences, dtype=np.int32):
     values = np.asarray(values, dtype=dtype)
     shape = np.asarray([len(sequences), np.asarray(indices).max(0)[1] + 1], dtype=np.int64)
     return indices, values, shape
-
