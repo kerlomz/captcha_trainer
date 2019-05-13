@@ -59,6 +59,7 @@ NeuralNet:
   CTCMergeRepeated: True
   CTCBeamWidth: 1
   CTCTopPaths: 1
+  WarpCTC: False
 
 # TrainsPath and TestPath: The local absolute path of your training and testing set.
 # DatasetPath: Package a sample of the TFRecords format from this path.
