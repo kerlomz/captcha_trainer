@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import PIL.Image as PIL_Image
 import tensorflow as tf
+from importlib import import_module
 from config import *
 from constants import RunMode
 from pretreatment import preprocessing
@@ -60,6 +61,8 @@ def predict_func(image_batch, _sess, dense_decoded, op_input):
 
 if __name__ == '__main__':
 
+    if WARP_CTC:
+        import_module('warpctc_tensorflow')
     graph = tf.Graph()
     tf_checkpoint = tf.train.latest_checkpoint(MODEL_PATH)
     sess = tf.Session(
@@ -70,7 +73,7 @@ if __name__ == '__main__':
             gpu_options=tf.GPUOptions(
                 allocator_type='BFC',
                 # allow_growth=True,  # it will cause fragmentation.
-                per_process_gpu_memory_fraction=0.1
+                per_process_gpu_memory_fraction=0.01
             ))
     )
     graph_def = graph.as_graph_def()

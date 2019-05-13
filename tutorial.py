@@ -18,11 +18,11 @@ trains_path = [
     r"D:\TrainSet\***",
 ]
 
-test_num = 3000
+test_num = 300
 hidden_num = 64
 beam_width = 1
 
-name_prefix = "tax"
+name_prefix = None
 name_suffix = None
 name_prefix = name_prefix if name_prefix else "tutorial"
 name_suffix = '-' + str(name_suffix) if name_suffix else ''
@@ -137,7 +137,6 @@ if width > 160 or width < 120:
 else:
     r_height = height
 resize = "[{}, {}]".format(width if r_height == height else 150, r_height)
-# resize = "[{}, {}]".format(width, height)
 
 
 model_name = '{}-mix-{}{}-{}-H{}{}'.format(
@@ -153,7 +152,10 @@ trains_path = json.dumps(trains_path, ensure_ascii=False, indent=2).replace('\n'
 BEST_LEARNING_RATE = {
     Optimizer.AdaBound: 0.001,
     Optimizer.Momentum: 0.01,
-    Optimizer.Adam: 0.01
+    Optimizer.Adam: 0.01,
+    Optimizer.SGD: 0.01,
+    Optimizer.RMSProp: 0.01,
+    Optimizer.AdaGrad: 0.01,
 }
 
 learning_rate = BEST_LEARNING_RATE[optimizer]
