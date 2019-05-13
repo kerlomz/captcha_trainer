@@ -4,6 +4,7 @@
 import sys
 
 import tensorflow as tf
+from importlib import import_module
 from distutils.version import StrictVersion
 from config import *
 from network.CNN import CNN5
@@ -101,16 +102,24 @@ class GraphOCR(object):
     def _build_train_op(self):
         self.global_step = tf.train.get_or_create_global_step()
         # ctc loss function, using forward and backward algorithms and maximum likelihood.
-
-        self.loss = tf.nn.ctc_loss(
-            labels=self.labels,
-            inputs=self.predict,
-            sequence_length=self.seq_len,
-            ctc_merge_repeated=CTC_MERGE_REPEATED,
-            preprocess_collapse_repeated=PREPROCESS_COLLAPSE_REPEATED,
-            ignore_longer_outputs_than_inputs=False,
-            time_major=CTC_LOSS_TIME_MAJOR
-        )
+        if WARP_CTC:
+            import_module('warpctc_tensorflow')
+            with tf.get_default_graph()._kernel_label_map({"CTCLoss": "WarpCTC"}):
+                self.loss = tf.nn.ctc_loss(
+                    inputs=self.predict,
+                    labels=self.labels,
+                    sequence_length=self.seq_len
+                )
+        else:
+            self.loss = tf.nn.ctc_loss(
+                labels=self.labels,
+                inputs=self.predict,
+                sequence_length=self.seq_len,
+                ctc_merge_repeated=CTC_MERGE_REPEATED,
+                preprocess_collapse_repeated=PREPROCESS_COLLAPSE_REPEATED,
+                ignore_longer_outputs_than_inputs=False,
+                time_major=CTC_LOSS_TIME_MAJOR
+            )
 
         self.cost = tf.reduce_mean(self.loss)
         tf.summary.scalar('cost', self.cost)
