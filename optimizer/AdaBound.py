@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-
+import tensorflow as tf
+from distutils.version import StrictVersion
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import control_flow_ops
@@ -52,8 +53,10 @@ class AdaBoundOptimizer(optimizer.Optimizer):
 
     def _create_slots(self, var_list):
         first_var = min(var_list, key=lambda x: x.name)
-
-        graph = None if context.executing_eagerly() else ops.get_default_graph()
+        if StrictVersion(tf.__version__) >= StrictVersion('1.10.0'):
+            graph = None if context.executing_eagerly() else ops.get_default_graph()
+        else:
+            graph = ops.get_default_graph()
         create_new = self._get_non_slot_variable("beta1_power", graph) is None
         if not create_new and context.in_graph_mode():
             create_new = (self._get_non_slot_variable("beta1_power", graph).graph is not first_var.graph)
@@ -83,7 +86,10 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         self._gamma_t = ops.convert_to_tensor(self._gamma)
 
     def _apply_dense(self, grad, var):
-        graph = None if context.executing_eagerly() else ops.get_default_graph()
+        if StrictVersion(tf.__version__) >= StrictVersion('1.10.0'):
+            graph = None if context.executing_eagerly() else ops.get_default_graph()
+        else:
+            graph = ops.get_default_graph()
         beta1_power = math_ops.cast(self._get_non_slot_variable("beta1_power", graph=graph), var.dtype.base_dtype)
         beta2_power = math_ops.cast(self._get_non_slot_variable("beta2_power", graph=graph), var.dtype.base_dtype)
         lr_t = math_ops.cast(self._lr_t, var.dtype.base_dtype)
@@ -125,7 +131,10 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         return control_flow_ops.group(*[var_update, m_t, v_t, vhat_t])
 
     def _resource_apply_dense(self, grad, var):
-        graph = None if context.executing_eagerly() else ops.get_default_graph()
+        if StrictVersion(tf.__version__) >= StrictVersion('1.10.0'):
+            graph = None if context.executing_eagerly() else ops.get_default_graph()
+        else:
+            graph = ops.get_default_graph()
         beta1_power = math_ops.cast(self._get_non_slot_variable("beta1_power", graph=graph), grad.dtype.base_dtype)
         beta2_power = math_ops.cast(self._get_non_slot_variable("beta2_power", graph=graph), grad.dtype.base_dtype)
         lr_t = math_ops.cast(self._lr_t, grad.dtype.base_dtype)
@@ -168,7 +177,10 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         return control_flow_ops.group(*[var_update, m_t, v_t, vhat_t])
 
     def _apply_sparse_shared(self, grad, var, indices, scatter_add):
-        graph = None if context.executing_eagerly() else ops.get_default_graph()
+        if StrictVersion(tf.__version__) >= StrictVersion('1.10.0'):
+            graph = None if context.executing_eagerly() else ops.get_default_graph()
+        else:
+            graph = ops.get_default_graph()
         beta1_power = math_ops.cast(self._get_non_slot_variable("beta1_power", graph=graph), var.dtype.base_dtype)
         beta2_power = math_ops.cast(self._get_non_slot_variable("beta2_power", graph=graph), var.dtype.base_dtype)
         lr_t = math_ops.cast(self._lr_t, var.dtype.base_dtype)
@@ -232,7 +244,10 @@ class AdaBoundOptimizer(optimizer.Optimizer):
     def _finish(self, update_ops, name_scope):
         # Update the power accumulators.
         with ops.control_dependencies(update_ops):
-            graph = None if context.executing_eagerly() else ops.get_default_graph()
+            if StrictVersion(tf.__version__) >= StrictVersion('1.10.0'):
+                graph = None if context.executing_eagerly() else ops.get_default_graph()
+            else:
+                graph = ops.get_default_graph()
             beta1_power = self._get_non_slot_variable("beta1_power", graph=graph)
             beta2_power = self._get_non_slot_variable("beta2_power", graph=graph)
             gamma_multi = self._get_non_slot_variable("gamma_multi", graph=graph)
