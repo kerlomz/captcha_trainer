@@ -24,7 +24,7 @@ class GraphOCR(object):
         self.utils = NetworkUtils(mode)
         self.network = cnn
         self.recurrent = recurrent
-        self.inputs = tf.placeholder(tf.float32, [None, RESIZE[0], RESIZE[1], IMAGE_CHANNEL], name='input')
+        self.inputs = tf.placeholder(tf.float32, [None, None, RESIZE[1], IMAGE_CHANNEL], name='input')
         self.labels = tf.sparse_placeholder(tf.int32, name='labels')
         self.seq_len = None
         self.merged_summary = None
@@ -49,12 +49,11 @@ class GraphOCR(object):
             print('This cnn neural network is not supported at this time.')
             sys.exit(-1)
 
-        shape_list = x.get_shape().as_list()
         # time_major = True: [max_time_step, batch_size, num_classes]
         # time_major = False: [batch_size, max_time_step, num_classes]
         print("CNN Output: {}".format(x.get_shape()))
 
-        self.seq_len = tf.fill([tf.shape(x)[0]], shape_list[1], name="seq_len")
+        self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
 
         if self.recurrent == RecurrentNetwork.LSTM:
             recurrent_network_builder = LSTM(self.utils, x, self.seq_len)
