@@ -29,8 +29,8 @@ class ResNet50(object):
         )
 
         a1 = self.utils.batch_norm(x=a1, name='bn_conv1')
-        a1 = tf.nn.relu(a1)
-        # a1 = self._leaky_relu(a1)
+        # a1 = tf.nn.relu(a1)
+        a1 = self.utils.leaky_relu(a1)
 
         a1 = tf.nn.max_pool(a1, ksize=(1, 3, 3, 1), strides=(1, 2, 2, 1), padding='VALID')
 
@@ -59,5 +59,5 @@ class ResNet50(object):
         x = self.utils.identity_block(a5, 3, [512, 512, 2048], stage=5, block='c')
 
         shape_list = x.get_shape().as_list()
-        x = tf.reshape(x, [-1, shape_list[1] * shape_list[2], shape_list[3]])
+        x = tf.reshape(x, [tf.shape(x)[0], tf.shape(x)[1] * shape_list[2], shape_list[3]])
         return x

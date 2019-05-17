@@ -32,5 +32,5 @@ class DenseNet(object):
             x, nb_filter = self.utils.dense_block(x, 8, 8, nb_filter)
 
             shape_list = x.get_shape().as_list()
-            x = tf.reshape(x, [-1, shape_list[1], shape_list[2] * shape_list[3]])
+            x = tf.reshape(x, [tf.shape(x)[0], -1, shape_list[2] * shape_list[3]])
             return x
