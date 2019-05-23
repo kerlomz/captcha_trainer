@@ -51,7 +51,11 @@ def _convert_dataset(file_list, mode):
                 sys.stdout.write('\r>> Converting image %d/%d ' % (i + 1, len(file_list)))
                 sys.stdout.flush()
                 image_data = _image(file_name)
-                labels = re.search(TRAINS_REGEX, file_name.split(PATH_SPLIT)[-1]).group()
+                labels = re.search(TRAINS_REGEX, file_name.split(PATH_SPLIT)[-1])
+                if labels:
+                    labels = labels.group()
+                else:
+                    raise NameError('invalid filename {}'.format(file_name))
                 labels = labels.encode('utf-8')
 
                 example = image_to_tfrecords(image_data, labels)
