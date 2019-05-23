@@ -164,7 +164,12 @@ class DataIterator:
 
         im = np.array(pil_image)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
-        im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
+        if RESIZE[0] == -1:
+            ratio = RESIZE[1] / IMAGE_HEIGHT
+            resize_width = int(ratio * IMAGE_WIDTH)
+            im = cv2.resize(im, (resize_width, RESIZE[1]))
+        else:
+            im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
         im = im.swapaxes(0, 1)
         return np.array((im[:, :, np.newaxis] if IMAGE_CHANNEL == 1 else im[:, :]) / 255.)
 
