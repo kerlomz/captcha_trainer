@@ -165,8 +165,8 @@ class DataIterator:
         im = np.array(pil_image)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
         if RESIZE[0] == -1:
-            ratio = RESIZE[1] / IMAGE_HEIGHT
-            resize_width = int(ratio * IMAGE_WIDTH)
+            ratio = RESIZE[1] / size[1]
+            resize_width = int(ratio * size[0])
             im = cv2.resize(im, (resize_width, RESIZE[1]))
         else:
             im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
