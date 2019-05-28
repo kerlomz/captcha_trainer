@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import sys
-
 import tensorflow as tf
 from importlib import import_module
 from distutils.version import StrictVersion
@@ -195,8 +194,8 @@ class GraphOCR(object):
 
         # Find the optimal path
         self.decoded, self.log_prob = tf.nn.ctc_beam_search_decoder(
-            self.predict,
-            self.seq_len,
+            inputs=self.predict,
+            sequence_length=self.seq_len,
             merge_repeated=False,
             beam_width=CTC_BEAM_WIDTH,
             top_paths=CTC_TOP_PATHS,

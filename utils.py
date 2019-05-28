@@ -186,9 +186,10 @@ class DataIterator:
             image_batch = [self._image(i) for i in self.image_path]
             label_batch = self.label_list
 
-        if self.is_first:
-            self.max_length = self._max_length(label_batch)
-            self.is_first = False
+        # For label padding.
+        # if self.is_first:
+        #     self.max_length = self._max_length(label_batch)
+        #     self.is_first = False
 
         return self._generate_batch(image_batch, label_batch)
 
@@ -198,31 +199,59 @@ class DataIterator:
         self._label_batch = batch_labels
         return batch_inputs, batch_seq_len, batch_labels
 
-    @staticmethod
-    def _max_length(dataset_list):
-        dataset_list = list(dataset_list)
-        if not dataset_list:
-            raise ValueError("Unable to find maximum character length, the dataset is empty!")
-        if isinstance(dataset_list[0], bytes):
-            dataset_list = [_.decode() for _ in dataset_list]
-        return max([len(_) for _ in dataset_list])
+    # For label padding.
+    # @staticmethod
+    # def _max_length(dataset_list):
+    #     dataset_list = list(dataset_list)
+    #     if not dataset_list:
+    #         raise ValueError("Unable to find maximum character length, the dataset is empty!")
+    #     if isinstance(dataset_list[0], bytes):
+    #         dataset_list = [_.decode() for _ in dataset_list]
+    #     return max([len(_) for _ in dataset_list])
 
     def generate_batch_by_tfrecords(self, sess):
         _image, _label = sess.run(self.next_element)
 
-        if self.is_first:
-            self.max_length = self._max_length(_label)
-            self.is_first = False
+        # For label padding.
+        # if self.is_first:
+        #     self.max_length = self._max_length(_label)
+        #     self.is_first = False
 
         image_batch, label_batch = [], []
-        for (i1, i2) in zip(_image, _label):
+        batch_shape = None
+        for index, (i1, i2) in enumerate(zip(_image, _label)):
             try:
+                image_array = self._image(i1)
+                if index == 0:
+                    # Each batch takes the shape of the first element
+                    # and is used to unify the shape of the elements in the current batch.
+                    batch_shape = image_array.shape
+                if image_array.shape != batch_shape:
+                    continue
                 image_batch.append(self._image(i1))
                 label_batch.append(self._encoder(i2))
             except OSError:
                 continue
+
+        # In order to solve the input of the unfixed width.
+        # Poor effect, seriously affecting feature extraction.
+        # if RESIZE[0] == -1:
+        #     image_batch = self.padding(image_batch)
         self.label_list = label_batch
         return self._generate_batch(image_batch, label_batch)
+
+    # In order to solve the input of the unfixed width.
+    # Poor effect, seriously affecting feature extraction.
+    # @staticmethod
+    # def padding(image_batch):
+    #
+    #     max_width = max([np.shape(_)[0] for _ in image_batch])
+    #     padded_image_batch = []
+    #     for image in image_batch:
+    #         output_img = np.zeros([max_width, RESIZE[1], IMAGE_CHANNEL])
+    #         output_img[0: np.shape(image)[0]] = image
+    #         padded_image_batch.append(output_img)
+    #     return padded_image_batch
 
 
 def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
