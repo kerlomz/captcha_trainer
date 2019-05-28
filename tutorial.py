@@ -18,9 +18,10 @@ trains_path = [
     r"D:\TrainSet\***",
 ]
 
-test_num = 300
+test_num = 500
 hidden_num = 64
 beam_width = 1
+learning_rate = None
 
 name_prefix = None
 name_suffix = None
@@ -158,7 +159,7 @@ BEST_LEARNING_RATE = {
     Optimizer.AdaGrad: 0.01,
 }
 
-learning_rate = BEST_LEARNING_RATE[optimizer]
+learning_rate = BEST_LEARNING_RATE[optimizer] if not learning_rate else learning_rate
 
 
 result = model.replace(
