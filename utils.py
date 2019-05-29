@@ -128,8 +128,13 @@ class DataIterator:
         min_after_dequeue = 1000
         batch = BATCH_SIZE if self.mode == RunMode.Trains else TEST_BATCH_SIZE
 
-        dataset_train = tf.data.TFRecordDataset(path).map(self.parse_example)
-        dataset_train = dataset_train.shuffle(min_after_dequeue).batch(batch).repeat()
+        dataset_train = tf.data.TFRecordDataset(
+            filenames=path,
+            num_parallel_reads=10
+        ).map(self.parse_example)
+        dataset_train = dataset_train.shuffle(
+            min_after_dequeue
+        ).batch(batch).repeat()
         iterator = dataset_train.make_one_shot_iterator()
         self.next_element = iterator.get_next()
 
