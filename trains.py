@@ -151,7 +151,12 @@ def train_process(mode=RunMode.Trains):
                 train_writer.add_summary(summary_str, step)
 
                 if step % 100 == 0 and step != 0:
-                    print('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}'.format(step, time.time() - batch_time, avg_train_cost))
+                    print('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}, Real-BatchSize: {}'.format(
+                        step,
+                        time.time() - batch_time,
+                        avg_train_cost,
+                        len(batch_inputs)
+                    ))
 
                 if step % TRAINS_SAVE_STEPS == 0 and step != 0:
                     saver.save(sess, SAVE_MODEL, global_step=step)
