@@ -34,17 +34,13 @@ class DataIterator:
         self.next_element = None
         self.image_path = []
         self.label_list = []
+        self._label_list = []
         self._size = 0
         self.max_length = 0
         self.is_first = True
 
-    # def padding(self, label):
-    #     label_len = len(label)
-    #     if label_len < self.max_length:
-    #         return label + (self.max_length - label_len) * [0]
-    #     return label
-
-    def _encoder(self, code):
+    @staticmethod
+    def _encoder(code):
         if isinstance(code, bytes):
             code = code.decode('utf8')
 
@@ -52,11 +48,10 @@ class DataIterator:
             if not k or not v:
                 break
             code.replace(k, v)
-        code = code.lower() if 'LOWER' in CHAR_SET or not CASE_SENSITIVE else code
+        code = code.lower() if 'LOWER' in CHAR_SET else code
         code = code.upper() if 'UPPER' in CHAR_SET else code
         try:
             return [encode_maps()[c] for c in list(code)]
-            # return self.padding([encode_maps()[c] for c in list(code)])
         except KeyError as e:
             exception(
                 'The sample label {} contains invalid charset: {}.'.format(
@@ -68,7 +63,7 @@ class DataIterator:
         if data_set:
             self.image_path = data_set
             try:
-                self.label_list = [
+                self._label_list = [
                     self._encoder(re.search(TRAINS_REGEX, i.split(PATH_SPLIT)[-1]).group()) for i in data_set
                 ]
             except AttributeError as e:
@@ -104,8 +99,8 @@ class DataIterator:
                     # The manual verification code platform is not case sensitive,
                     # - it will affect the accuracy of the training set.
                     # Here is a case conversion based on the selected character set.
-                    self.label_list.append(self._encoder(code))
-        self._size = len(self.label_list)
+                    self._label_list.append(self._encoder(code))
+        self._size = len(self._label_list)
 
     @staticmethod
     def parse_example(serial_example):
@@ -130,7 +125,7 @@ class DataIterator:
 
         dataset_train = tf.data.TFRecordDataset(
             filenames=path,
-            num_parallel_reads=10
+            num_parallel_reads=20
         ).map(self.parse_example)
         dataset_train = dataset_train.shuffle(
             min_after_dequeue
@@ -142,11 +137,8 @@ class DataIterator:
     def size(self):
         return self._size
 
-    def labels(self, index):
-        if (TRAINS_USE_TFRECORDS and self.mode == RunMode.Trains) or (TEST_USE_TFRECORDS and self.mode == RunMode.Test):
-            return self.label_list
-        else:
-            return [self.label_list[i] for i in index]
+    def labels(self):
+        return self.label_list
 
     @staticmethod
     def _image(path_or_bytes):
@@ -184,79 +176,76 @@ class DataIterator:
         return sequences, lengths
 
     def generate_batch_by_files(self, index=None):
+        batch = {}
         if index:
-            image_batch = [self._image(self.image_path[i]) for i in index]
-            label_batch = [self.label_list[i] for i in index]
+            for i in index:
+                try:
+                    image_array = self._image(self.image_path[i])
+                    label_array = self._label_list[i]
+                    image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
+                    if image_shape in batch:
+                        batch[image_shape].append((image_array, label_array))
+                    else:
+                        batch[image_shape] = [(image_array, label_array)]
+                except OSError:
+                    continue
         else:
-            image_batch = [self._image(i) for i in self.image_path]
-            label_batch = self.label_list
+            for i in self.image_path:
+                try:
+                    image_array = self._image(i)
+                    label_array = self._label_list[i]
+                    image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
+                    if image_shape in batch:
+                        batch[image_shape].append((image_array, label_array))
+                    else:
+                        batch[image_shape] = [(image_array, label_array)]
+                except OSError:
+                    continue
 
-        # For label padding.
-        # if self.is_first:
-        #     self.max_length = self._max_length(label_batch)
-        #     self.is_first = False
-
-        return self._generate_batch(image_batch, label_batch)
+        self.label_list = sum(batch.values(), [])
+        self.label_list = [i[1] for i in self.label_list]
+        return self.classified_generate_batch(batch)
 
     def _generate_batch(self, image_batch, label_batch):
+
         batch_inputs, batch_seq_len = self._get_input_lens(np.array(image_batch))
         batch_labels = sparse_tuple_from_label(label_batch)
         self._label_batch = batch_labels
         return batch_inputs, batch_seq_len, batch_labels
 
-    # For label padding.
-    # @staticmethod
-    # def _max_length(dataset_list):
-    #     dataset_list = list(dataset_list)
-    #     if not dataset_list:
-    #         raise ValueError("Unable to find maximum character length, the dataset is empty!")
-    #     if isinstance(dataset_list[0], bytes):
-    #         dataset_list = [_.decode() for _ in dataset_list]
-    #     return max([len(_) for _ in dataset_list])
+    def classified_generate_batch(self, batch):
+        classified_batch = {}
+        for shape, v in batch.items():
+            batch_inputs, batch_seq_len = self._get_input_lens(np.array([i[0] for i in v]))
+            batch_labels = sparse_tuple_from_label([i[1] for i in v])
+            if shape in classified_batch:
+                classified_batch[shape].append([batch_inputs, batch_seq_len, batch_labels])
+            else:
+                classified_batch[shape] = [batch_inputs, batch_seq_len, batch_labels]
+        return classified_batch
 
     def generate_batch_by_tfrecords(self, sess):
+
         _image, _label = sess.run(self.next_element)
 
-        # For label padding.
-        # if self.is_first:
-        #     self.max_length = self._max_length(_label)
-        #     self.is_first = False
+        batch = {}
 
-        image_batch, label_batch = [], []
-        batch_shape = None
         for index, (i1, i2) in enumerate(zip(_image, _label)):
             try:
                 image_array = self._image(i1)
-                if index == 0:
-                    # Each batch takes the shape of the first element
-                    # and is used to unify the shape of the elements in the current batch.
-                    batch_shape = image_array.shape
-                if image_array.shape != batch_shape:
-                    continue
-                image_batch.append(self._image(i1))
-                label_batch.append(self._encoder(i2))
+                label_array = self._encoder(i2)
+                image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
+                if image_shape in batch:
+                    batch[image_shape].append((image_array, label_array))
+                else:
+                    batch[image_shape] = [(image_array, label_array)]
+
             except OSError:
                 continue
 
-        # In order to solve the input of the unfixed width.
-        # Poor effect, seriously affecting feature extraction.
-        # if RESIZE[0] == -1:
-        #     image_batch = self.padding(image_batch)
-        self.label_list = label_batch
-        return self._generate_batch(image_batch, label_batch)
-
-    # In order to solve the input of the unfixed width.
-    # Poor effect, seriously affecting feature extraction.
-    # @staticmethod
-    # def padding(image_batch):
-    #
-    #     max_width = max([np.shape(_)[0] for _ in image_batch])
-    #     padded_image_batch = []
-    #     for image in image_batch:
-    #         output_img = np.zeros([max_width, RESIZE[1], IMAGE_CHANNEL])
-    #         output_img[0: np.shape(image)[0]] = image
-    #         padded_image_batch.append(output_img)
-    #     return padded_image_batch
+        self.label_list = sum(batch.values(), [])
+        self.label_list = [i[1] for i in self.label_list]
+        return self.classified_generate_batch(batch)
 
 
 def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
@@ -265,8 +254,8 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
     original_seq_len = len(original_seq)
     decoded_seq_len = len(decoded_seq)
     if original_seq_len != decoded_seq_len:
-        print(original_seq)
-        print('original lengths {} is different from the decoded_seq {}, please check again'.format(
+        tf.logging.error(original_seq)
+        tf.logging.error('original lengths {} is different from the decoded_seq {}, please check again'.format(
             original_seq_len,
             decoded_seq_len
         ))
@@ -277,7 +266,7 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
     for i, origin_label in enumerate(original_seq):
         decoded_label = [j for j in decoded_seq[i] if j not in ignore_value]
         if i < 5:
-            print(
+            tf.logging.info(
                 "{} {} {} {} {} --> {} {}".format(
                     i,
                     len(origin_label),

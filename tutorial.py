@@ -197,7 +197,7 @@ print(result)
 with open("model.yaml".format(size_str), "w", encoding="utf8") as f:
     f.write(result)
 
-from make_dataset import run
+from make_dataset import make_dataset
 from trains import main
-run()
+make_dataset()
 main(None)

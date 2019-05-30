@@ -3,7 +3,6 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import time
 import random
-import logging
 import numpy as np
 import tensorflow as tf
 import framework
@@ -13,9 +12,7 @@ from tensorflow.python.framework.graph_util import convert_variables_to_constant
 from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-logger = logging.getLogger('Training for OCR using {}+{}+CTC'.format(NEU_CNN, NEU_RECURRENT))
-logger.setLevel(logging.INFO)
+tf.logging.set_verbosity(tf.logging.INFO)
 
 
 def compile_graph(acc):
@@ -31,7 +28,7 @@ def compile_graph(acc):
         model.build_graph()
         input_graph_def = sess.graph.as_graph_def()
         saver = tf.train.Saver(var_list=tf.global_variables())
-        logger.info(tf.train.latest_checkpoint(MODEL_PATH))
+        tf.logging.info(tf.train.latest_checkpoint(MODEL_PATH))
         saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
 
     output_graph_def = convert_variables_to_constants(
@@ -51,11 +48,11 @@ def train_process(mode=RunMode.Trains):
     model = framework.GraphOCR(mode, NETWORK_MAP[NEU_CNN], NETWORK_MAP[NEU_RECURRENT])
     model.build_graph()
 
-    print('Loading Trains DataSet...')
+    tf.logging.info('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
     if TRAINS_USE_TFRECORDS:
         train_feeder.read_sample_from_tfrecords(TRAINS_PATH)
-        print('Loading Test DataSet...')
+        tf.logging.info('Loading Test DataSet...')
         test_feeder = utils.DataIterator(mode=RunMode.Test)
         test_feeder.read_sample_from_tfrecords(TEST_PATH)
     else:
@@ -79,12 +76,12 @@ def train_process(mode=RunMode.Trains):
             random.shuffle(test_list)
             trains_list = origin_list
         train_feeder.read_sample_from_files(trains_list)
-        print('Loading Test DataSet...')
+        tf.logging.info('Loading Test DataSet...')
         test_feeder = utils.DataIterator(mode=RunMode.Test)
         test_feeder.read_sample_from_files(test_list)
 
-    print('Total {} Trains DataSets'.format(train_feeder.size))
-    print('Total {} Test DataSets'.format(test_feeder.size))
+    tf.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
+    tf.logging.info('Total {} Test DataSets'.format(test_feeder.size))
     if test_feeder.size >= train_feeder.size:
         exception("The number of training sets cannot be less than the test set.", )
 
@@ -118,13 +115,13 @@ def train_process(mode=RunMode.Trains):
             saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
         except ValueError:
             pass
-        print('Start training...')
+        tf.logging.info('Start training...')
 
         while 1:
             shuffle_trains_idx = np.random.permutation(num_train_samples)
             train_cost = 0
             start_time = time.time()
-            _avg_train_cost = 0
+            last_avg_train_cost = 0
             for cur_batch in range(num_batches_per_epoch):
                 batch_time = time.time()
                 index_list = [
@@ -132,37 +129,39 @@ def train_process(mode=RunMode.Trains):
                     range(cur_batch * BATCH_SIZE, (cur_batch + 1) * BATCH_SIZE)
                 ]
                 if TRAINS_USE_TFRECORDS:
-                    batch_inputs, batch_seq_len, batch_labels = train_feeder.generate_batch_by_tfrecords(sess)
+                    classified_batch = train_feeder.generate_batch_by_tfrecords(sess)
                 else:
-                    batch_inputs, batch_seq_len, batch_labels = train_feeder.generate_batch_by_files(index_list)
+                    classified_batch = train_feeder.generate_batch_by_files(index_list)
+                step = 0
+                class_num = len(classified_batch)
+                for index, (shape, batch) in enumerate(classified_batch.items()):
+                    batch_inputs, batch_seq_len, batch_labels = batch
+                    feed = {
+                        model.inputs: batch_inputs,
+                        model.labels: batch_labels,
+                    }
 
-                feed = {
-                    model.inputs: batch_inputs,
-                    model.labels: batch_labels,
-                }
+                    summary_str, batch_cost, step, _ = sess.run(
+                        [model.merged_summary, model.cost, model.global_step, model.train_op],
+                        feed_dict=feed
+                    )
+                    train_cost += batch_cost * len(batch)
+                    avg_train_cost = train_cost / ((cur_batch + 1) * len(batch))
+                    last_avg_train_cost = avg_train_cost
+                    train_writer.add_summary(summary_str, step)
+                    if step % 100 == index and step != 0:
+                        tf.logging.info('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}, {}-BatchSize: {}'.format(
+                            step,
+                            time.time() - batch_time,
+                            avg_train_cost,
+                            shape,
+                            len(batch_inputs)
+                        ))
+                    if step % TRAINS_SAVE_STEPS == index and index == (class_num - 1) and step != 0:
+                        saver.save(sess, SAVE_MODEL, global_step=step)
+                        # tf.logging.info('save checkpoint at step {0}'.format(step))
 
-                summary_str, batch_cost, step, _ = sess.run(
-                    [model.merged_summary, model.cost, model.global_step, model.train_op],
-                    feed_dict=feed
-                )
-                train_cost += batch_cost * BATCH_SIZE
-                avg_train_cost = train_cost / ((cur_batch + 1) * BATCH_SIZE)
-                _avg_train_cost = avg_train_cost
-                train_writer.add_summary(summary_str, step)
-
-                if step % 100 == 0 and step != 0:
-                    print('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}, Real-BatchSize: {}'.format(
-                        step,
-                        time.time() - batch_time,
-                        avg_train_cost,
-                        len(batch_inputs)
-                    ))
-
-                if step % TRAINS_SAVE_STEPS == 0 and step != 0:
-                    saver.save(sess, SAVE_MODEL, global_step=step)
-                    logger.info('save checkpoint at step {0}', format(step))
-
-                if step % TRAINS_VALIDATION_STEPS == 0 and step != 0:
+                if step % TRAINS_VALIDATION_STEPS == (class_num - 1) and step != 0:
                     shuffle_test_idx = np.random.permutation(num_test_samples)
                     batch_time = time.time()
                     index_test = [
@@ -170,34 +169,43 @@ def train_process(mode=RunMode.Trains):
                         range(cur_batch * TEST_BATCH_SIZE, (cur_batch + 1) * TEST_BATCH_SIZE)
                     ]
                     if TRAINS_USE_TFRECORDS:
-                        test_inputs, batch_seq_len, test_labels = test_feeder.generate_batch_by_tfrecords(sess)
+                        classified_batch = test_feeder.generate_batch_by_tfrecords(sess)
                     else:
-                        test_inputs, batch_seq_len, test_labels = test_feeder.generate_batch_by_files(index_test)
+                        classified_batch = test_feeder.generate_batch_by_files(index_test)
 
-                    val_feed = {
-                        model.inputs: test_inputs,
-                        model.labels: test_labels
-                    }
-                    dense_decoded, lr = sess.run(
-                        [model.dense_decoded, model.lrn_rate],
-                        feed_dict=val_feed
-                    )
+                    all_dense_decoded = []
+                    lr = 0
+                    for index, (shape, batch) in enumerate(classified_batch.items()):
+                        test_inputs, batch_seq_len, test_labels = batch
+                        val_feed = {
+                            model.inputs: test_inputs,
+                            model.labels: test_labels
+                        }
+                        dense_decoded, sub_lr = sess.run(
+                            [model.dense_decoded, model.lrn_rate],
+                            feed_dict=val_feed
+                        )
+                        all_dense_decoded += dense_decoded.tolist()
+                        lr += sub_lr
                     accuracy = utils.accuracy_calculation(
-                        test_feeder.labels(None if TRAINS_USE_TFRECORDS else index_test),
-                        dense_decoded,
+                        test_feeder.labels(),
+                        all_dense_decoded,
                         ignore_value=[0, -1],
                     )
                     log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
                           "Time = {:.3f} sec/batch, LearningRate: {}"
-                    print(log.format(
-                        epoch_count, step, accuracy, avg_train_cost, time.time() - batch_time, lr
+                    tf.logging.info(log.format(
+                        epoch_count,
+                        step,
+                        accuracy,
+                        last_avg_train_cost, time.time() - batch_time, lr / len(classified_batch)
                     ))
 
-                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and avg_train_cost <= TRAINS_END_COST:
+                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and last_avg_train_cost <= TRAINS_END_COST:
                         break
-            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and _avg_train_cost <= TRAINS_END_COST:
+            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and last_avg_train_cost <= TRAINS_END_COST:
                 compile_graph(accuracy)
-                print('Total Time: {} sec.'.format(time.time() - start_time))
+                tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
                 break
             epoch_count += 1
 
@@ -213,7 +221,7 @@ def generate_config(acc):
 def main(_):
     init()
     train_process()
-    print('Training completed.')
+    tf.logging.info('Training completed.')
     pass
 
 

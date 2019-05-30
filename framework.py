@@ -45,12 +45,12 @@ class GraphOCR(object):
             x = DenseNet(inputs=self.inputs, utils=self.utils).build()
 
         else:
-            print('This cnn neural network is not supported at this time.')
+            tf.logging.error('This cnn neural network is not supported at this time.')
             sys.exit(-1)
 
         # time_major = True: [max_time_step, batch_size, num_classes]
         # time_major = False: [batch_size, max_time_step, num_classes]
-        print("CNN Output: {}".format(x.get_shape()))
+        tf.logging.info("CNN Output: {}".format(x.get_shape()))
 
         self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
 
@@ -65,7 +65,7 @@ class GraphOCR(object):
         elif self.recurrent == RecurrentNetwork.BSRU:
             recurrent_network_builder = BSRU(self.utils, x, self.seq_len)
         else:
-            print('This recurrent neural network is not supported at this time.')
+            tf.logging.error('This recurrent neural network is not supported at this time.')
             sys.exit(-1)
 
         outputs = recurrent_network_builder.build()
