@@ -202,7 +202,7 @@ class DataIterator:
                 except OSError:
                     continue
 
-        self.label_list = sum(batch.values(), [])
+        self.label_list = sum([v for k, v in batch.items()], [])
         self.label_list = [i[1] for i in self.label_list]
         return self.classified_generate_batch(batch)
 
@@ -243,7 +243,7 @@ class DataIterator:
             except OSError:
                 continue
 
-        self.label_list = sum(batch.values(), [])
+        self.label_list = sum([v for k, v in batch.items()], [])
         self.label_list = [i[1] for i in self.label_list]
         return self.classified_generate_batch(batch)
 
