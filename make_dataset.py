@@ -69,7 +69,7 @@ def _convert_dataset(file_list, mode):
     sys.stdout.flush()
 
 
-def run():
+def make_dataset():
     dataset_path = DATASET_PATH
     if _dataset_exists(TFRECORDS_DIR):
         print('Exists!')
@@ -98,4 +98,4 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    make_dataset()
