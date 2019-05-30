@@ -147,7 +147,7 @@ def train_process(mode=RunMode.Trains):
                     )
                     last_train_cost = batch_cost
                     train_writer.add_summary(summary_str, step)
-                    if step % 100 == index and step != 0:
+                    if step % 100 == index and step not in range(class_num):
                         tf.logging.info('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}, {}-BatchSize: {}'.format(
                             step,
                             time.time() - batch_time,
@@ -155,11 +155,11 @@ def train_process(mode=RunMode.Trains):
                             shape,
                             len(batch_inputs)
                         ))
-                    if step % TRAINS_SAVE_STEPS == index and index == (class_num - 1) and step != 0:
+                    if step % TRAINS_SAVE_STEPS == index and index == (class_num - 1) and step not in range(class_num):
                         saver.save(sess, SAVE_MODEL, global_step=step)
                         # tf.logging.info('save checkpoint at step {0}'.format(step))
 
-                if step % TRAINS_VALIDATION_STEPS == (class_num - 1) and step != 0:
+                if step % TRAINS_VALIDATION_STEPS == (class_num - 1) and step not in range(class_num):
                     shuffle_test_idx = np.random.permutation(num_test_samples)
                     batch_time = time.time()
                     index_test = [
