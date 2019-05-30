@@ -119,9 +119,8 @@ def train_process(mode=RunMode.Trains):
 
         while 1:
             shuffle_trains_idx = np.random.permutation(num_train_samples)
-            train_cost = 0
             start_time = time.time()
-            last_avg_train_cost = 0
+            last_train_cost = 0
             for cur_batch in range(num_batches_per_epoch):
                 batch_time = time.time()
                 index_list = [
@@ -134,6 +133,7 @@ def train_process(mode=RunMode.Trains):
                     classified_batch = train_feeder.generate_batch_by_files(index_list)
                 step = 0
                 class_num = len(classified_batch)
+
                 for index, (shape, batch) in enumerate(classified_batch.items()):
                     batch_inputs, batch_seq_len, batch_labels = batch
                     feed = {
@@ -145,15 +145,13 @@ def train_process(mode=RunMode.Trains):
                         [model.merged_summary, model.cost, model.global_step, model.train_op],
                         feed_dict=feed
                     )
-                    train_cost += batch_cost * len(batch)
-                    avg_train_cost = train_cost / ((cur_batch + 1) * len(batch))
-                    last_avg_train_cost = avg_train_cost
+                    last_train_cost = batch_cost
                     train_writer.add_summary(summary_str, step)
                     if step % 100 == index and step != 0:
                         tf.logging.info('Step: {} Time: {:.3f} sec/batch, Cost = {:.5f}, {}-BatchSize: {}'.format(
                             step,
                             time.time() - batch_time,
-                            avg_train_cost,
+                            last_train_cost,
                             shape,
                             len(batch_inputs)
                         ))
@@ -198,12 +196,12 @@ def train_process(mode=RunMode.Trains):
                         epoch_count,
                         step,
                         accuracy,
-                        last_avg_train_cost, time.time() - batch_time, lr / len(classified_batch)
+                        last_train_cost, time.time() - batch_time, lr / len(classified_batch)
                     ))
 
-                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and last_avg_train_cost <= TRAINS_END_COST:
+                    if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and last_train_cost <= TRAINS_END_COST:
                         break
-            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and last_avg_train_cost <= TRAINS_END_COST:
+            if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and last_train_cost <= TRAINS_END_COST:
                 compile_graph(accuracy)
                 tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
                 break
