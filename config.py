@@ -99,6 +99,8 @@ IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
 IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
 IMAGE_CHANNEL = cf_model['Model'].get('ImageChannel')
 IMAGE_CHANNEL = IMAGE_CHANNEL if IMAGE_CHANNEL else 1
+MULTI_SHAPE = False
+
 
 """NEURAL NETWORK"""
 NEU_CNN = cf_model['NeuralNet'].get('CNNNetwork')
