@@ -4,9 +4,10 @@
 import io
 import PIL.Image
 import cv2
+import random
 import numpy as np
 import tensorflow as tf
-
+from tensorflow import keras
 from config import *
 from constants import RunMode
 from pretreatment import preprocessing
@@ -125,7 +126,7 @@ class DataIterator:
 
         dataset_train = tf.data.TFRecordDataset(
             filenames=path,
-            num_parallel_reads=20
+            # num_parallel_reads=20
         ).map(self.parse_example)
         dataset_train = dataset_train.shuffle(
             min_after_dequeue
@@ -137,11 +138,12 @@ class DataIterator:
     def size(self):
         return self._size
 
+    @property
     def labels(self):
         return self.label_list
 
     @staticmethod
-    def _image(path_or_bytes):
+    def _image(path_or_bytes, is_random=False):
 
         # im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
@@ -161,9 +163,13 @@ class DataIterator:
 
         im = np.array(pil_image)
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
+
         if RESIZE[0] == -1:
+            random_ratio = random.choice([2.5, 3, 3.5, 3.2, 2.7, 2.75])
             ratio = RESIZE[1] / size[1]
+            random_width = int(random_ratio * RESIZE[1])
             resize_width = int(ratio * size[0])
+            resize_width = random_width if is_random else resize_width
             im = cv2.resize(im, (resize_width, RESIZE[1]))
         else:
             im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
@@ -175,43 +181,83 @@ class DataIterator:
         lengths = np.asarray([len(_) for _ in sequences], dtype=np.int64)
         return sequences, lengths
 
-    def generate_batch_by_files(self, index=None):
+    def generate_batch_by_files(self, image_index=None):
         batch = {}
-        if index:
-            for i in index:
+        image_batch = []
+        label_batch = []
+
+        if image_index:
+            # if len(image_index) == TEST_BATCH_SIZE:
+            #     ii = image_index[0]
+            #     ll = self._label_list[ii]
+            #     ll = "".join([GEN_CHAR_SET[_] for _ in ll])
+            #     import shutil
+            #     shutil.copy(self.image_path[ii], "image/{}.png".format(ll))
+            for i, index in enumerate(image_index):
                 try:
-                    image_array = self._image(self.image_path[i])
-                    label_array = self._label_list[i]
-                    image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
-                    if image_shape in batch:
-                        batch[image_shape].append((image_array, label_array))
+                    is_training = len(image_index) == BATCH_SIZE
+                    is_random = bool(random.getrandbits(1))
+
+                    image_array = self._image(self.image_path[index], is_random=is_training and is_random)
+                    label_array = self._label_list[index]
+                    if MULTI_SHAPE:
+                        image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
+                        if image_shape in batch:
+                            batch[image_shape].append((image_array, label_array))
+                        else:
+                            batch[image_shape] = [(image_array, label_array)]
                     else:
-                        batch[image_shape] = [(image_array, label_array)]
+                        image_batch.append(image_array)
+                        label_batch.append(label_array)
                 except OSError:
                     continue
+        # else:
+        #     for i, path in enumerate(self.image_path):
+        #         try:
+        #             if i == 0:
+        #                 import shutil
+        #                 print('----')
+        #
+        #                 shutil.copy(self.image_path[path], "{}.png".format(self._label_list[path]))
+        #             is_random = bool(random.getrandbits(1))
+        #             image_array = self._image(self.image_path[path], is_random=is_random)
+        #             label_array = self._label_list[path]
+        #             if MULTI_SHAPE:
+        #                 image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
+        #                 if image_shape in batch:
+        #                     batch[image_shape].append((image_array, label_array))
+        #                 else:
+        #                     batch[image_shape] = [(image_array, label_array)]
+        #             else:
+        #                 image_batch.append(image_array)
+        #                 label_batch.append(label_array)
+        #         except OSError:
+        #             continue
+
+        if MULTI_SHAPE:
+            self.label_list = sum([v for k, v in batch.items()], [])
+            self.label_list = [i[1] for i in self.label_list]
+            return self.classified_generate_batch(batch)
         else:
-            for i in self.image_path:
-                try:
-                    image_array = self._image(i)
-                    label_array = self._label_list[i]
-                    image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
-                    if image_shape in batch:
-                        batch[image_shape].append((image_array, label_array))
-                    else:
-                        batch[image_shape] = [(image_array, label_array)]
-                except OSError:
-                    continue
+            if RESIZE[0] == -1:
+                image_batch = keras.preprocessing.sequence.pad_sequences(
+                    sequences=image_batch,
+                    maxlen=None,
+                    dtype='float32',
+                    padding='post',
+                    truncating='post',
+                    value=0
+                )
+                # image_batch = self.padding(image_batch)
+            self.label_list = label_batch
+            return self.padded_generate_batch(image_batch, label_batch)
 
-        self.label_list = sum([v for k, v in batch.items()], [])
-        self.label_list = [i[1] for i in self.label_list]
-        return self.classified_generate_batch(batch)
-
-    def _generate_batch(self, image_batch, label_batch):
-
+    def padded_generate_batch(self, image_batch, label_batch):
+        classified_batch = {}
         batch_inputs, batch_seq_len = self._get_input_lens(np.array(image_batch))
         batch_labels = sparse_tuple_from_label(label_batch)
-        self._label_batch = batch_labels
-        return batch_inputs, batch_seq_len, batch_labels
+        classified_batch['{}x{}'.format(RESIZE[0], RESIZE[1])] = [batch_inputs, batch_seq_len, batch_labels]
+        return classified_batch
 
     def classified_generate_batch(self, batch):
         classified_batch = {}
@@ -224,28 +270,60 @@ class DataIterator:
                 classified_batch[shape] = [batch_inputs, batch_seq_len, batch_labels]
         return classified_batch
 
+    @staticmethod
+    def padding(image_batch):
+
+        max_width = max([np.shape(_)[0] for _ in image_batch])
+        padded_image_batch = []
+        for image in image_batch:
+            output_img = np.zeros([max_width, RESIZE[1], IMAGE_CHANNEL])
+            output_img[0: np.shape(image)[0]] = image
+            padded_image_batch.append(output_img)
+        return padded_image_batch
+
     def generate_batch_by_tfrecords(self, sess):
 
         _image, _label = sess.run(self.next_element)
-
         batch = {}
+        image_batch = []
+        label_batch = []
 
         for index, (i1, i2) in enumerate(zip(_image, _label)):
             try:
-                image_array = self._image(i1)
+                is_random = bool(random.getrandbits(1))
+                random_and_training = is_random and self.mode == RunMode.Trains
+                image_array = self._image(i1, is_random=random_and_training)
                 label_array = self._encoder(i2)
-                image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
-                if image_shape in batch:
-                    batch[image_shape].append((image_array, label_array))
+                if MULTI_SHAPE:
+                    image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
+                    if image_shape in batch:
+                        batch[image_shape].append((image_array, label_array))
+                    else:
+                        batch[image_shape] = [(image_array, label_array)]
                 else:
-                    batch[image_shape] = [(image_array, label_array)]
+                    image_batch.append(image_array)
+                    label_batch.append(label_array)
 
             except OSError:
                 continue
 
-        self.label_list = sum([v for k, v in batch.items()], [])
-        self.label_list = [i[1] for i in self.label_list]
-        return self.classified_generate_batch(batch)
+        if MULTI_SHAPE:
+            self.label_list = sum([v for k, v in batch.items()], [])
+            self.label_list = [i[1] for i in self.label_list]
+            return self.classified_generate_batch(batch)
+        else:
+            if RESIZE[0] == -1:
+                # image_batch = self.padding(image_batch)
+                image_batch = keras.preprocessing.sequence.pad_sequences(
+                    sequences=image_batch,
+                    maxlen=None,
+                    dtype='float32',
+                    padding='post',
+                    truncating='post',
+                    value=0
+                )
+            self.label_list = label_batch
+            return self.padded_generate_batch(image_batch, label_batch)
 
 
 def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
@@ -262,7 +340,7 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
         return 0
     count = 0
     # Here is for debugging, positioning error source use
-    # error_sample = []
+    error_sample = []
     for i, origin_label in enumerate(original_seq):
         decoded_label = [j for j in decoded_seq[i] if j not in ignore_value]
         if i < 5:
@@ -281,12 +359,12 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
             count += 1
     # Training is not useful for decoding
     # Here is for debugging, positioning error source use
-    #     if origin_label != decoded_label and len(error_sample) < 500:
-    #         error_sample.append({
-    #             "origin": "".join([decode_maps()[i] for i in origin_label]),
-    #             "decode": "".join([decode_maps()[i] for i in decoded_label])
-    #         })
-    # print(error_sample)
+        if origin_label != decoded_label and len(error_sample) < 5:
+            error_sample.append({
+                "origin": "".join([GEN_CHAR_SET[_] for _ in origin_label]),
+                "decode": "".join([GEN_CHAR_SET[_] for _ in decoded_label])
+            })
+    tf.logging.error(error_sample)
     return count * 1.0 / len(original_seq)
 
 
