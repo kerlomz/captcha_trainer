@@ -56,8 +56,8 @@ def _convert_dataset(file_list, mode):
                     labels = labels.group()
                 else:
                     raise NameError('invalid filename {}'.format(file_name))
-                labels = labels.encode('utf-8')
-
+                labelx=labels.split('/')[len(labels.split('/'))-1]
+                labels = labelx.encode('utf-8')
                 example = image_to_tfrecords(image_data, labels)
                 writer.write(example.SerializeToString())
 
