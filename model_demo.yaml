@@ -9,16 +9,15 @@ System:
 # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
 # - Or you can use your own customized character set like: ['a', '1', '2'].
-# CharMaxLength: Maximum length of characters， used for label padding.
 # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
 # - which is convenient for users to freely combine character sets.
 # - If you don't want to manually define the character set manually,
 # - you can choose a built-in character set
 # - and set the characters to be excluded by CharExclude parameter.
 Model:
-  Sites: [
-    'YourModelName'
-  ]
+  Sites:
+    - YourModelName
+
   ModelName: YourModelName
   ModelType: 150x50
   CharSet: ALPHANUMERIC_LOWER
@@ -42,16 +41,16 @@ Pretreatment:
   Resize: [150, 50]
   ReplaceTransparent: True
 
-# CNNNetwork: [CNN5, ResNet, DenseNet]
-# RecurrentNetwork: [BLSTM, LSTM, SRU, BSRU, GRU]
-# - The recommended configuration is CNN5+BLSTM / ResNet+BLSTM
+# CNNNetwork: [CNN5, ResNet]
+# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU]
+# - The recommended configuration is CNN5+GRU / ResNet+GRU
 # HiddenNum: [64, 128, 256]
 # - This parameter indicates the number of nodes used to remember and store past states.
 # Optimizer: Loss function algorithm for calculating gradient.
 # - [AdaBound, Adam, Momentum]
 NeuralNet:
   CNNNetwork: CNN5
-  RecurrentNetwork: BLSTM
+  RecurrentNetwork: BiLSTM
   HiddenNum: 64
   KeepProb: 0.98
   Optimizer: AdaBound
@@ -78,12 +77,12 @@ NeuralNet:
 # TestBatchSize: Number of samples selected for one validation step.
 # LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
 Trains:
-  TrainsPath: './dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords'
-  TestPath: './dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords'
-  DatasetPath: [
-    "D:/***"
-  ]
-  TrainRegex: '.*?(?=_)'
+  TrainsPath: ./dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords
+  TestPath: ./dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords
+  DatasetPath:
+    - D:/***
+
+  TrainRegex: .*?(?=_)
   TestSetNum: 300
   SavedSteps: 100
   ValidationSteps: 500

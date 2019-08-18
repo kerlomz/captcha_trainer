@@ -15,16 +15,16 @@ class RunMode(Enum):
 class CNNNetwork(Enum):
     CNN5 = 'CNN5'
     ResNet = 'ResNet'
-    DenseNet = 'DenseNet'
 
 
 @unique
 class RecurrentNetwork(Enum):
     LSTM = 'LSTM'
-    BLSTM = 'BLSTM'
-    SRU = 'SRU'
-    BSRU = 'BSRU'
+    BiLSTM = 'BiLSTM'
     GRU = 'GRU'
+    LSTMcuDNN = 'LSTMcuDNN'
+    BiLSTMcuDNN = 'BiLSTMcuDNN'
+    GRUcuDNN = 'GRUcuDNN'
 
 
 @unique
@@ -39,7 +39,7 @@ class Optimizer(Enum):
 
 @unique
 class SimpleCharset(Enum):
-    NUMERIC = 'NUMBER'
+    NUMERIC = 'NUMERIC'
     ALPHANUMERIC = 'ALPHANUMERIC'
     ALPHANUMERIC_LOWER = 'ALPHANUMERIC_LOWER'
     ALPHANUMERIC_UPPER = 'ALPHANUMERIC_UPPER'

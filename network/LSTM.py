@@ -2,47 +2,80 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
-from config import NUM_HIDDEN, LSTM_LAYER_NUM, RunMode
-from network.utils import NetworkUtils
+from config import NUM_HIDDEN
 
 
 class LSTM(object):
 
-    def __init__(self, utils: NetworkUtils, inputs: tf.Tensor, seq_len: tf.Tensor):
-        self.mode = utils.mode
+    def __init__(self, inputs: tf.Tensor):
         self.inputs = inputs
-        self.seq_len = seq_len
+        self.layer = None
 
     def build(self):
-        with tf.variable_scope('LSTM'):
-
-            cell1 = tf.contrib.rnn.LSTMCell(NUM_HIDDEN * 2, state_is_tuple=True)
-            if self.mode == RunMode.Trains:
-                cell1 = tf.contrib.rnn.DropoutWrapper(cell=cell1, output_keep_prob=0.8)
-            cell2 = tf.contrib.rnn.LSTMCell(NUM_HIDDEN * 2, state_is_tuple=True)
-            if self.mode == RunMode.Trains:
-                cell2 = tf.contrib.rnn.DropoutWrapper(cell=cell2, output_keep_prob=0.8)
-
-            stack = tf.contrib.rnn.MultiRNNCell([cell1, cell2], state_is_tuple=True)
-            outputs, _ = tf.nn.dynamic_rnn(stack, self.inputs, self.seq_len, dtype=tf.float32)
-
+        with tf.compat.v1.variable_scope('LSTM'):
+            mask = tf.keras.layers.Masking()(self.inputs)
+            self.layer = tf.keras.layers.LSTM(
+                units=NUM_HIDDEN * 2,
+                return_sequences=True,
+                input_shape=mask.shape,
+                dropout=0.2,
+                recurrent_dropout=0.1
+            )
+            outputs = self.layer(mask)
         return outputs
 
 
-class BLSTM(object):
+class BiLSTM(object):
 
-    def __init__(self, utils: NetworkUtils, inputs: tf.Tensor, seq_len: tf.Tensor):
-        self.utils = utils
+    def __init__(self, inputs: tf.Tensor):
         self.inputs = inputs
-        self.seq_len = seq_len
+        self.layer = None
 
     def build(self):
-        with tf.variable_scope('BLSTM'):
-            outputs = self.utils.stacked_bidirectional_rnn(
-                tf.contrib.rnn.LSTMCell,
-                NUM_HIDDEN,
-                LSTM_LAYER_NUM,
-                self.inputs,
-                self.seq_len
+        with tf.variable_scope('BiLSTM'):
+            mask = tf.keras.layers.Masking()(self.inputs)
+            self.layer = tf.keras.layers.Bidirectional(
+                layer=tf.keras.layers.LSTM(
+                    units=NUM_HIDDEN,
+                    return_sequences=True,
+                    dropout=0.2,
+                    recurrent_dropout=0.1
+                ),
+                input_shape=mask.shape
             )
+            outputs = self.layer(mask)
+        return outputs
+
+
+class LSTMcuDNN(object):
+
+    def __init__(self, inputs: tf.Tensor):
+        self.inputs = inputs
+        self.layer = None
+
+    def build(self):
+        with tf.variable_scope('LSTM'):
+            self.layer = tf.keras.layers.CuDNNLSTM(
+                units=NUM_HIDDEN * 2,
+                return_sequences=True,
+            )
+            outputs = self.layer(self.inputs)
+        return outputs
+
+
+class BiLSTMcuDNN(object):
+
+    def __init__(self, inputs: tf.Tensor):
+        self.inputs = inputs
+        self.layer = None
+
+    def build(self):
+        with tf.variable_scope('BiLSTM'):
+            self.layer = tf.keras.layers.Bidirectional(
+                layer=tf.keras.layers.CuDNNLSTM(
+                    units=NUM_HIDDEN,
+                    return_sequences=True
+                )
+            )
+            outputs = self.layer(self.inputs)
         return outputs

@@ -3,6 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import sys
 import random
+from tqdm import tqdm
 import tensorflow as tf
 from config import *
 from constants import RunMode
@@ -27,7 +28,7 @@ def _image(path):
 def _dataset_exists(dataset_dir):
     for split_name in TFRECORDS_TYPE:
         output_filename = os.path.join(dataset_dir, "{}_{}.tfrecords".format(TARGET_MODEL, split_name.value))
-        if not tf.gfile.Exists(output_filename):
+        if not tf.io.gfile.exists(output_filename):
             return False
     return True
 
@@ -45,11 +46,10 @@ def image_to_tfrecords(image_data, label):
 
 def _convert_dataset(file_list, mode):
     output_filename = os.path.join(TFRECORDS_DIR, "{}_{}.tfrecords".format(TARGET_MODEL, mode.value))
-    with tf.python_io.TFRecordWriter(output_filename) as writer:
-        for i, file_name in enumerate(file_list):
+    with tf.io.TFRecordWriter(output_filename) as writer:
+        pbar = tqdm(file_list)
+        for i, file_name in enumerate(pbar):
             try:
-                sys.stdout.write('\r>> Converting image %d/%d ' % (i + 1, len(file_list)))
-                sys.stdout.flush()
                 image_data = _image(file_name)
                 labels = re.search(TRAINS_REGEX, file_name.split(PATH_SPLIT)[-1])
                 if labels:
@@ -60,6 +60,7 @@ def _convert_dataset(file_list, mode):
 
                 example = image_to_tfrecords(image_data, labels)
                 writer.write(example.SerializeToString())
+                pbar.set_description('[Processing dataset %s] [filename: %s]' % (mode, file_name))
 
             except IOError as e:
                 print('could not read:', file_list[1])

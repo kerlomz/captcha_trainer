@@ -22,12 +22,12 @@ IGNORE_FILES = ['.DS_Store']
 NETWORK_MAP = {
     'CNN5': CNNNetwork.CNN5,
     'ResNet': CNNNetwork.ResNet,
-    'DenseNet': CNNNetwork.DenseNet,
     'LSTM': RecurrentNetwork.LSTM,
-    'BLSTM': RecurrentNetwork.BLSTM,
-    'SRU': RecurrentNetwork.SRU,
-    'BSRU': RecurrentNetwork.BSRU,
+    'BiLSTM': RecurrentNetwork.BiLSTM,
     'GRU': RecurrentNetwork.GRU,
+    'LSTMcuDNN': RecurrentNetwork.LSTMcuDNN,
+    'BiLSTMcuDNN': RecurrentNetwork.BiLSTMcuDNN,
+    'GRUcuDNN': RecurrentNetwork.GRUcuDNN,
 }
 
 
@@ -106,7 +106,7 @@ MULTI_SHAPE = False
 NEU_CNN = cf_model['NeuralNet'].get('CNNNetwork')
 NEU_CNN = NEU_CNN if NEU_CNN else 'CNN5'
 NEU_RECURRENT = cf_model['NeuralNet'].get('RecurrentNetwork')
-NEU_RECURRENT = NEU_RECURRENT if NEU_RECURRENT else 'BLSTM'
+NEU_RECURRENT = NEU_RECURRENT if NEU_RECURRENT else 'BiLSTM'
 NUM_HIDDEN = cf_model['NeuralNet'].get('HiddenNum')
 OUTPUT_KEEP_PROB = cf_model['NeuralNet'].get('KeepProb')
 LSTM_LAYER_NUM = 2

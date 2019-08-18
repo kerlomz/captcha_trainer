@@ -15,14 +15,14 @@ class CNN5(object):
         self.filters = [(IMAGE_CHANNEL, 32), (32, 64), (64, 128), (128, 128), (128, 64)]
         # (conv2d_strides, max_pool_strides)
         self.strides = [(1, 1), (1, 2), (1, 2), (1, 2), (1, 2)]
-        self.filter_size = [7, 5, 3, 3, 3]
+        self.kernel_size = [7, 5, 3, 3, 3]
 
     def build(self):
-        with tf.variable_scope('cnn'):
+        with tf.compat.v1.variable_scope('CNN'):
             x = self.inputs
             x = self.utils.cnn_layers(
                 inputs=x,
-                filter_size=self.filter_size,
+                kernel_size=self.kernel_size,
                 filters=self.filters,
                 strides=self.strides
             )

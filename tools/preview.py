@@ -21,7 +21,7 @@ def path2list(path, shuffle=False):
     return group
 
 
-TRAINS_GROUP = path2list(TRAINS_PATH, True)
+TRAINS_GROUP = path2list(DATASET_PATH, True)
 
 
 def fetch():

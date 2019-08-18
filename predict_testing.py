@@ -3,13 +3,15 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import io
 import cv2
+import time
+import random
 import numpy as np
 import PIL.Image as PIL_Image
 import tensorflow as tf
 from importlib import import_module
 from config import *
 from constants import RunMode
-from pretreatment import preprocessing
+from pretreatment import preprocessing, equalize_hist, laplacian, warp_perspective, rotate
 from framework import GraphOCR
 
 
@@ -30,7 +32,13 @@ def get_image_batch(img_bytes):
             pil_image = pil_image.convert('L')
 
         im = np.array(pil_image)
+        # im = im[3:size[1] - 3, 3:size[0] - 3]
+
+        # im = laplacian(im)
+        # im = equalize_hist(im)
+
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
+
         if RESIZE[0] == -1:
             ratio = RESIZE[1] / size[1]
             resize_width = int(ratio * size[0])
@@ -78,24 +86,27 @@ if __name__ == '__main__':
             gpu_options=tf.GPUOptions(
                 allocator_type='BFC',
                 # allow_growth=True,  # it will cause fragmentation.
-                per_process_gpu_memory_fraction=0.01
+                per_process_gpu_memory_fraction=0.1
             ))
     )
     graph_def = graph.as_graph_def()
 
-    with graph.as_default():
+    with sess.graph.as_default():
         sess.run(tf.global_variables_initializer())
         # with tf.gfile.GFile(COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(0.95 * 10000))), "rb") as f:
         #     graph_def_file = f.read()
         # graph_def.ParseFromString(graph_def_file)
         # print('{}.meta'.format(tf_checkpoint))
         model = GraphOCR(
-            RunMode.Predict,
+            RunMode.Trains,
             NETWORK_MAP[NEU_CNN],
             NETWORK_MAP[NEU_RECURRENT]
         )
         model.build_graph()
         saver = tf.train.Saver(tf.global_variables())
+
+        tf.keras.backend.set_learning_phase(0)
+        tf.keras.backend.learning_phase_scope(0)
 
         saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
         _ = tf.import_graph_def(graph_def, name="")
@@ -104,6 +115,9 @@ if __name__ == '__main__':
     x_op = sess.graph.get_tensor_by_name('input:0')
     sess.graph.finalize()
 
+    print()
+    true_count = 0
+    false_count = 0
     # Fill in your own sample path
     image_dir = r"E:\Task\Trains\****"
     for i, p in enumerate(os.listdir(image_dir)):
@@ -114,12 +128,20 @@ if __name__ == '__main__':
             b = f.read()
 
         batch = get_image_batch(b)
+        st = time.time()
         predict_text = predict_func(
             batch,
             sess,
             dense_decoded_op,
             x_op,
         )
-
-        print(i, p, predict_text)
+        et = time.time()
+        t = p.split("_")[0].lower() == predict_text.lower()
+        # t = p.split(".")[0].lower() == predict_text.lower()
+        if t:
+            true_count += 1
+        else:
+            false_count += 1
+        print(i, p, p.split("_")[0].lower(), predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
+        # print(i, p, predict_text)
 

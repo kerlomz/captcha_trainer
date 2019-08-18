@@ -40,7 +40,6 @@ System:
 # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
 # - Or you can use your own customized character set like: ['a', '1', '2'].
-# CharMaxLength: Maximum length of characters， used for label padding.
 # CharExclude: CharExclude should be a list, like: ['a', '1', '2']
 # - which is convenient for users to freely combine character sets.
 # - If you don't want to manually define the character set manually,
@@ -56,6 +55,7 @@ Model:
   CharReplace: {}
   ImageWidth: @width
   ImageHeight: @height
+  ImageChannel: 3
 
 # Binaryzation: [-1: Off, >0 and < 255: On].
 # Smoothing: [-1: Off, >0: On].
@@ -72,9 +72,9 @@ Pretreatment:
   Resize: @resize
   ReplaceTransparent: True
 
-# CNNNetwork: [CNN5, ResNet, DenseNet]
-# RecurrentNetwork: [BLSTM, LSTM, SRU, BSRU, GRU]
-# - The recommended configuration is CNN5+BLSTM / ResNet+BLSTM
+# CNNNetwork: [CNN5, ResNet]
+# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU]
+# - The recommended configuration is CNN5+GRU / ResNet+GRU
 # HiddenNum: [64, 128, 256]
 # - This parameter indicates the number of nodes used to remember and store past states.
 # Optimizer: Loss function algorithm for calculating gradient.
@@ -116,10 +116,10 @@ Trains:
   SavedSteps: 100
   ValidationSteps: 500
   EndAcc: 0.95
-  EndCost: 0.1
+  EndCost: 0.5
   EndEpochs: 2
-  BatchSize: 128
-  TestBatchSize: 300
+  BatchSize: 64
+  TestBatchSize: 64
   LearningRate: @learning_rate
   DecayRate: 0.98
   DecaySteps: 10000
@@ -138,7 +138,6 @@ if width > 160 or width < 120:
 else:
     r_height = height
 resize = "[{}, {}]".format(width if r_height == height else 150, r_height)
-
 
 model_name = '{}-mix-{}{}-{}-H{}{}'.format(
     name_prefix,
@@ -160,7 +159,6 @@ BEST_LEARNING_RATE = {
 }
 
 learning_rate = BEST_LEARNING_RATE[optimizer] if not learning_rate else learning_rate
-
 
 result = model.replace(
     "@trains_path", trains_path
@@ -193,11 +191,11 @@ result = model.replace(
 )
 print(result)
 
-
 with open("model.yaml".format(size_str), "w", encoding="utf8") as f:
     f.write(result)
 
 from make_dataset import make_dataset
 from trains import main
+
 make_dataset()
 main(None)
