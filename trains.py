@@ -31,7 +31,7 @@ def compile_graph(sess, acc):
     tf.keras.backend.learning_phase_scope(0)
 
     input_graph_def = sess.graph.as_graph_def()
-    saver = tf.train.Saver(var_list=tf.compat.v1.global_variables_initializer())
+    saver = tf.train.Saver(var_list=tf.global_variables())
     tf.logging.info(tf.train.latest_checkpoint(MODEL_PATH))
     saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
 
