@@ -14,7 +14,9 @@ class RunMode(Enum):
 @unique
 class CNNNetwork(Enum):
     CNN5 = 'CNN5'
+    CNNX = 'CNNX'
     ResNet = 'ResNet'
+    DenseNet = 'DenseNet'
 
 
 @unique
@@ -22,6 +24,7 @@ class RecurrentNetwork(Enum):
     LSTM = 'LSTM'
     BiLSTM = 'BiLSTM'
     GRU = 'GRU'
+    BiGRU = 'BiGRU'
     LSTMcuDNN = 'LSTMcuDNN'
     BiLSTMcuDNN = 'BiLSTMcuDNN'
     GRUcuDNN = 'GRUcuDNN'

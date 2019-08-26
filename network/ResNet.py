@@ -17,26 +17,26 @@ class ResNet50(object):
 
     def build(self):
 
-        # TensorFlow Implementation Version
-        with slim.arg_scope(nets.resnet_v2.resnet_arg_scope()):
-            x, endpoints = nets.resnet_v2.resnet_v2_50(
-                inputs=self.inputs,
-                num_classes=None,
-                is_training=self.utils.mode == RunMode.Trains,
-                global_pool=False
-            )
-
-        # # Keras Implementation Version
+        # # TensorFlow Implementation Version
         # with slim.arg_scope(nets.resnet_v2.resnet_arg_scope()):
-        #     x = tf.keras.applications.resnet50.ResNet50(
-        #         include_top=False,
-        #         weights=None,
-        #         pooling=None,
-        #         input_tensor=tf.keras.Input(
-        #             tensor=self.inputs,
-        #             shape=self.inputs.get_shape().as_list()
-        #         )
-        #     )(self.inputs)
+        #     x, endpoints = nets.resnet_v2.resnet_v2_50(
+        #         inputs=self.inputs,
+        #         num_classes=None,
+        #         is_training=self.utils.mode == RunMode.Trains,
+        #         global_pool=False
+        #     )
+
+        # Keras Implementation Version
+        with slim.arg_scope(nets.resnet_v2.resnet_arg_scope()):
+            x = tf.keras.applications.resnet50.ResNet50(
+                include_top=False,
+                weights=None,
+                pooling=None,
+                input_tensor=tf.keras.Input(
+                    tensor=self.inputs,
+                    shape=self.inputs.get_shape().as_list()
+                )
+            )(self.inputs, training=self.utils.mode == RunMode.Trains)
 
         print("x.get_shape()", x.get_shape())
         shape_list = x.get_shape().as_list()

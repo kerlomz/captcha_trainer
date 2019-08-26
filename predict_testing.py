@@ -45,7 +45,17 @@ def get_image_batch(img_bytes):
             im = cv2.resize(im, (resize_width, RESIZE[1]))
         else:
             im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
+        if PADDING:
+            im = tf.keras.preprocessing.sequence.pad_sequences(
+                sequences=im,
+                maxlen=PADDING if LOWER_PADDING and RESIZE[0] <= LOWER_PADDING else None,
+                dtype='float32',
+                padding='post',
+                truncating='post',
+                value=0
+            )
         im = im.swapaxes(0, 1)
+
         return (im[:, :, np.newaxis] if IMAGE_CHANNEL == 1 else im[:, :]) / 255.
 
     return [load_image(index) for index in [img_bytes]]
@@ -59,6 +69,7 @@ def predict_func(image_batch, _sess, dense_decoded, op_input):
     dense_decoded_code = _sess.run(dense_decoded, feed_dict={
         op_input: image_batch,
     })
+    # print(dense_decoded_code)
     decoded_expression = []
     for item in dense_decoded_code:
         expression = ''
@@ -92,24 +103,26 @@ if __name__ == '__main__':
     graph_def = graph.as_graph_def()
 
     with sess.graph.as_default():
+
         sess.run(tf.global_variables_initializer())
+        tf.keras.backend.set_session(session=sess)
         # with tf.gfile.GFile(COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(0.95 * 10000))), "rb") as f:
         #     graph_def_file = f.read()
         # graph_def.ParseFromString(graph_def_file)
         # print('{}.meta'.format(tf_checkpoint))
+
         model = GraphOCR(
-            RunMode.Trains,
+            RunMode.Predict,
             NETWORK_MAP[NEU_CNN],
             NETWORK_MAP[NEU_RECURRENT]
         )
         model.build_graph()
-        saver = tf.train.Saver(tf.global_variables())
 
-        tf.keras.backend.set_learning_phase(0)
-        tf.keras.backend.learning_phase_scope(0)
+        saver = tf.train.Saver(var_list=tf.global_variables())
 
         saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
-        _ = tf.import_graph_def(graph_def, name="")
+
+        # _ = tf.import_graph_def(graph_def, name="")
 
     dense_decoded_op = sess.graph.get_tensor_by_name("dense_decoded:0")
     x_op = sess.graph.get_tensor_by_name('input:0')
@@ -119,10 +132,12 @@ if __name__ == '__main__':
     true_count = 0
     false_count = 0
     # Fill in your own sample path
-    image_dir = r"E:\Task\Trains\****"
-    for i, p in enumerate(os.listdir(image_dir)):
+    image_dir = r"H:\Task\cet_true"
+    dir_list = os.listdir(image_dir)
+    random.shuffle(dir_list)
+    for i, p in enumerate(dir_list):
         n = os.path.join(image_dir, p)
-        if i > 1000:
+        if i > 10000:
             break
         with open(n, "rb") as f:
             b = f.read()

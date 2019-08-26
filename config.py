@@ -21,10 +21,13 @@ IGNORE_FILES = ['.DS_Store']
 
 NETWORK_MAP = {
     'CNN5': CNNNetwork.CNN5,
+    'CNNX': CNNNetwork.CNNX,
     'ResNet': CNNNetwork.ResNet,
+    'DenseNet': CNNNetwork.DenseNet,
     'LSTM': RecurrentNetwork.LSTM,
     'BiLSTM': RecurrentNetwork.BiLSTM,
     'GRU': RecurrentNetwork.GRU,
+    'BiGRU': RecurrentNetwork.BiGRU,
     'LSTMcuDNN': RecurrentNetwork.LSTMcuDNN,
     'BiLSTMcuDNN': RecurrentNetwork.BiLSTMcuDNN,
     'GRUcuDNN': RecurrentNetwork.GRUcuDNN,
@@ -42,9 +45,7 @@ OPTIMIZER_MAP = {
 
 PLATFORM = platform.system()
 
-# SYS_CONFIG_DEMO_NAME = 'config_demo.yaml'
 MODEL_CONFIG_DEMO_NAME = 'model_demo.yaml'
-# SYS_CONFIG_NAME = 'config.yaml'
 MODEL_CONFIG_NAME = 'model.yaml'
 MODEL_PATH = os.path.join(PROJECT_PATH, 'model')
 OUTPUT_PATH = os.path.join(PROJECT_PATH, 'out')
@@ -79,10 +80,11 @@ def char_set(_type):
 
 
 """CHARSET"""
+BLANK_FIRST = True
 CHAR_SET = cf_model['Model'].get('CharSet')
 CHAR_EXCLUDE = cf_model['Model'].get('CharExclude')
 GEN_CHAR_SET = [i for i in char_set(CHAR_SET) if i not in CHAR_EXCLUDE]
-GEN_CHAR_SET = [''] + GEN_CHAR_SET
+GEN_CHAR_SET = ([''] + GEN_CHAR_SET) if BLANK_FIRST else (GEN_CHAR_SET + [''])
 
 # fixed Not enough time for target transition sequence
 # GEN_CHAR_SET = SPACE_TOKEN + GEN_CHAR_SET
@@ -99,7 +101,6 @@ IMAGE_HEIGHT = cf_model['Model'].get('ImageHeight')
 IMAGE_WIDTH = cf_model['Model'].get('ImageWidth')
 IMAGE_CHANNEL = cf_model['Model'].get('ImageChannel')
 IMAGE_CHANNEL = IMAGE_CHANNEL if IMAGE_CHANNEL else 1
-MULTI_SHAPE = False
 
 
 """NEURAL NETWORK"""
@@ -183,10 +184,12 @@ BLUR = cf_model['Pretreatment'].get('Blur')
 REPLACE_TRANSPARENT = cf_model['Pretreatment'].get('ReplaceTransparent')
 RESIZE = cf_model['Pretreatment'].get('Resize')
 RESIZE = RESIZE if RESIZE else [IMAGE_WIDTH, IMAGE_HEIGHT]
+PADDING = cf_model['Pretreatment'].get('Padding')
+LOWER_PADDING = cf_model['Pretreatment'].get('LowerPadding')
+
 
 """COMPILE_MODEL"""
-COMPILE_MODEL_PATH = os.path.join(OUTPUT_PATH, '{}.pb'.format(TARGET_MODEL))
-QUANTIZED_MODEL_PATH = os.path.join(MODEL_PATH, 'quantized_{}.pb'.format(TARGET_MODEL))
+COMPILE_MODEL_PATH = os.path.join(OUTPUT_PATH, '{}/graph'.format(TARGET_MODEL, TARGET_MODEL))
 
 
 def _checkpoint(_name, _path):

@@ -10,12 +10,12 @@ from constants import *
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
 charset = SimpleCharset.ALPHANUMERIC_LOWER
 
-cnn_network = CNNNetwork.CNN5
-recurrent_network = RecurrentNetwork.BLSTM
+cnn_network = CNNNetwork.CNNX
+recurrent_network = RecurrentNetwork.GRU
 optimizer = Optimizer.AdaBound
 
 trains_path = [
-    r"D:\TrainSet\***",
+    r"H:\Task\cet_true"
 ]
 
 test_num = 500
@@ -23,7 +23,7 @@ hidden_num = 64
 beam_width = 1
 learning_rate = None
 
-name_prefix = None
+name_prefix = 'cet-t'
 name_suffix = None
 name_prefix = name_prefix if name_prefix else "tutorial"
 name_suffix = '-' + str(name_suffix) if name_suffix else ''
@@ -55,7 +55,7 @@ Model:
   CharReplace: {}
   ImageWidth: @width
   ImageHeight: @height
-  ImageChannel: 3
+  ImageChannel: 1
 
 # Binaryzation: [-1: Off, >0 and < 255: On].
 # Smoothing: [-1: Off, >0: On].
@@ -65,15 +65,20 @@ Model:
 # ReplaceTransparent: [True, False]
 # - True: Convert transparent images in RGBA format to opaque RGB format,
 # - False: Keep the original image
+# Padding： Input shape will be (IMAGE_WIDTH + Padding, HEIGHT, CHANNEL) after padding.
+# LowerPadding: The starting boundary of the padding,
+# - triggered when the width of the image is less than the value.
 Pretreatment:
   Binaryzation: -1
   Smoothing: -1
   Blur: -1
   Resize: @resize
   ReplaceTransparent: True
+#  Padding: 120
+#  LowerPadding: 120
 
-# CNNNetwork: [CNN5, ResNet]
-# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU]
+# CNNNetwork: [CNN5, ResNet, DenseNet]
+# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU]
 # - The recommended configuration is CNN5+GRU / ResNet+GRU
 # HiddenNum: [64, 128, 256]
 # - This parameter indicates the number of nodes used to remember and store past states.
@@ -89,7 +94,6 @@ NeuralNet:
   CTCMergeRepeated: True
   CTCBeamWidth: @beam_width
   CTCTopPaths: 1
-  WarpCTC: False
   
 # TrainsPath and TestPath: The local absolute path of your training and testing set.
 # DatasetPath: Package a sample of the TFRecords format from this path.
@@ -108,8 +112,8 @@ NeuralNet:
 # TestBatchSize: Number of samples selected for one validation step.
 # LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
 Trains:
-  TrainsPath: './dataset/@model_name_trains.tfrecords'
-  TestPath: './dataset/@model_name_test.tfrecords'
+  TrainsPath: ./dataset/@model_name_trains.tfrecords
+  TestPath: ./dataset/@model_name_test.tfrecords
   DatasetPath: @trains_path
   TrainRegex: '.*?(?=_)'
   TestSetNum: @test_num
@@ -125,7 +129,7 @@ Trains:
   DecaySteps: 10000
 """
 
-trains_path = [i.replace("\\", "/") for i in trains_path]
+# trains_path = [i.replace("\\", "/") for i in trains_path]
 file_name = os.listdir(trains_path[0])[0]
 size = pilImage.open(os.path.join(trains_path[0], file_name)).size
 
@@ -133,11 +137,11 @@ width = size[0]
 height = size[1]
 
 size_str = "{}x{}".format(width, height)
-if width > 160 or width < 120:
-    r_height = int(height * 150 / width)
-else:
-    r_height = height
-resize = "[{}, {}]".format(width if r_height == height else 150, r_height)
+# if width > 160 or width < 120:
+#     r_height = int(height * 150 / width)
+# else:
+# r_height = height
+resize = "[{}, {}]".format(width, height)
 
 model_name = '{}-mix-{}{}-{}-H{}{}'.format(
     name_prefix,
@@ -147,7 +151,9 @@ model_name = '{}-mix-{}{}-{}-H{}{}'.format(
     hidden_num,
     name_suffix
 )
-trains_path = json.dumps(trains_path, ensure_ascii=False, indent=2).replace('\n', '\n  ')
+# trains_path = json.dumps(trains_path, ensure_ascii=False, indent=2).replace('\n', '\n  ')
+trains_path = "".join(["\n    - " + i for i in trains_path])
+
 
 BEST_LEARNING_RATE = {
     Optimizer.AdaBound: 0.001,

@@ -4,8 +4,9 @@
 import sys
 import tensorflow as tf
 from config import *
-from network.CNN import CNN5
-from network.GRU import GRU, GRUcuDNN
+from network.CNN import CNN5, CNNX
+from network.DenseNet import DenseNet
+from network.GRU import GRU, BiGRU, GRUcuDNN
 from network.LSTM import LSTM, BiLSTM, BiLSTMcuDNN, LSTMcuDNN
 from network.ResNet import ResNet50
 from network.utils import NetworkUtils
@@ -24,12 +25,10 @@ class GraphOCR(object):
         self.inputs = tf.keras.Input(dtype=tf.float32, shape=[None, RESIZE[1], IMAGE_CHANNEL], name='input')
         self.labels = tf.keras.Input(dtype=tf.int32, shape=[None], sparse=True, name='labels')
         self.seq_len = None
+        self.logits = None
         self.merged_summary = None
 
     def build_graph(self):
-        tf.compat.v1.logging.warning("CURRENT_MODE is {}".format(1 if self.mode == RunMode.Trains else 0))
-        tf.keras.backend.set_learning_phase(1 if self.mode == RunMode.Trains else 0)
-        tf.keras.backend.learning_phase_scope(1 if self.mode == RunMode.Trains else 0)
         self._build_model()
         self._build_train_op()
         self.merged_summary = tf.compat.v1.summary.merge_all()
@@ -39,12 +38,15 @@ class GraphOCR(object):
         if self.network == CNNNetwork.CNN5:
             x = CNN5(inputs=self.inputs, utils=self.utils).build()
 
+        elif self.network == CNNNetwork.CNNX:
+            x = CNNX(inputs=self.inputs, utils=self.utils).build()
+
         elif self.network == CNNNetwork.ResNet:
             x = ResNet50(inputs=self.inputs, utils=self.utils).build()
 
         # This network was temporarily suspended
-        # elif self.network == CNNNetwork.DenseNet:
-        #     x = DenseNet(inputs=self.inputs, utils=self.utils).build()
+        elif self.network == CNNNetwork.DenseNet:
+            x = DenseNet(inputs=self.inputs, utils=self.utils).build()
 
         else:
             tf.logging.error('This cnn neural network is not supported at this time.')
@@ -57,17 +59,19 @@ class GraphOCR(object):
         self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
 
         if self.recurrent == RecurrentNetwork.LSTM:
-            self.recurrent_network_builder = LSTM(x)
+            self.recurrent_network_builder = LSTM(x, utils=self.utils)
         elif self.recurrent == RecurrentNetwork.BiLSTM:
-            self.recurrent_network_builder = BiLSTM(x)
+            self.recurrent_network_builder = BiLSTM(x, utils=self.utils)
         elif self.recurrent == RecurrentNetwork.GRU:
-            self.recurrent_network_builder = GRU(x)
+            self.recurrent_network_builder = GRU(x, utils=self.utils)
+        elif self.recurrent == RecurrentNetwork.BiGRU:
+            self.recurrent_network_builder = BiGRU(x, utils=self.utils)
         elif self.recurrent == RecurrentNetwork.LSTMcuDNN:
-            self.recurrent_network_builder = LSTMcuDNN(x)
+            self.recurrent_network_builder = LSTMcuDNN(x, utils=self.utils)
         elif self.recurrent == RecurrentNetwork.BiLSTMcuDNN:
-            self.recurrent_network_builder = BiLSTMcuDNN(x)
+            self.recurrent_network_builder = BiLSTMcuDNN(x, utils=self.utils)
         elif self.recurrent == RecurrentNetwork.GRUcuDNN:
-            self.recurrent_network_builder = GRUcuDNN(x)
+            self.recurrent_network_builder = GRUcuDNN(x, utils=self.utils)
         else:
             tf.logging.error('This recurrent neural network is not supported at this time.')
             sys.exit(-1)
@@ -76,16 +80,17 @@ class GraphOCR(object):
         self.outputs = outputs
 
         with tf.variable_scope('output'):
-            logits = tf.keras.layers.Dense(
+
+            self.logits = tf.keras.layers.Dense(
                 units=NUM_HIDDEN,
                 kernel_initializer=tf.keras.initializers.glorot_normal(seed=None),
                 bias_initializer='zeros',
             )
-
             predict = tf.keras.layers.TimeDistributed(
-                layer=logits,
-                name='predict'
-            )(inputs=outputs)
+                layer=self.logits,
+                name='predict',
+                trainable=self.utils.training
+            )(inputs=outputs, training=self.utils.training)
 
             self.predict = tf.transpose(predict, perm=(1, 0, 2))
 
@@ -113,8 +118,7 @@ class GraphOCR(object):
         )
         tf.compat.v1.summary.scalar('learning_rate', self.lrn_rate)
 
-        update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
-        # print(update_ops)
+        update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
         # Storing adjusted smoothed mean and smoothed variance operations
         with tf.control_dependencies(update_ops):
             if OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.AdaBound:

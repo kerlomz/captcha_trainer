@@ -9,7 +9,6 @@ import json
 import random
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
 from config import *
 from constants import RunMode
 from pretreatment import preprocessing, equalize_hist, laplacian, warp_perspective, rotate
@@ -48,7 +47,7 @@ class DataIterator:
         for i in range(len(content) - 1):
             if content[i] == content[i + 1]:
                 store_list.append(content[i])
-                store_list.append(0)
+                store_list.append(0 if BLANK_FIRST else (len(GEN_CHAR_SET) - 1))
 
             else:
                 store_list.append(content[i])
@@ -67,6 +66,7 @@ class DataIterator:
         code = code.upper() if 'UPPER' in CHAR_SET else code
         try:
             return self._split_continuous_char([encode_maps()[c] for c in list(code)])
+            # return [encode_maps()[c] for c in list(code)]
         except KeyError as e:
             exception(
                 'The sample label {} contains invalid charset: {}.'.format(
@@ -144,7 +144,7 @@ class DataIterator:
         ).map(self.parse_example)
         dataset_train = dataset_train.shuffle(
             min_after_dequeue
-        ).batch(batch).repeat()
+        ).batch(batch, drop_remainder=True).repeat()
         iterator = tf.compat.v1.data.make_one_shot_iterator(dataset_train)
         self.next_element = iterator.get_next()
 
@@ -177,28 +177,28 @@ class DataIterator:
             pil_image = pil_image.convert('L')
 
         im = np.array(pil_image)
-
-        # if is_random and bool(random.getrandbits(1)):
-        #     im = warp_perspective(im)
         #
-        # if is_random and bool(random.getrandbits(1)):
-        #     im = rotate(im)
+        if is_random and bool(random.getrandbits(1)):
+            im = warp_perspective(im)
 
-        # if IMAGE_CHANNEL == 1 and is_random:
-        #     _random = bool(random.getrandbits(1))
-        #     if _random:
-        #         im = equalize_hist(im)
-        #     else:
-        #         im = laplacian(im)
+        if is_random and bool(random.getrandbits(1)):
+            im = rotate(im)
+
+        if IMAGE_CHANNEL == 1 and is_random:
+            _random = bool(random.getrandbits(1))
+            if _random:
+                im = equalize_hist(im)
+            else:
+                im = laplacian(im)
 
         im = preprocessing(im, BINARYZATION, SMOOTH, BLUR).astype(np.float32)
 
         if RESIZE[0] == -1:
-            random_ratio = random.choice([2.5, 3, 3.5, 3.2, 2.7, 2.75])
+            # random_ratio = random.choice([2.5, 3, 3.5, 3.2, 2.7, 2.75])
             ratio = RESIZE[1] / size[1]
-            random_width = int(random_ratio * RESIZE[1])
+            # random_width = int(random_ratio * RESIZE[1])
             resize_width = int(ratio * size[0])
-            resize_width = random_width if is_random else resize_width
+            # resize_width = random_width if is_random else resize_width
             im = cv2.resize(im, (resize_width, RESIZE[1]))
         else:
             im = cv2.resize(im, (RESIZE[0], RESIZE[1]))
@@ -232,22 +232,25 @@ class DataIterator:
 
                     image_array = self._image(self.image_path[index], is_random=is_training and is_random)
                     label_array = self._label_list[index]
-                    if MULTI_SHAPE:
-                        image_shape = "{}x{}".format(image_array.shape[0], image_array.shape[1])
-                        if image_shape in batch:
-                            batch[image_shape].append((image_array, label_array))
-                        else:
-                            batch[image_shape] = [(image_array, label_array)]
-                    else:
-                        image_batch.append(image_array)
-                        label_batch.append(label_array)
+
+                    image_batch.append(image_array)
+                    label_batch.append(label_array)
                 except OSError:
                     continue
 
         if RESIZE[0] == -1:
-            image_batch = keras.preprocessing.sequence.pad_sequences(
+            image_batch = tf.keras.preprocessing.sequence.pad_sequences(
                 sequences=image_batch,
                 maxlen=None,
+                dtype='float32',
+                padding='post',
+                truncating='post',
+                value=0
+            )
+        if RESIZE[0] < 120:
+            image_batch = tf.keras.preprocessing.sequence.pad_sequences(
+                sequences=image_batch,
+                maxlen=150,
                 dtype='float32',
                 padding='post',
                 truncating='post',
@@ -292,10 +295,18 @@ class DataIterator:
                 continue
 
         if RESIZE[0] == -1:
-            # image_batch = self.padding(image_batch)
-            image_batch = keras.preprocessing.sequence.pad_sequences(
+            image_batch = tf.keras.preprocessing.sequence.pad_sequences(
                 sequences=image_batch,
                 maxlen=None,
+                dtype='float32',
+                padding='post',
+                truncating='post',
+                value=0
+            )
+        if PADDING:
+            image_batch = tf.keras.preprocessing.sequence.pad_sequences(
+                sequences=image_batch,
+                maxlen=PADDING if LOWER_PADDING and RESIZE[0] <= LOWER_PADDING else None,
                 dtype='float32',
                 padding='post',
                 truncating='post',
@@ -307,7 +318,7 @@ class DataIterator:
 
 def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
     if ignore_value is None:
-        ignore_value = [-1, 0]
+        ignore_value = [-1, 0 if BLANK_FIRST else (len(GEN_CHAR_SET) - 1)]
     original_seq_len = len(original_seq)
     decoded_seq_len = len(decoded_seq)
 
@@ -325,26 +336,27 @@ def accuracy_calculation(original_seq, decoded_seq, ignore_value=None):
     error_sample = []
     for i, origin_label in enumerate(original_seq):
 
-        decoded_label = [j for j in decoded_seq[i] if j not in ignore_value]
-        origin_label = [j for j in origin_label if j not in ignore_value]
+        decoded_label = decoded_seq[i]
+        processed_decoded_label = [j for j in decoded_label if j not in ignore_value]
+        processed_origin_label = [j for j in origin_label if j not in ignore_value]
 
         if i < 5:
             tf.logging.info(
                 "{} {} {} {} {} --> {} {}".format(
                     i,
-                    len(origin_label),
-                    len(decoded_label),
+                    len(processed_origin_label),
+                    len(processed_decoded_label),
                     origin_label,
                     decoded_label,
                     [GEN_CHAR_SET[_] for _ in origin_label if _ != -1],
                     [GEN_CHAR_SET[_] for _ in decoded_label if _ != -1]
                 )
             )
-        if origin_label == decoded_label:
+        if processed_origin_label == processed_decoded_label:
             count += 1
     # Training is not useful for decoding
     # Here is for debugging, positioning error source use
-        if origin_label != decoded_label and len(error_sample) < 5:
+        if processed_origin_label != processed_decoded_label and len(error_sample) < 5:
             error_sample.append({
                 "origin": "".join([GEN_CHAR_SET[_] for _ in origin_label if _ != -1]),
                 "decode": "".join([GEN_CHAR_SET[_] for _ in decoded_label if _ != -1])

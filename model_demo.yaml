@@ -34,23 +34,28 @@ Model:
 # ReplaceTransparent: [True, False]
 # - True: Convert transparent images in RGBA format to opaque RGB format,
 # - False: Keep the original image
+# Padding： Input shape will be (IMAGE_WIDTH + Padding, HEIGHT, CHANNEL) after padding.
+# LowerPadding: The starting boundary of the padding,
+# - triggered when the width of the image is less than the value.
 Pretreatment:
   Binaryzation: -1
   Smoothing: -1
   Blur: -1
   Resize: [150, 50]
   ReplaceTransparent: True
+#  Padding: 120
+#  LowerPadding: 120
 
-# CNNNetwork: [CNN5, ResNet]
-# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU]
+# CNNNetwork: [CNN5, ResNet, DenseNet]
+# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU]
 # - The recommended configuration is CNN5+GRU / ResNet+GRU
 # HiddenNum: [64, 128, 256]
 # - This parameter indicates the number of nodes used to remember and store past states.
 # Optimizer: Loss function algorithm for calculating gradient.
 # - [AdaBound, Adam, Momentum]
 NeuralNet:
-  CNNNetwork: CNN5
-  RecurrentNetwork: BiLSTM
+  CNNNetwork: CNNX
+  RecurrentNetwork: GRU
   HiddenNum: 64
   KeepProb: 0.98
   Optimizer: AdaBound

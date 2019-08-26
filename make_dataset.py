@@ -66,8 +66,6 @@ def _convert_dataset(file_list, mode):
                 print('could not read:', file_list[1])
                 print('error:', e)
                 print('skip it \n')
-    sys.stdout.write('\n')
-    sys.stdout.flush()
 
 
 def make_dataset():

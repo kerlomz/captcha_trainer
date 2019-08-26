@@ -2,13 +2,16 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
-from config import NUM_HIDDEN
+from config import NUM_HIDDEN, RunMode
+from network.utils import NetworkUtils
 
 
 class LSTM(object):
 
-    def __init__(self, inputs: tf.Tensor):
+    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
         self.inputs = inputs
+        self.utils = utils
+        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -21,14 +24,16 @@ class LSTM(object):
                 dropout=0.2,
                 recurrent_dropout=0.1
             )
-            outputs = self.layer(mask)
+            outputs = self.layer(mask, training=self.training)
         return outputs
 
 
 class BiLSTM(object):
 
-    def __init__(self, inputs: tf.Tensor):
+    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
         self.inputs = inputs
+        self.utils = utils
+        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -43,14 +48,16 @@ class BiLSTM(object):
                 ),
                 input_shape=mask.shape
             )
-            outputs = self.layer(mask)
+            outputs = self.layer(mask, training=self.training)
         return outputs
 
 
 class LSTMcuDNN(object):
 
-    def __init__(self, inputs: tf.Tensor):
+    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
         self.inputs = inputs
+        self.utils = utils
+        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -59,14 +66,16 @@ class LSTMcuDNN(object):
                 units=NUM_HIDDEN * 2,
                 return_sequences=True,
             )
-            outputs = self.layer(self.inputs)
+            outputs = self.layer(self.inputs, training=self.training)
         return outputs
 
 
 class BiLSTMcuDNN(object):
 
-    def __init__(self, inputs: tf.Tensor):
+    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
         self.inputs = inputs
+        self.utils = utils
+        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -77,5 +86,5 @@ class BiLSTMcuDNN(object):
                     return_sequences=True
                 )
             )
-            outputs = self.layer(self.inputs)
+            outputs = self.layer(self.inputs, training=self.training)
         return outputs

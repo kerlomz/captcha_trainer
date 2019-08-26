@@ -14,34 +14,37 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
-def compile_graph(sess, acc):
+def compile_graph(acc):
 
-    # input_graph = tf.Graph()
-    # sess = tf.Session(graph=input_graph)
-    #
-    # with sess.graph.as_default():
-    #     model = framework.GraphOCR(
-    #         RunMode.Predict,
-    #         NETWORK_MAP[NEU_CNN],
-    #         NETWORK_MAP[NEU_RECURRENT]
-    #     )
-    #     model.build_graph()
+    input_graph = tf.Graph()
+    predict_sess = tf.Session(graph=input_graph)
 
-    tf.keras.backend.set_learning_phase(0)
-    tf.keras.backend.learning_phase_scope(0)
+    with predict_sess.graph.as_default():
+        model = framework.GraphOCR(
+            RunMode.Predict,
+            NETWORK_MAP[NEU_CNN],
+            NETWORK_MAP[NEU_RECURRENT]
+        )
+        model.build_graph()
+        input_graph_def = predict_sess.graph.as_graph_def()
+        saver = tf.train.Saver(var_list=tf.global_variables())
+        tf.logging.info(tf.train.latest_checkpoint(MODEL_PATH))
+        saver.restore(predict_sess, tf.train.latest_checkpoint(MODEL_PATH))
+        tf.keras.backend.set_session(session=predict_sess)
 
-    input_graph_def = sess.graph.as_graph_def()
-    saver = tf.train.Saver(var_list=tf.global_variables())
-    tf.logging.info(tf.train.latest_checkpoint(MODEL_PATH))
-    saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
+        output_graph_def = convert_variables_to_constants(
+            predict_sess,
+            input_graph_def,
+            output_node_names=['dense_decoded']
+        )
 
-    output_graph_def = convert_variables_to_constants(
-        sess,
-        input_graph_def,
-        output_node_names=['dense_decoded']
-    )
+    if not os.path.exists(COMPILE_MODEL_PATH):
+        os.makedirs(COMPILE_MODEL_PATH)
 
-    last_compile_model_path = COMPILE_MODEL_PATH.replace('.pb', '_{}.pb'.format(int(acc * 10000)))
+    last_compile_model_path = (
+        os.path.join(COMPILE_MODEL_PATH, "{}.pb".format(TARGET_MODEL))
+    ).replace('.pb', '_{}.pb'.format(int(acc * 10000)))
+
     with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
         gf.write(output_graph_def.SerializeToString())
 
@@ -49,6 +52,7 @@ def compile_graph(sess, acc):
 
 
 def train_process(mode=RunMode.Trains):
+
     model = framework.GraphOCR(mode, NETWORK_MAP[NEU_CNN], NETWORK_MAP[NEU_RECURRENT])
     model.build_graph()
 
@@ -110,15 +114,19 @@ def train_process(mode=RunMode.Trains):
     epoch_count = 1
 
     with tf.compat.v1.Session(config=config) as sess:
-        init_op = tf.compat.v1.global_variables_initializer()
+        tf.keras.backend.set_session(session=sess)
+        init_op = tf.global_variables_initializer()
         sess.run(init_op)
-
-        saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables(), max_to_keep=2)
+        saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=2)
         train_writer = tf.compat.v1.summary.FileWriter('logs', sess.graph)
-        try:
-            saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
-        except ValueError:
-            pass
+        # try:
+        checkpoint_state = tf.train.get_checkpoint_state(MODEL_PATH)
+        if checkpoint_state and checkpoint_state.model_checkpoint_path:
+            saver.restore(sess, checkpoint_state.model_checkpoint_path)
+            # saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
+        # except ValueError as e:
+        #     print(e)
+        #     pass
         tf.logging.info('Start training...')
 
         while 1:
@@ -146,7 +154,6 @@ def train_process(mode=RunMode.Trains):
                     [model.merged_summary, model.cost, model.global_step, model.train_op],
                     feed_dict=feed
                 )
-
                 train_writer.add_summary(summary_str, step)
                 if step % 100 == 0 and step != 0:
                     tf.logging.info(
@@ -181,10 +188,10 @@ def train_process(mode=RunMode.Trains):
                         [model.dense_decoded, model.lrn_rate],
                         feed_dict=val_feed
                     )
+
                     accuracy = utils.accuracy_calculation(
                         test_feeder.labels,
                         dense_decoded,
-                        ignore_value=[0, -1],
                     )
                     log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
                           "Time = {:.3f} sec/batch, LearningRate: {}"
@@ -199,7 +206,7 @@ def train_process(mode=RunMode.Trains):
                         break
 
             if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and epoch_cost <= TRAINS_END_COST or epoch_count > 10000:
-                compile_graph(sess, accuracy)
+                compile_graph(accuracy)
                 tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
                 break
             epoch_count += 1
@@ -210,7 +217,13 @@ def generate_config(acc):
         text = "".join(current_fp.readlines())
         text = text.replace("ModelName: {}".format(TARGET_MODEL),
                             "ModelName: {}_{}".format(TARGET_MODEL, int(acc * 10000)))
-    with open(os.path.join(OUTPUT_PATH, "{}_model.yaml".format(TARGET_MODEL)), "w", encoding="utf8") as save_fp:
+    compiled_config_path = os.path.join(OUTPUT_PATH, "{}/model".format(TARGET_MODEL))
+
+    if not os.path.exists(compiled_config_path):
+        os.makedirs(compiled_config_path)
+
+    compiled_config_path = os.path.join(compiled_config_path, "{}_model.yaml".format(TARGET_MODEL))
+    with open(compiled_config_path, "w", encoding="utf8") as save_fp:
         save_fp.write(text)
 
 
