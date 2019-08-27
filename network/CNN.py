@@ -115,7 +115,6 @@ class CNNX(object):
                 re=True,
                 index=0
             )
-
             # ====== Layer 2 ======
             x = self.block(
                 inputs=x,
@@ -145,7 +144,7 @@ class CNNX(object):
             )
             with tf.variable_scope('unit-{}'.format(3)):
                 x = tf.cond(
-                    tf.greater_equal(w, tf.constant(60)),
+                    tf.greater_equal(w, tf.constant(80)),
                     lambda: self.max_pooling(x, strides=(2, 2)),
                     lambda: self.max_pooling(x, strides=(1, 2)),
                 )
@@ -174,7 +173,7 @@ class CNNX(object):
             )
             with tf.variable_scope('unit-{}'.format(5)):
                 x = tf.cond(
-                    tf.greater_equal(tf.shape(self.inputs)[1], tf.constant(180)),
+                    tf.greater_equal(w, tf.constant(220)),
                     lambda: self.max_pooling(x, strides=(3, 2)),
                     lambda: self.max_pooling(x, strides=(2, 2)),
                 )
