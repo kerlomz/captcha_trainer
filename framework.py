@@ -11,6 +11,7 @@ from network.LSTM import LSTM, BiLSTM, BiLSTMcuDNN, LSTMcuDNN
 from network.ResNet import ResNet50
 from network.utils import NetworkUtils
 from optimizer.AdaBound import AdaBoundOptimizer
+from tensorflow.python.keras.regularizers import *
 
 slim = tf.contrib.slim
 
@@ -82,8 +83,10 @@ class GraphOCR(object):
         with tf.variable_scope('output'):
 
             self.logits = tf.keras.layers.Dense(
-                units=NUM_HIDDEN,
+                units=NUM_CLASSES,
                 kernel_initializer=tf.keras.initializers.glorot_normal(seed=None),
+                kernel_regularizer=l2(0.01),
+                bias_regularizer=l1_l2(0.01),
                 bias_initializer='zeros',
             )
             predict = tf.keras.layers.TimeDistributed(

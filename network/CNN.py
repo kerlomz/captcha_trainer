@@ -45,6 +45,7 @@ class CNNX(object):
         self.filters = [32, 64, 128, 128, 64]
         self.strides = [(1, 1), (1, 2), (1, 2), (1, 2), (1, 2)]
         self.kernel_size = [7, 5, 3, 3, 3]
+        self.trainable = True
 
     def block(self, inputs, filters, kernel_size, strides, pooling, pool_size=None, clipping=False, re=True, index=0):
         with tf.variable_scope('unit-{}'.format(index + 1)):
@@ -66,6 +67,7 @@ class CNNX(object):
                     'dmax': 5
                 } if clipping else None,
                 epsilon=1.001e-5,
+                trainable=self.trainable,
                 name='bn{}'.format(index + 1)
             )(x, training=self.utils.training)
 

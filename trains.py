@@ -15,7 +15,6 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
 def compile_graph(acc):
-
     input_graph = tf.Graph()
     predict_sess = tf.Session(graph=input_graph)
 
@@ -52,7 +51,6 @@ def compile_graph(acc):
 
 
 def train_process(mode=RunMode.Trains):
-
     model = framework.GraphOCR(mode, NETWORK_MAP[NEU_CNN], NETWORK_MAP[NEU_RECURRENT])
     model.build_graph()
 
@@ -199,7 +197,9 @@ def train_process(mode=RunMode.Trains):
                         epoch_count,
                         step,
                         accuracy,
-                        batch_cost, time.time() - batch_time, lr / len(batch)
+                        batch_cost,
+                        time.time() - batch_time,
+                        lr / len(batch),
                     ))
                     epoch_cost = batch_cost
                     if accuracy >= TRAINS_END_ACC and epoch_count >= TRAINS_END_EPOCHS and batch_cost <= TRAINS_END_COST or epoch_count > 10000:
