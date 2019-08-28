@@ -45,7 +45,7 @@ CUDA下载地址：https://developer.nvidia.com/cuda-downloads
 
 cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey （需要注册账号）
 
-**笔者使用的版本为：CUDA10+cuDNN7.3.1+TensorFlow 1.12**
+**笔者使用的版本为：CUDA10.1+cuDNN7.5+TensorFlow 1.14**
 
 # 环境安装
 
@@ -117,7 +117,7 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 1. model.yaml  - Model Config
 
    ```yaml
-   # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
+    # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
     # - If you use the GPU version, you need to install some additional applications.
     System:
       DeviceUsage: 0.7
@@ -135,9 +135,8 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
     # - you can choose a built-in character set
     # - and set the characters to be excluded by CharExclude parameter.
     Model:
-      Sites: [
-        'YourModelName'
-      ]
+      Sites: 
+        - YourModelName
       ModelName: YourModelName
       ModelType: 150x50
       CharSet: ALPHANUMERIC_LOWER
@@ -154,6 +153,9 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
     # ReplaceTransparent: [True, False]
     # - True: Convert transparent images in RGBA format to opaque RGB format,
     # - False: Keep the original image
+    # Padding： Input shape will be (IMAGE_WIDTH + Padding, HEIGHT, CHANNEL) after padding.
+    # LowerPadding: The starting boundary of the padding,
+    # - triggered when the width of the image is less than the value.
     Pretreatment:
       Binaryzation: -1
       Smoothing: -1
@@ -162,15 +164,15 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
       ReplaceTransparent: True
     
     # CNNNetwork: [CNN5, ResNet, DenseNet]
-    # RecurrentNetwork: [BLSTM, LSTM, SRU, BSRU, GRU]
-    # - The recommended configuration is CNN5+BLSTM / ResNet+BLSTM
-    # HiddenNum: [64, 128, 256]
+    # RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU]
+    # - The recommended configuration is CNN5+BiGRU / CNNX+BiGRU
+    # HiddenNum: [16, 64, 128, 256]
     # - This parameter indicates the number of nodes used to remember and store past states.
     # Optimizer: Loss function algorithm for calculating gradient.
-    # - [AdaBound, Adam, Momentum]
+    # - [AdaBound, Adam, Momentum, SGD, AdaGrad, RMSProp]
     NeuralNet:
-      CNNNetwork: CNN5
-      RecurrentNetwork: BLSTM
+      CNNNetwork: CNNX
+      RecurrentNetwork: BiGRU
       HiddenNum: 64
       KeepProb: 0.98
       Optimizer: AdaBound
@@ -196,11 +198,10 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
     # TestBatchSize: Number of samples selected for one validation step.
     # LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
     Trains:
-      TrainsPath: './dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords'
-      TestPath: './dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords'
-      DatasetPath: [
-        "D:/***"
-      ]
+      TrainsPath: ./dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords
+      TestPath: ./dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords
+      DatasetPath: 
+        - D:/***
       TrainRegex: '.*?(?=_)'
       TestSetNum: 300
       SavedSteps: 100

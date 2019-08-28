@@ -1,5 +1,5 @@
-tensorflow-gpu>=1.10.0
-pillow==4.3.0
-opencv-python==3.3.0.10
-numpy>=1.14.1
+tensorflow-gpu==1.14.0
+pillow>=4.3.0
+opencv-python==4.1.0.25
+numpy==1.16.0
 pyyaml>=3.13

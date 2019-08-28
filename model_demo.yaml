@@ -48,8 +48,8 @@ Pretreatment:
 
 # CNNNetwork: [CNN5, ResNet, DenseNet]
 # RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU]
-# - The recommended configuration is CNN5+GRU / ResNet+GRU
-# HiddenNum: [64, 128, 256]
+# - The recommended configuration is CNN5+BiGRU / CNNX+BiGRU
+# HiddenNum: [16, 64, 128, 256]
 # - This parameter indicates the number of nodes used to remember and store past states.
 # Optimizer: Loss function algorithm for calculating gradient.
 # - [AdaBound, Adam, Momentum]
