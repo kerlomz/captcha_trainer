@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import sys
+import itertools
 import tensorflow as tf
 from config import *
 from network.CNN import CNN5, CNNX
@@ -85,8 +86,7 @@ class GraphOCR(object):
             self.logits = tf.keras.layers.Dense(
                 units=NUM_CLASSES,
                 kernel_initializer=tf.keras.initializers.glorot_normal(seed=None),
-                kernel_regularizer=l2(0.01),
-                bias_regularizer=l1_l2(0.01),
+                kernel_regularizer=l1_l2(l1=0.001, l2=0.001),
                 bias_initializer='zeros',
             )
             predict = tf.keras.layers.TimeDistributed(
@@ -122,6 +122,7 @@ class GraphOCR(object):
         tf.compat.v1.summary.scalar('learning_rate', self.lrn_rate)
 
         update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
+
         # Storing adjusted smoothed mean and smoothed variance operations
         with tf.control_dependencies(update_ops):
             if OPTIMIZER_MAP[NEU_OPTIMIZER] == Optimizer.AdaBound:

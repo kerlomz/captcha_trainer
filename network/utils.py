@@ -39,7 +39,8 @@ class NetworkUtils(object):
                     padding='same',
                     name='cnn-{}'.format(i + 1),
                 )(x)
-                batch_normalization = tf.layers.BatchNormalization(
+
+                bn = tf.layers.BatchNormalization(
                     fused=True,
                     renorm_clipping={
                         'rmax': 3,
@@ -49,14 +50,27 @@ class NetworkUtils(object):
                     epsilon=1.001e-5,
                     name='bn{}'.format(i + 1)
                 )
+                x = bn(x, training=training)
 
-                x = batch_normalization(x, training=training)
+                # bn = tf.keras.layers.BatchNormalization(
+                #     fused=True,
+                #     renorm_clipping={
+                #         'rmax': 3,
+                #         'rmin': 0.3333,
+                #         'dmax': 5
+                #     },
+                #     epsilon=1.001e-5,
+                #     name='bn{}'.format(i + 1)
+                # )
+                # x = bn(x, training=training)
+                # for op in bn.updates:
+                #     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
+
                 x = tf.keras.layers.LeakyReLU(0.01)(x)
                 x = tf.keras.layers.MaxPooling2D(
                     pool_size=(2, 2),
                     strides=strides[i][1]
                 )(x)
-                print(x.shape)
         return x
 
     def conv_block(self, x, growth_rate, name):

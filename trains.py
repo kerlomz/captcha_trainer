@@ -56,35 +56,10 @@ def train_process(mode=RunMode.Trains):
 
     tf.compat.v1.logging.info('Loading Trains DataSet...')
     train_feeder = utils.DataIterator(mode=RunMode.Trains)
-    if TRAINS_USE_TFRECORDS:
-        train_feeder.read_sample_from_tfrecords(TRAINS_PATH)
-        tf.compat.v1.logging.info('Loading Test DataSet...')
-        test_feeder = utils.DataIterator(mode=RunMode.Test)
-        test_feeder.read_sample_from_tfrecords(TEST_PATH)
-    else:
-        if isinstance(TRAINS_PATH, list):
-            origin_list = []
-            for trains_path in TRAINS_PATH:
-                origin_list += [os.path.join(trains_path, trains) for trains in os.listdir(trains_path)]
-        else:
-            origin_list = [os.path.join(TRAINS_PATH, trains) for trains in os.listdir(TRAINS_PATH)]
-        np.random.shuffle(origin_list)
-        if not HAS_TEST_SET:
-            test_list = origin_list[:TEST_SET_NUM]
-            trains_list = origin_list[TEST_SET_NUM:]
-        else:
-            if isinstance(TEST_PATH, list):
-                test_list = []
-                for test_path in TEST_PATH:
-                    test_list += [os.path.join(test_path, test) for test in os.listdir(test_path)]
-            else:
-                test_list = [os.path.join(TEST_PATH, test) for test in os.listdir(TEST_PATH)]
-            np.random.shuffle(test_list)
-            trains_list = origin_list
-        train_feeder.read_sample_from_files(trains_list)
-        tf.logging.info('Loading Test DataSet...')
-        test_feeder = utils.DataIterator(mode=RunMode.Test)
-        test_feeder.read_sample_from_files(test_list)
+    train_feeder.read_sample_from_tfrecords(TRAINS_PATH)
+    tf.compat.v1.logging.info('Loading Test DataSet...')
+    test_feeder = utils.DataIterator(mode=RunMode.Test)
+    test_feeder.read_sample_from_tfrecords(TEST_PATH)
 
     tf.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
     tf.logging.info('Total {} Test DataSets'.format(test_feeder.size))
@@ -121,26 +96,16 @@ def train_process(mode=RunMode.Trains):
         checkpoint_state = tf.train.get_checkpoint_state(MODEL_PATH)
         if checkpoint_state and checkpoint_state.model_checkpoint_path:
             saver.restore(sess, checkpoint_state.model_checkpoint_path)
-            # saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
-        # except ValueError as e:
-        #     print(e)
-        #     pass
+
         tf.logging.info('Start training...')
 
         while 1:
-            shuffle_trains_idx = np.random.permutation(num_train_samples)
             start_time = time.time()
             epoch_cost = 0
             for cur_batch in range(num_batches_per_epoch):
                 batch_time = time.time()
-                index_list = [
-                    shuffle_trains_idx[i % num_train_samples] for i in
-                    range(cur_batch * BATCH_SIZE, (cur_batch + 1) * BATCH_SIZE)
-                ]
-                if TRAINS_USE_TFRECORDS:
-                    batch = train_feeder.generate_batch_by_tfrecords(sess)
-                else:
-                    batch = train_feeder.generate_batch_by_files(index_list)
+
+                batch = train_feeder.generate_batch_by_tfrecords(sess)
 
                 batch_inputs, batch_seq_len, batch_labels = batch
                 feed = {
@@ -166,16 +131,9 @@ def train_process(mode=RunMode.Trains):
                     saver.save(sess, SAVE_MODEL, global_step=step)
 
                 if step % TRAINS_VALIDATION_STEPS == 0 and step != 0:
-                    shuffle_test_idx = np.random.permutation(num_test_samples)
+
                     batch_time = time.time()
-                    index_test = [
-                        shuffle_test_idx[i % num_test_samples] for i in
-                        range(cur_batch * TEST_BATCH_SIZE, (cur_batch + 1) * TEST_BATCH_SIZE)
-                    ]
-                    if TRAINS_USE_TFRECORDS:
-                        batch = test_feeder.generate_batch_by_tfrecords(sess)
-                    else:
-                        batch = test_feeder.generate_batch_by_files(index_test)
+                    batch = test_feeder.generate_batch_by_tfrecords(sess)
 
                     test_inputs, batch_seq_len, test_labels = batch
                     val_feed = {
@@ -227,7 +185,38 @@ def generate_config(acc):
         save_fp.write(text)
 
 
+def init_dataset_config():
+
+    with open(MODEL_CONFIG_PATH, "r", encoding="utf8") as current_fp:
+        text = "".join(current_fp.readlines())
+        output_filename = lambda value: os.path.join(TFRECORDS_DIR, "{}_{}.tfrecords".format(TARGET_MODEL, value))
+        target_test = re.search(" {2}TestPath:.*\n", text)
+        target_test = target_test.group(0) if target_test else None
+        target_trains = re.search(" {2}TrainsPath:.*\n", text)
+        target_trains = target_trains.group(0) if target_trains else None
+
+        TRAINS_PATH = output_filename('trains')
+        TEST_PATH = output_filename('test')
+
+        if not target_trains:
+            text = text.replace("\n  DatasetPath", "\n  TrainsPath: {}\n  DatasetPath".format(output_filename('trains')))
+        else:
+            text = text.replace(target_trains, "  TrainsPath: {}\n".format(output_filename('trains')))
+        if not target_test:
+            text = text.replace("\n  DatasetPath", "\n  TestPath: {}\n  DatasetPath".format(output_filename('test')))
+        else:
+            text = text.replace(target_test, "  TestPath: {}\n".format(output_filename('test')))
+
+    with open(MODEL_CONFIG_PATH, "w", encoding="utf8") as save_fp:
+        save_fp.write(text)
+
+
 def main(_):
+    if not TRAINS_PATH or not TEST_PATH:
+        init_dataset_config()
+        from make_dataset import make_dataset
+        make_dataset()
+
     init()
     train_process()
     tf.logging.info('Training completed.')

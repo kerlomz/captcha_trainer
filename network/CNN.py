@@ -47,18 +47,20 @@ class CNNX(object):
         self.kernel_size = [7, 5, 3, 3, 3]
         self.trainable = True
 
-    def block(self, inputs, filters, kernel_size, strides, pooling, pool_size=None, clipping=False, re=True, index=0):
+    def block(self, inputs, filters, kernel_size, strides, pooling, pool_size=None, clipping=False, re=True, dilation_rate=(1, 1), index=0):
         with tf.variable_scope('unit-{}'.format(index + 1)):
             x = tf.keras.layers.Conv2D(
                 filters=filters,
                 kernel_size=kernel_size,
                 strides=strides[0],
-                kernel_regularizer=l2(0.01),
+                dilation_rate=dilation_rate,
+                kernel_regularizer=l1_l2(l1=0.001, l2=0.001),
+                activity_regularizer=l2(0.01),
                 kernel_initializer=self.utils.msra_initializer(kernel_size, filters if index != 0 else 1),
                 padding='SAME',
                 name='cnn-{}'.format(index + 1),
             )(inputs)
-            x = tf.layers.BatchNormalization(
+            bn = tf.layers.BatchNormalization(
                 renorm=re,
                 fused=True,
                 renorm_clipping={
@@ -69,7 +71,24 @@ class CNNX(object):
                 epsilon=1.001e-5,
                 trainable=self.trainable,
                 name='bn{}'.format(index + 1)
-            )(x, training=self.utils.training)
+            )
+            x = bn(x, training=self.utils.training)
+
+            # bn = tf.keras.layers.BatchNormalization(
+            #     renorm=re,
+            #     fused=True,
+            #     renorm_clipping={
+            #         'rmax': 3,
+            #         'rmin': 0.3333,
+            #         'dmax': 5
+            #     } if clipping else None,
+            #     epsilon=1.001e-5,
+            #     trainable=self.trainable,
+            #     name='bn{}'.format(index + 1)
+            # )
+            # x = bn(x, training=self.utils.training)
+            # for op in bn.updates:
+            #     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
 
             x = tf.keras.layers.LeakyReLU(0.01)(x)
             if pooling:
@@ -127,7 +146,7 @@ class CNNX(object):
             )
             with tf.variable_scope('unit-{}'.format(2)):
                 x = tf.cond(
-                    tf.greater_equal(w, tf.constant(150)),
+                    tf.greater_equal(w, tf.constant(180)),
                     lambda: self.max_pooling(x, strides=(2, 2)),
                     lambda: self.max_pooling(x, strides=(1, 2)),
                 )
@@ -144,7 +163,7 @@ class CNNX(object):
             )
             with tf.variable_scope('unit-{}'.format(3)):
                 x = tf.cond(
-                    tf.greater_equal(w, tf.constant(80)),
+                    tf.greater_equal(w, tf.constant(90)),
                     lambda: self.max_pooling(x, strides=(2, 2)),
                     lambda: self.max_pooling(x, strides=(1, 2)),
                 )
@@ -155,11 +174,16 @@ class CNNX(object):
                 filters=self.filters[3],
                 kernel_size=self.kernel_size[3],
                 strides=self.strides[3],
-                pooling=MaxPooling2D,
-                pool_size=(2, 2),
+                pooling=None,
                 re=False,
                 index=3
             )
+            with tf.variable_scope('unit-{}'.format(4)):
+                x = tf.cond(
+                    tf.greater_equal(w, tf.constant(280)),
+                    lambda: self.max_pooling(x, strides=(3, 2)),
+                    lambda: self.max_pooling(x, strides=(2, 2)),
+                )
 
             # ====== Layer 5 ======
             x = self.block(
@@ -167,18 +191,14 @@ class CNNX(object):
                 filters=self.filters[4],
                 kernel_size=self.kernel_size[4],
                 strides=self.strides[4],
-                pooling=None,
+                pooling=MaxPooling2D,
+                pool_size=(2, 2),
                 re=False,
                 index=4
             )
-            with tf.variable_scope('unit-{}'.format(5)):
-                x = tf.cond(
-                    tf.greater_equal(w, tf.constant(220)),
-                    lambda: self.max_pooling(x, strides=(3, 2)),
-                    lambda: self.max_pooling(x, strides=(2, 2)),
-                )
 
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
-            x = tf.reshape(x, [tf.shape(x)[0], -1, shape_list[2] * shape_list[3]])
+            # tf.multiply(tf.shape(x)[2], shape_list[3])
+            x = tf.reshape(x, [tf.shape(x)[0], -1, tf.multiply(shape_list[2], shape_list[3])])
             return x

@@ -74,49 +74,6 @@ class DataIterator:
                 ), ConfigException.SAMPLE_LABEL_ERROR
             )
 
-    def read_sample_from_files(self, data_set=None):
-        if data_set:
-            self.image_path = data_set
-            try:
-                self._label_list = [
-                    self._encoder(re.search(TRAINS_REGEX, i.split(PATH_SPLIT)[-1]).group()) for i in data_set
-                ]
-            except AttributeError as e:
-                regex_not_found = "group" in e.args[0]
-                if regex_not_found:
-                    exception(
-                        "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
-                            "TrainRegex",
-                            TRAINS_REGEX
-                        ),
-                        ConfigException.GET_LABEL_REGEX_ERROR
-                    )
-        else:
-            for root, sub_folder, file_list in os.walk(self.data_dir):
-                for file_path in file_list:
-                    image_name = os.path.join(root, file_path)
-                    if file_path in IGNORE_FILES:
-                        continue
-                    self.image_path.append(image_name)
-                    # Get the label from the file name based on the regular expression.
-                    code = re.search(
-                        TRAINS_REGEX, image_name.split(PATH_SPLIT)[-1]
-                    )
-                    if not code:
-                        exception(
-                            "Configured {} is '{}', it may be wrong and unable to get label properly.".format(
-                                "TrainRegex",
-                                TRAINS_REGEX
-                            ),
-                            ConfigException.GET_LABEL_REGEX_ERROR
-                        )
-                    code = code.group()
-                    # The manual verification code platform is not case sensitive,
-                    # - it will affect the accuracy of the training set.
-                    # Here is a case conversion based on the selected character set.
-                    self._label_list.append(self._encoder(code))
-        self._size = len(self._label_list)
-
     @staticmethod
     def parse_example(serial_example):
 
@@ -157,7 +114,7 @@ class DataIterator:
         return self.label_list
 
     @staticmethod
-    def _image(path_or_bytes, is_random=False):
+    def load_image(path_or_bytes, is_random=False):
 
         # im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
@@ -218,48 +175,6 @@ class DataIterator:
         lengths = np.asarray([len(_) for _ in sequences], dtype=np.int64)
         return sequences, lengths
 
-    def generate_batch_by_files(self, image_index=None):
-        batch = {}
-        image_batch = []
-        label_batch = []
-
-        if image_index:
-
-            for i, index in enumerate(image_index):
-                try:
-                    is_training = len(image_index) == BATCH_SIZE and self.mode == RunMode.Trains
-                    is_random = bool(random.getrandbits(1))
-
-                    image_array = self._image(self.image_path[index], is_random=is_training and is_random)
-                    label_array = self._label_list[index]
-
-                    image_batch.append(image_array)
-                    label_batch.append(label_array)
-                except OSError:
-                    continue
-
-        if RESIZE[0] == -1:
-            image_batch = tf.keras.preprocessing.sequence.pad_sequences(
-                sequences=image_batch,
-                maxlen=None,
-                dtype='float32',
-                padding='post',
-                truncating='post',
-                value=0
-            )
-        if RESIZE[0] < 120:
-            image_batch = tf.keras.preprocessing.sequence.pad_sequences(
-                sequences=image_batch,
-                maxlen=150,
-                dtype='float32',
-                padding='post',
-                truncating='post',
-                value=0
-            )
-
-        self.label_list = label_batch
-        return self.padded_generate_batch(image_batch, label_batch)
-
     def padded_generate_batch(self, image_batch, label_batch):
         batch_inputs, batch_seq_len = self._get_input_lens(np.array(image_batch))
         batch_labels = sparse_tuple_from_label(label_batch)
@@ -285,7 +200,7 @@ class DataIterator:
             try:
                 is_random = bool(random.getrandbits(1))
                 random_and_training = is_random and self.mode == RunMode.Trains
-                image_array = self._image(i1, is_random=random_and_training)
+                image_array = self.load_image(i1, is_random=random_and_training)
                 label_array = self._encoder(i2)
                 image_batch.append(image_array)
                 label_batch.append(label_array)

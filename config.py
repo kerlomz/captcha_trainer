@@ -156,8 +156,8 @@ TEST_SET_NUM = TEST_SET_NUM if TEST_SET_NUM else 1000
 HAS_TEST_SET = TEST_PATH and (os.path.exists(TEST_PATH) if isinstance(TEST_PATH, str) else True)
 
 SPLIT_DATASET = not TEST_PATH
-TEST_USE_TFRECORDS = isinstance(TEST_PATH, str) and TEST_PATH.endswith("tfrecords")
-TRAINS_USE_TFRECORDS = isinstance(TRAINS_PATH, str) and TRAINS_PATH.endswith("tfrecords")
+# TEST_USE_TFRECORDS = isinstance(TEST_PATH, str) and TEST_PATH.endswith("tfrecords")
+# TRAINS_USE_TFRECORDS = isinstance(TRAINS_PATH, str) and TRAINS_PATH.endswith("tfrecords")
 
 """TRAINS"""
 TRAINS_SAVE_STEPS = cf_model['Trains'].get('SavedSteps')

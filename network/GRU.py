@@ -24,6 +24,8 @@ class GRU(object):
                 input_shape=mask.shape,
                 reset_after=True,
                 implementation=2,
+                dropout=0.2,
+                recurrent_dropout=0.2,
                 kernel_regularizer=l2(0.01),
                 bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
@@ -41,26 +43,32 @@ class BiGRU(object):
     def build(self):
         with tf.compat.v1.variable_scope('BiGRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
-            fordward = tf.keras.layers.GRU(
+            forward_layer = tf.keras.layers.GRU(
                 units=NUM_HIDDEN * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
+                dropout=0.2,
+                recurrent_dropout=0.2,
                 kernel_regularizer=l2(0.01),
                 bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
-            )(mask, training=self.utils.training)
-            backward = tf.keras.layers.GRU(
+            )
+            backward_layer = tf.keras.layers.GRU(
                 units=NUM_HIDDEN * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
                 go_backwards=True,
+                dropout=0.2,
+                recurrent_dropout=0.2,
                 kernel_regularizer=l2(0.01),
                 bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
-            )(mask, training=self.utils.training)
-            outputs = tf.keras.layers.Concatenate(axis=2)([fordward, backward])
+            )
+            forward = forward_layer(mask, training=self.utils.training)
+            backward = backward_layer(mask, training=self.utils.training)
+            outputs = tf.keras.layers.Concatenate(axis=2)([forward, backward])
         return outputs
 
 
