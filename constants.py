@@ -14,7 +14,8 @@ class RunMode(Enum):
 @unique
 class CNNNetwork(Enum):
     CNN5 = 'CNN5'
-    CNNX = 'CNNX'
+    CNNm6 = 'CNNm6'
+    CNNm4 = 'CNNm4'
     ResNet = 'ResNet'
     DenseNet = 'DenseNet'
 

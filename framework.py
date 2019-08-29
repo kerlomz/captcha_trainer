@@ -5,7 +5,7 @@ import sys
 import itertools
 import tensorflow as tf
 from config import *
-from network.CNN import CNN5, CNNX
+from network.CNN import CNN5, CNNm4, CNNm6
 from network.DenseNet import DenseNet
 from network.GRU import GRU, BiGRU, GRUcuDNN
 from network.LSTM import LSTM, BiLSTM, BiLSTMcuDNN, LSTMcuDNN
@@ -40,8 +40,11 @@ class GraphOCR(object):
         if self.network == CNNNetwork.CNN5:
             x = CNN5(inputs=self.inputs, utils=self.utils).build()
 
-        elif self.network == CNNNetwork.CNNX:
-            x = CNNX(inputs=self.inputs, utils=self.utils).build()
+        elif self.network == CNNNetwork.CNNm4:
+            x = CNNm4(inputs=self.inputs, utils=self.utils).build()
+
+        elif self.network == CNNNetwork.CNNm6:
+            x = CNNm6(inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.ResNet:
             x = ResNet50(inputs=self.inputs, utils=self.utils).build()
@@ -58,6 +61,7 @@ class GraphOCR(object):
         # time_major = False: [batch_size, max_time_step, num_classes]
         tf.compat.v1.logging.info("CNN Output: {}".format(x.get_shape()))
 
+        # self.seq_len = tf.fill([tf.shape(x)[0]], 12, name="seq_len")
         self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
 
         if self.recurrent == RecurrentNetwork.LSTM:
@@ -86,7 +90,7 @@ class GraphOCR(object):
             self.logits = tf.keras.layers.Dense(
                 units=NUM_CLASSES,
                 kernel_initializer=tf.keras.initializers.glorot_normal(seed=None),
-                kernel_regularizer=l1_l2(l1=0.001, l2=0.001),
+                kernel_regularizer=l2(0.01),
                 bias_initializer='zeros',
             )
             predict = tf.keras.layers.TimeDistributed(

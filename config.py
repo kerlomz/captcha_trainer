@@ -21,7 +21,8 @@ IGNORE_FILES = ['.DS_Store']
 
 NETWORK_MAP = {
     'CNN5': CNNNetwork.CNN5,
-    'CNNX': CNNNetwork.CNNX,
+    'CNNm6': CNNNetwork.CNNm6,
+    'CNNm4': CNNNetwork.CNNm4,
     'ResNet': CNNNetwork.ResNet,
     'DenseNet': CNNNetwork.DenseNet,
     'LSTM': RecurrentNetwork.LSTM,

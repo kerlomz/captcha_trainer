@@ -34,7 +34,7 @@ class NetworkUtils(object):
                     filters=filters[i][1],
                     kernel_size=kernel_size[i],
                     strides=strides[i][0],
-                    kernel_regularizer=l2(0.01),
+                    kernel_regularizer=l1_l2(l1=0.001, l2=0.01),
                     kernel_initializer=self.msra_initializer(kernel_size[i], filters[i][0]),
                     padding='same',
                     name='cnn-{}'.format(i + 1),
@@ -42,12 +42,13 @@ class NetworkUtils(object):
 
                 bn = tf.layers.BatchNormalization(
                     fused=True,
+                    renorm=True if i == 0 else False,
                     renorm_clipping={
                         'rmax': 3,
                         'rmin': 0.3333,
                         'dmax': 5
-                    },
-                    epsilon=1.001e-5,
+                    } if i == 0 else None,
+                    epsilon=1.001e-3,
                     name='bn{}'.format(i + 1)
                 )
                 x = bn(x, training=training)

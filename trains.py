@@ -85,7 +85,6 @@ def train_process(mode=RunMode.Trains):
     )
     accuracy = 0
     epoch_count = 1
-
     with tf.compat.v1.Session(config=config) as sess:
         tf.keras.backend.set_session(session=sess)
         init_op = tf.global_variables_initializer()
@@ -113,18 +112,19 @@ def train_process(mode=RunMode.Trains):
                     model.labels: batch_labels,
                 }
 
-                summary_str, batch_cost, step, _ = sess.run(
-                    [model.merged_summary, model.cost, model.global_step, model.train_op],
+                summary_str, batch_cost, step, _, seq_len = sess.run(
+                    [model.merged_summary, model.cost, model.global_step, model.train_op, model.seq_len],
                     feed_dict=feed
                 )
                 train_writer.add_summary(summary_str, step)
                 if step % 100 == 0 and step != 0:
                     tf.logging.info(
-                        'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}'.format(
+                        'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, RNNTimeStep: {}'.format(
                             step,
                             time.time() - batch_time,
                             batch_cost,
                             len(batch_inputs),
+                            seq_len[0]
                         )
                     )
                 if step % TRAINS_SAVE_STEPS == 0 and step != 0:
