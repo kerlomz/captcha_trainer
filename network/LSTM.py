@@ -43,8 +43,6 @@ class BiLSTM(object):
                 layer=tf.keras.layers.LSTM(
                     units=NUM_HIDDEN,
                     return_sequences=True,
-                    dropout=0.2,
-                    recurrent_dropout=0.1
                 ),
                 input_shape=mask.shape
             )
