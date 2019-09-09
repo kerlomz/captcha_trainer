@@ -99,7 +99,8 @@ class GraphOCR(object):
                 trainable=self.utils.training
             )(inputs=outputs, training=self.utils.training)
 
-            self.predict = tf.transpose(predict, perm=(1, 0, 2))
+            self.predict = tf.keras.backend.permute_dimensions(predict, pattern=(1, 0, 2))
+            return self.predict
 
     def _build_train_op(self):
         self.global_step = tf.train.get_or_create_global_step()
@@ -190,5 +191,6 @@ class GraphOCR(object):
 
 
 if __name__ == '__main__':
-    GraphOCR(RunMode.Trains, CNNNetwork.CNN5, RecurrentNetwork.GRU).build_graph()
+    # GraphOCR(RunMode.Trains, CNNNetwork.CNN5, RecurrentNetwork.GRU).build_graph()
+    pass
 

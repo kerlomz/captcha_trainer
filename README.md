@@ -19,17 +19,9 @@ https://github.com/kerlomz/captcha_demo_csharp （C#源码调用，基于TensorF
 
 1. **如何使用CPU训练：**
 
-   本项目默认安装TensorFlow-GPU版，建议使用GPU进行训练，如需换用CPU训练请替换 ```requirements.txt``` 文件中的```tensorflow-gpu==1.6.0``` 为```tensorflow==1.6.0```，其他无需改动。
+   本项目默认安装TensorFlow-GPU版，建议使用GPU进行训练，如需换用CPU训练请替换 ```requirements.txt``` 文件中的```tensorflow-gpu==1.14.0``` 为```tensorflow==1.14.0```，其他无需改动。
 
-2. **关于LSTM网络**:
-
-   保证CNN得到的featuremap输入到LSTM时的宽度至少大于等于最大字符数的3倍左右，即time_step大于等于最大字符数3倍。
-
-3. **No valid path found 问题解决**：
-
-   在```model.yaml```中修改```Pretreatment```->```Resize```的参数，自行调整为合适的值，总结了百来个验证码训练经验，可以尝试这个较为通用的值：```Resize: [150, 50]```，或者使用代码```tutorial.py``` （自动生成配置文件、打包样本、训练一体化），填写训练集路径执行。
-
-4. **参数修改：**
+2. **参数修改：**
 
    切记，ModelName 是绑定一个模型的唯一标志，如果修改了训练参数如：ImageWidth，ImageHeight，Resize，CharSet，CNNNetwork，RecurrentNetwork，HiddenNum 这类影响计算图的参数，需要删除model路径下的旧文件，重新训练，或者使用新的ModelName 重新训练，否则默认作为断点续练。
 
@@ -68,7 +60,7 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 
 ## 1. 架构与流程
 
-本项目依赖于训练配置```config.yaml```和模型配置```model.yaml```，初始化项目的时候请复制```config_demo.yaml```到当前目录下命名为```config.yaml```，```model_demo.yaml```同理。或者可以使用```tutorial.py``` 自动设置模型配置。
+本项目依赖于训练/模型配置```model.yaml```，初始化项目的时候请复制```model_demo.yaml```到当前目录下命名为```model.yaml```。或者可以使用```tutorial.py``` 自动设置模型配置。
 
 **训练流程**：配置好两个配置文件后，执行```trains.py``` 中的代码，读取配置，根据```model.yaml```配置文件构建神经网络计算图，依据```config.yaml```的配置参数进行训练。
 

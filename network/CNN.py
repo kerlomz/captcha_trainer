@@ -3,7 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
 from network.utils import NetworkUtils
-from config import IMAGE_CHANNEL
+from config import IMAGE_CHANNEL, POOLING_STRIDES
 from tensorflow.python.keras.regularizers import l1, l2, l1_l2
 
 
@@ -57,7 +57,7 @@ class CNNm6(object):
         self.trainable = True
         self.renorm = [False, False, True, False, False]
 
-    def block(self, w, inputs, filters, kernel_size, conv_strides, clipping=False, re=True, index=0):
+    def block(self, w, inputs, filters, kernel_size, conv_strides, re=True, index=0):
 
         with tf.variable_scope('unit-{}'.format(index + 1)):
             x = tf.keras.layers.Conv2D(
@@ -109,26 +109,29 @@ class CNNm6(object):
                 return tf.logical_and(tf.greater_equal(w, tf.constant(a)), tf.less(w, tf.constant(b)))
 
             x = tf.keras.layers.LeakyReLU(0.01)(x)
-            x = tf.case(
-                {
-                    logical_sec(a=60): lambda: self.max_pooling(x, 4, index),
-                    logical_sec(a=60, b=90): lambda: self.max_pooling(x, 6, index),
-                    logical_sec(a=90, b=120): lambda: self.max_pooling(x, 8, index),
-                    logical_sec(a=120, b=150): lambda: self.max_pooling(x, 10, index),
-                    logical_sec(a=150, b=180): lambda: self.max_pooling(x, 12, index),
-                    logical_sec(a=180, b=240): lambda: self.max_pooling(x, 16, index),
-                    logical_sec(a=240, b=300): lambda: self.max_pooling(x, 18, index),
-                    logical_sec(b=300): lambda: self.max_pooling(x, 24, index),
-                },
-                exclusive=True
-            )
+            if POOLING_STRIDES and len(POOLING_STRIDES) == 5:
+                x = self.max_pooling(x, -1, index)
+            else:
+                x = tf.case(
+                    {
+                        logical_sec(a=60): lambda: self.max_pooling(x, 4, index),
+                        logical_sec(a=60, b=90): lambda: self.max_pooling(x, 6, index),
+                        logical_sec(a=90, b=120): lambda: self.max_pooling(x, 8, index),
+                        logical_sec(a=120, b=150): lambda: self.max_pooling(x, 10, index),
+                        logical_sec(a=150, b=180): lambda: self.max_pooling(x, 12, index),
+                        logical_sec(a=180, b=240): lambda: self.max_pooling(x, 16, index),
+                        logical_sec(a=240, b=300): lambda: self.max_pooling(x, 18, index),
+                        logical_sec(b=300): lambda: self.max_pooling(x, 24, index),
+                    },
+                    exclusive=True
+                )
         return x
 
-    def max_pooling(self, x, section: int, index):
+    def max_pooling(self, x, section: int, index, pool_strides=None):
         x = tf.keras.layers.MaxPooling2D(
             padding='SAME',
             pool_size=(2, 2),
-            strides=self.pool_strides[section][index]
+            strides=pool_strides[index] if pool_strides else self.pool_strides[section][index]
         )(x)
         return x
 
@@ -225,20 +228,22 @@ class CNNm4(object):
                 return tf.logical_and(tf.greater_equal(w, tf.constant(a)), tf.less(w, tf.constant(b)))
 
             x = tf.keras.layers.LeakyReLU(0.01)(x)
-
-            x = tf.case(
-                {
-                    logical_sec(a=60): lambda: self.max_pooling(x, 6, index),
-                    logical_sec(a=60, b=90): lambda: self.max_pooling(x, 8, index),
-                    logical_sec(a=90, b=130): lambda: self.max_pooling(x, 12, index),
-                    logical_sec(a=130, b=140): lambda: self.max_pooling(x, 16, index),
-                    logical_sec(a=140, b=190): lambda: self.max_pooling(x, 18, index),
-                    logical_sec(a=190, b=260): lambda: self.max_pooling(x, 24, index),
-                    logical_sec(a=260, b=300): lambda: self.max_pooling(x, 32, index),
-                    logical_sec(b=300): lambda: self.max_pooling(x, 36, index),
-                },
-                exclusive=True
-            )
+            if POOLING_STRIDES and len(POOLING_STRIDES) == 5:
+                x = self.max_pooling(x, -1, index)
+            else:
+                x = tf.case(
+                    {
+                        logical_sec(a=60): lambda: self.max_pooling(x, 6, index),
+                        logical_sec(a=60, b=90): lambda: self.max_pooling(x, 8, index),
+                        logical_sec(a=90, b=130): lambda: self.max_pooling(x, 12, index),
+                        logical_sec(a=130, b=140): lambda: self.max_pooling(x, 16, index),
+                        logical_sec(a=140, b=190): lambda: self.max_pooling(x, 18, index),
+                        logical_sec(a=190, b=260): lambda: self.max_pooling(x, 24, index),
+                        logical_sec(a=260, b=300): lambda: self.max_pooling(x, 32, index),
+                        logical_sec(b=300): lambda: self.max_pooling(x, 36, index),
+                    },
+                    exclusive=True
+                )
         return x
 
     def max_pooling(self, x, section: int, index):

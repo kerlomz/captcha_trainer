@@ -34,6 +34,13 @@ def get_image_batch(img_bytes):
         im = np.array(pil_image)
         # im = im[3:size[1] - 3, 3:size[0] - 3]
 
+        # 切割拼装 start
+        # im = np.array(pil_image)
+        # up_slice = im[0: int(size[1] / 2), 0: size[0]]
+        # down_slice = im[int(size[1] / 2): size[1], 0: size[0]]
+        # im = np.concatenate((up_slice, down_slice), axis=1)
+        # 切割拼装 end
+
         # im = laplacian(im)
         # im = equalize_hist(im)
 

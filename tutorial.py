@@ -10,7 +10,7 @@ from constants import *
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
 charset = SimpleCharset.ALPHANUMERIC_LOWER
 
-cnn_network = CNNNetwork.CNNX
+cnn_network = CNNNetwork.CNNm6
 recurrent_network = RecurrentNetwork.GRU
 optimizer = Optimizer.AdaBound
 
@@ -18,8 +18,8 @@ trains_path = [
     r"H:\Task\cet_true"
 ]
 
-test_num = 500
-hidden_num = 64
+test_num = 300
+hidden_num = 16
 beam_width = 1
 learning_rate = None
 
