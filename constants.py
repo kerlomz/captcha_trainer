@@ -5,10 +5,34 @@ from enum import Enum, unique
 
 
 @unique
+class LabelFrom(Enum):
+    XML = 'XML'
+    LMDB = 'LMDB'
+    FileName = 'FileName'
+
+
+@unique
+class LossFunction(Enum):
+    CTC = 'CTC'
+    CrossEntropy = 'CrossEntropy'
+
+
+@unique
+class ModelScene(Enum):
+    Classification = 'Classification'
+
+
+@unique
+class ModelField(Enum):
+    Image = 'Image'
+    Text = 'Text'
+
+
+@unique
 class RunMode(Enum):
-    Test = 'test'
-    Trains = 'trains'
-    Predict = 'predict'
+    Validation = 'Validation'
+    Trains = 'Trains'
+    Predict = 'Predict'
 
 
 @unique
@@ -29,6 +53,7 @@ class RecurrentNetwork(Enum):
     LSTMcuDNN = 'LSTMcuDNN'
     BiLSTMcuDNN = 'BiLSTMcuDNN'
     GRUcuDNN = 'GRUcuDNN'
+    NoRecurrent = 'null'
 
 
 @unique

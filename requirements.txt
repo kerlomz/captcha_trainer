@@ -3,3 +3,4 @@ pillow>=4.3.0
 opencv-python==4.1.0.25
 numpy==1.16.0
 pyyaml>=3.13
+tqdm

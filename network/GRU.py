@@ -3,14 +3,15 @@
 # Author: kerlomz <kerlomz@gmail.com>
 
 import tensorflow as tf
-from tensorflow.python.keras.regularizers import l2
-from config import NUM_HIDDEN, RunMode
+from tensorflow.keras.regularizers import l2, l1, l1_l2
+from config import RunMode, ModelConfig
 from network.utils import NetworkUtils
 
 
 class GRU(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.layer = None
@@ -19,11 +20,10 @@ class GRU(object):
         with tf.compat.v1.variable_scope('GRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
-                units=NUM_HIDDEN * 2,
+                units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
-                # implementation=2,
                 recurrent_regularizer=l2(0.01),
                 kernel_regularizer=l2(0.01),
                 bias_regularizer=l2(0.005),
@@ -35,7 +35,8 @@ class GRU(object):
 
 class BiGRU(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
 
@@ -43,22 +44,18 @@ class BiGRU(object):
         with tf.compat.v1.variable_scope('BiGRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             forward_layer = tf.keras.layers.GRU(
-                units=NUM_HIDDEN * 2,
+                units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
-                kernel_regularizer=l2(0.01),
-                bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
             )
             backward_layer = tf.keras.layers.GRU(
-                units=NUM_HIDDEN * 2,
+                units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
                 go_backwards=True,
-                kernel_regularizer=l2(0.01),
-                bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
             )
             forward = forward_layer(mask, training=self.utils.training)
@@ -69,7 +66,8 @@ class BiGRU(object):
 
 class GRUcuDNN(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.training = self.utils.mode == RunMode.Trains
@@ -79,7 +77,7 @@ class GRUcuDNN(object):
         with tf.variable_scope('GRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
-                units=NUM_HIDDEN * 2,
+                units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True

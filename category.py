@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+from exception import *
 
 SPACE_INDEX = 0
 SPACE_TOKEN = ['']
@@ -9,7 +10,7 @@ ALPHA_UPPER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
                'V', 'W', 'X', 'Y', 'Z']
 ALPHA_LOWER = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
                'v', 'w', 'x', 'y', 'z']
-ARITHMETIC = ['(', ')', '+', '-', '×', '÷', '=']
+ARITHMETIC_SYMBOL = ['(', ')', '+', '-', '×', '÷', '=']
 CHINESE_3500 = [
     '一', '乙', '二', '十', '丁', '厂', '七', '卜', '人', '入', '八', '九', '几', '儿', '了', '力', '乃', '刀', '又', '三',
     '于', '干', '亏', '士', '工', '土', '才', '寸', '下', '大', '丈', '与', '万', '上', '小', '口', '巾', '山', '千', '乞',
@@ -187,9 +188,9 @@ CHINESE_3500 = [
     '豁', '臀', '藕', '藤', '瞻', '嚣', '鳍', '癞', '瀑', '襟', '璧', '戳', '攒', '孽', '蘑', '藻', '鳖', '蹭', '蹬', '簸',
     '簿', '蟹', '靡', '癣', '羹', '鬓', '攘', '蠕', '巍', '鳞', '糯', '譬', '霹', '躏', '髓', '蘸', '镶', '瓤', '矗', '圳']
 
-FLOAT = ['.']
+FLOAT_SYMBOL = ['.']
 
-SIMPLE_CHAR_SET = dict(
+SIMPLE_CATEGORY_MODEL = dict(
     NUMERIC=NUMBER,
     ALPHANUMERIC=NUMBER + ALPHA_LOWER + ALPHA_UPPER,
     ALPHANUMERIC_LOWER=NUMBER + ALPHA_LOWER,
@@ -197,9 +198,26 @@ SIMPLE_CHAR_SET = dict(
     ALPHABET_LOWER=ALPHA_LOWER,
     ALPHABET_UPPER=ALPHA_UPPER,
     ALPHABET=ALPHA_LOWER + ALPHA_UPPER,
-    ARITHMETIC=NUMBER + ARITHMETIC,
-    ALPHANUMERIC_LOWER_MIX_ARITHMETIC=NUMBER + ALPHA_LOWER + ARITHMETIC,
-    FLOAT=NUMBER + FLOAT,
+    ARITHMETIC=NUMBER + ARITHMETIC_SYMBOL,
+    ALPHANUMERIC_LOWER_MIX_ARITHMETIC=NUMBER + ALPHA_LOWER + ARITHMETIC_SYMBOL,
+    FLOAT=NUMBER + FLOAT_SYMBOL,
     CHINESE_3500=CHINESE_3500,
     ALPHANUMERIC_LOWER_MIX_CHINESE_3500=NUMBER + ALPHA_LOWER + CHINESE_3500
 )
+
+
+def category_extract(param):
+    if isinstance(param, list):
+        return param
+    if isinstance(param, str):
+        if param in SIMPLE_CATEGORY_MODEL.keys():
+            return SIMPLE_CATEGORY_MODEL.get(param)
+        else:
+            exception(
+                "Category set configuration error, customized category set should be list type",
+                ConfigException.CATEGORY_INCORRECT
+            )
+
+
+def encode_maps(source):
+    return {char: i for i, char in enumerate(source, 0)}

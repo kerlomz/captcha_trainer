@@ -1,7 +1,7 @@
 # - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
 # - If you use the GPU version, you need to install some additional applications.
 System:
-  MemoryUsage: 0.7
+  MemoryUsage: {MemoryUsage}
 
 # CNNNetwork: [CNN5, ResNet, DenseNet]
 # RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU, None]
@@ -13,15 +13,14 @@ System:
 # OutputLayer: [LossFunction, Decoder]
 # - LossFunction: [CTC, CrossEntropy]
 # - Decoder: [CTC, CrossEntropy]
-# Resize: [WIDTH, HEIGHT]
 NeuralNet:
-  CNNNetwork: CNN5
-  RecurrentNetwork: null
-  HiddenNum: 64
-  Optimizer: AdaBound
+  CNNNetwork: {CNNNetwork}
+  RecurrentNetwork: {RecurrentNetwork}
+  HiddenNum: {HiddenNum}
+  Optimizer: {Optimizer}
   OutputLayer:
-    LossFunction: CTC
-    Decoder: CTC
+    LossFunction: {LossFunction}
+    Decoder: {Decoder}
 
 
 # ModelName: Corresponding to the model file in the model directory
@@ -29,9 +28,9 @@ NeuralNet:
 # ModelScene: [Classification]
 # - Currently only Image-Classification is supported.
 Model:
-  ModelName: YourModelName
-  ModelField: Image
-  ModelScene: Classification
+  ModelName: {ModelName}
+  ModelField: {ModelField}
+  ModelScene: {ModelScene}
 
 # FieldParam contains the Image, Text.
 # When you filed to Image:
@@ -50,16 +49,16 @@ Model:
 # When you filed to Text:
 # This type is temporarily not supported.
 FieldParam:
-  Category: ALPHANUMERIC_LOWER
-  Resize: [150, 50]
-  ImageChannel: 3
-  ImageWidth: 150
-  ImageHeight: 50
-  MaxLabelNum: -1
+  Category: {Category}
+  Resize: {Resize}
+  ImageChannel: {ImageChannel}
+  ImageWidth: {ImageWidth}
+  ImageHeight: {ImageHeight}
+  MaxLabelNum: {MaxLabelNum}
 
 
 # The configuration is applied to the label of the data source.
-# LabelFrom: [FileName, XML, lmdb]
+# LabelFrom: [FileName, XML, LMDB]
 # ExtractRegex: Only for methods extracted from FileName:
 # - Default matching apple_20181010121212.jpg file.
 # - The Default is .*?(?=_.*\.)
@@ -67,9 +66,9 @@ FieldParam:
 # - The split symbol in the file name is like: cat&big cat&lion_20181010121212.png
 # - The Default is null.
 Label:
-  LabelFrom: FileName
-  ExtractRegex: .*?(?=_)
-  Split: null
+  LabelFrom: {LabelFrom}
+  ExtractRegex: {ExtractRegex}
+  Split: {Split}
 
 
 # TrainsPath and TestPath: The local absolute path of your training and testing set.
@@ -84,21 +83,30 @@ Label:
 # EndCost: Finish the training when the cost reaches EndCost and other conditions.
 # EndEpochs: Finish the training when the epoch is greater than the defined epoch and other conditions.
 # BatchSize: Number of samples selected for one training step.
-# VerificationBatchSize: Number of samples selected for one validation step.
+# ValidationBatchSize: Number of samples selected for one validation step.
 # LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
 Trains:
-  TrainsPath: ./dataset/mnist-CNN5BLSTM-H64-28x28_trains.tfrecords
-  ValidationPath: ./dataset/mnist-CNN5BLSTM-H64-28x28_test.tfrecords
-  DatasetPath:
-    - D:/***
-  ValidationSetNum: 300
-  SavedSteps: 100
-  ValidationSteps: 500
-  EndAcc: 0.95
-  EndCost: 0.1
-  EndEpochs: 2
-  BatchSize: 128
-  VerificationBatchSize: 300
-  LearningRate: 0.001
+  TrainsPath: {TrainsPath}
+  ValidationPath: {ValidationPath}
+  DatasetPath: {DatasetPath}
+  ValidationSetNum: {ValidationSetNum}
+  SavedSteps: {SavedSteps}
+  ValidationSteps: {ValidationSteps}
+  EndAcc: {EndAcc}
+  EndCost: {EndCost}
+  EndEpochs: {EndEpochs}
+  BatchSize: {BatchSize}
+  ValidationBatchSize: {ValidationBatchSize}
+  LearningRate: {LearningRate}
+
+DataAugmentation:
+  Binaryzation: {Binaryzation}
+  MedianBlur: {MedianBlur}
+  GaussianBlur: {GaussianBlur}
+  EqualizeHist: {EqualizeHist}
+  Laplace: {Laplace}
+  Rotate: {Rotate}
+
+
 
 

@@ -3,19 +3,21 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
 from network.utils import NetworkUtils
-from config import IMAGE_CHANNEL, POOLING_STRIDES
+from config import *
 from tensorflow.python.keras.regularizers import l1, l2, l1_l2
 
 
 class CNN5(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
+        self.loss_func = self.model_conf.loss_func
         # (in_channels, out_channels)
-        self.filters = [(IMAGE_CHANNEL, 32), (32, 64), (64, 128), (128, 128), (128, 64)]
+        self.filters = [(self.model_conf.image_channel, 32), (32, 64), (64, 128), (128, 128), (128, 64)]
         # (conv2d_strides, max_pool_strides)
-        self.strides = [(1, 1), (1, 2), (1, 2), (1, 2), (1, 2)]
+        self.strides = [(1, 1), (1, 1), (1, 2), (1, 2), (1, 2)]
         self.kernel_size = [7, 5, 3, 3, 3]
 
     def build(self):
@@ -32,7 +34,10 @@ class CNN5(object):
 
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
-            x = tf.reshape(x, [tf.shape(x)[0], -1, shape_list[2] * shape_list[3]])
+            if self.loss_func == LossFunction.CTC:
+                x = tf.reshape(x, [tf.shape(x)[0], -1 , shape_list[2] * shape_list[3]])
+            elif self.loss_func == LossFunction.CrossEntropy:
+                x = tf.reshape(x, [tf.shape(x)[0], shape_list[1], shape_list[2] * shape_list[3]])
             return x
 
 
@@ -47,7 +52,7 @@ class CNNm6(object):
             4: [(1, 1), (2, 2), (1, 1), (2, 2), (1, 2)],
             6: [(1, 1), (2, 2), (1, 1), (3, 2), (1, 2)],
             8: [(1, 1), (2, 2), (1, 1), (2, 2), (2, 2)],
-            10: [(1, 1), (2, 2), (1, 1), (5, 2), (1, 2)],
+            10: [(1, 1), (2, 2), (1, 1), (2, 2), (2, 2)],
             12: [(1, 1), (2, 2), (1, 1), (2, 2), (3, 2)],
             16: [(1, 1), (2, 2), (2, 1), (2, 2), (2, 2)],
             18: [(1, 1), (2, 2), (1, 1), (3, 2), (3, 2)],
@@ -56,6 +61,7 @@ class CNNm6(object):
         self.kernel_size = [7, 5, 3, 3, 3]
         self.trainable = True
         self.renorm = [False, False, True, False, False]
+        # self.renorm = [True] * 5
 
     def block(self, w, inputs, filters, kernel_size, conv_strides, re=True, index=0):
 
@@ -65,7 +71,6 @@ class CNNm6(object):
                 kernel_size=kernel_size,
                 strides=conv_strides,
                 kernel_regularizer=l2(0.01),
-                activity_regularizer=l2(0.01),
                 kernel_initializer=self.utils.msra_initializer(kernel_size, filters if index != 0 else 1),
                 padding='SAME',
                 name='cnn-{}'.format(index + 1),
@@ -79,7 +84,6 @@ class CNNm6(object):
                     'dmax': 5
                 } if index == 0 else None,
                 epsilon=1.001e-5,
-                trainable=self.trainable,
                 name='bn{}'.format(index + 1)
             )
             x = bn(x, training=self.utils.training)
@@ -154,7 +158,7 @@ class CNNm6(object):
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             # tf.multiply(tf.shape(x)[2], shape_list[3])
-            x = tf.reshape(x, [tf.shape(x)[0], -1, tf.multiply(shape_list[2], shape_list[3])])
+            x = tf.reshape(x, [tf.shape(x)[0], shape_list[1], tf.multiply(shape_list[2], shape_list[3])])
             return x
 
 
@@ -185,19 +189,18 @@ class CNNm4(object):
                 kernel_size=(kernel_size, kernel_size-2),
                 strides=conv_strides,
                 kernel_regularizer=l2(0.01),
-                # activity_regularizer=l2(0.01),
                 kernel_initializer=self.utils.msra_initializer(kernel_size, filters if index != 0 else 1),
                 padding='SAME',
                 name='cnn-{}'.format(index + 1),
             )(inputs)
             bn = tf.layers.BatchNormalization(
-                renorm=True if index == 0 else False,
+                # renorm=True if index == 0 else False,
                 fused=True,
-                renorm_clipping={
-                    'rmax': 3,
-                    'rmin': 0.3333,
-                    'dmax': 5
-                } if index == 0 else None,
+                # renorm_clipping={
+                #     'rmax': 3,
+                #     'rmin': 0.3333,
+                #     'dmax': 5
+                # } if index == 0 else None,
                 epsilon=1.001e-5,
                 name='bn{}'.format(index + 1)
             )
@@ -271,5 +274,5 @@ class CNNm4(object):
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             # tf.multiply(tf.shape(x)[2], shape_list[3])
-            x = tf.reshape(x, [tf.shape(x)[0], -1, tf.multiply(shape_list[2], shape_list[3])])
+            x = tf.reshape(x, [tf.shape(x)[0], -1 if LOSS == 'CTC' else shape_list[1], tf.multiply(shape_list[2], shape_list[3])])
             return x

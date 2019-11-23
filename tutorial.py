@@ -2,158 +2,66 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import os
+import re
 import json
 import PIL.Image as pilImage
 from constants import *
+from config import PATH_SPLIT
 
 # - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
 # -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
-charset = SimpleCharset.ALPHANUMERIC_LOWER
 
-cnn_network = CNNNetwork.CNNm6
-recurrent_network = RecurrentNetwork.GRU
+category = SimpleCharset.ALPHANUMERIC
+
+cnn_network = CNNNetwork.CNN5
+recurrent_network = RecurrentNetwork.NoRecurrent
 optimizer = Optimizer.AdaBound
+loss = LossFunction.CrossEntropy
 
 trains_path = [
-    r"H:\Task\cet_true"
+    r"H:\Task\验证码\验证码图片内容 参赛数据\train",
 ]
 
-test_num = 300
+validation_set_num = 50
 hidden_num = 16
-beam_width = 1
 learning_rate = None
 
-name_prefix = 'cet-t'
+name_prefix = 'sold-100-5-v2'
 name_suffix = None
 name_prefix = name_prefix if name_prefix else "tutorial"
 name_suffix = '-' + str(name_suffix) if name_suffix else ''
 
-model = """
-# - requirement.txt  -  GPU: tensorflow-gpu, CPU: tensorflow
-# - If you use the GPU version, you need to install some additional applications.
-System:
-  DeviceUsage: 0.7
-  
-# ModelName: Corresponding to the model file in the model directory,
-# - such as YourModelName.pb, fill in YourModelName here.
-# CharSet: Provides a default optional built-in solution:
-# - [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
-# -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
-# - Or you can use your own customized character set like: ['a', '1', '2'].
-# CharExclude: CharExclude should be a list, like: ['a', '1', '2']
-# - which is convenient for users to freely combine character sets.
-# - If you don't want to manually define the character set manually,
-# - you can choose a built-in character set
-# - and set the characters to be excluded by CharExclude parameter.
-Model:
-  Sites: [
-  ]
-  ModelName: @model_name
-  ModelType: @size_str
-  CharSet: @charset
-  CharExclude: []
-  CharReplace: {}
-  ImageWidth: @width
-  ImageHeight: @height
-  ImageChannel: 1
-
-# Binaryzation: [-1: Off, >0 and < 255: On].
-# Smoothing: [-1: Off, >0: On].
-# Blur: [-1: Off, >0: On].
-# Resize: [WIDTH, HEIGHT]
-# - If the image size is too small, the training effect will be poor and you need to zoom in.
-# ReplaceTransparent: [True, False]
-# - True: Convert transparent images in RGBA format to opaque RGB format,
-# - False: Keep the original image
-# Padding： Input shape will be (IMAGE_WIDTH + Padding, HEIGHT, CHANNEL) after padding.
-# LowerPadding: The starting boundary of the padding,
-# - triggered when the width of the image is less than the value.
-Pretreatment:
-  Binaryzation: -1
-  Smoothing: -1
-  Blur: -1
-  Resize: @resize
-  ReplaceTransparent: True
-#  Padding: 120
-#  LowerPadding: 120
-
-# CNNNetwork: [CNN5, ResNet, DenseNet]
-# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU]
-# - The recommended configuration is CNN5+GRU / ResNet+GRU
-# HiddenNum: [64, 128, 256]
-# - This parameter indicates the number of nodes used to remember and store past states.
-# Optimizer: Loss function algorithm for calculating gradient.
-# - [AdaBound, Adam, Momentum, SGD, AdaGrad, RMSProp]
-NeuralNet:
-  CNNNetwork: @cnn_network
-  RecurrentNetwork: @recurrent_network
-  HiddenNum: @hidden_num
-  KeepProb: 0.98
-  Optimizer: @optimizer
-  PreprocessCollapseRepeated: False
-  CTCMergeRepeated: True
-  CTCBeamWidth: @beam_width
-  CTCTopPaths: 1
-  
-# TrainsPath and TestPath: The local absolute path of your training and testing set.
-# DatasetPath: Package a sample of the TFRecords format from this path.
-# TrainRegex and TestRegex: Default matching apple_20181010121212.jpg file.
-# - The Default is .*?(?=_.*\.)
-# TestSetNum: This is an optional parameter that is used when you want to extract some of the test set
-# - from the training set when you are not preparing the test set separately.
-# SavedSteps: A Session.run() execution is called a Step,
-# - Used to save training progress, Default value is 100.
-# ValidationSteps: Used to calculate accuracy, Default value is 500.
-# TestSetNum: The number of test sets, if an automatic allocation strategy is used (TestPath not set).
-# EndAcc: Finish the training when the accuracy reaches [EndAcc*100]% and other conditions.
-# EndCost: Finish the training when the cost reaches EndCost and other conditions.
-# EndEpochs: Finish the training when the epoch is greater than the defined epoch and other conditions.
-# BatchSize: Number of samples selected for one training step.
-# TestBatchSize: Number of samples selected for one validation step.
-# LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
-Trains:
-  TrainsPath: ./dataset/@model_name_trains.tfrecords
-  TestPath: ./dataset/@model_name_test.tfrecords
-  DatasetPath: @trains_path
-  TrainRegex: '.*?(?=_)'
-  TestSetNum: @test_num
-  SavedSteps: 100
-  ValidationSteps: 500
-  EndAcc: 0.95
-  EndCost: 0.5
-  EndEpochs: 2
-  BatchSize: 64
-  TestBatchSize: 64
-  LearningRate: @learning_rate
-  DecayRate: 0.98
-  DecaySteps: 10000
-"""
-
 # trains_path = [i.replace("\\", "/") for i in trains_path]
 file_name = os.listdir(trains_path[0])[0]
+default_regex = '.*?(?=_)'
 size = pilImage.open(os.path.join(trains_path[0], file_name)).size
-
+label_sample = re.search(default_regex, file_name.split(PATH_SPLIT)[-1]).group()
+label_num = len(label_sample)
 width = size[0]
 height = size[1]
 
-size_str = "{}x{}".format(width, height)
-# if width > 160 or width < 120:
-#     r_height = int(height * 150 / width)
-# else:
-# r_height = height
-resize = "[{}, {}]".format(width, height)
 
-model_name = '{}-mix-{}{}-{}-H{}{}'.format(
+size_str = "{}x{}".format(width, height)
+
+resize = "[{}, {}]".format(width, height)
+validation_batch = validation_set_num if validation_set_num < 300 else 300
+model_name = '{}-mix-{}{}-{}-H{}-{}{}'.format(
     name_prefix,
     cnn_network.value,
     recurrent_network.value,
     size_str,
     hidden_num,
+    loss.value,
     name_suffix
 )
-# trains_path = json.dumps(trains_path, ensure_ascii=False, indent=2).replace('\n', '\n  ')
-trains_path = "".join(["\n    - " + i for i in trains_path])
 
+project_path = "./projects/{}".format(model_name)
+if not os.path.exists(project_path):
+    os.makedirs(project_path)
+
+model_conf_path = os.path.join(project_path, "model.yaml")
+
+trains_path = "".join(["\n    - " + i for i in trains_path])
 
 BEST_LEARNING_RATE = {
     Optimizer.AdaBound: 0.001,
@@ -164,44 +72,62 @@ BEST_LEARNING_RATE = {
     Optimizer.AdaGrad: 0.01,
 }
 
+dataset_trains_name = "dataset/{}_trains.tfrecords".format(model_name)
+dataset_validation_name = "dataset/{}_validation.tfrecords".format(model_name)
+dataset_trains_path = os.path.join(project_path, dataset_trains_name)
+dataset_validation_path = os.path.join(project_path, dataset_validation_name)
 learning_rate = BEST_LEARNING_RATE[optimizer] if not learning_rate else learning_rate
 
-result = model.replace(
-    "@trains_path", trains_path
-).replace(
-    "@model_name", model_name
-).replace(
-    "@resize", resize
-).replace(
-    "@size_str", size_str
-).replace(
-    "@width", str(width)
-).replace(
-    "@height", str(height)
-).replace(
-    "@charset", str(charset.value) if isinstance(charset, SimpleCharset) else str(charset)
-).replace(
-    "@test_num", str(test_num)
-).replace(
-    "@optimizer", str(optimizer.value)
-).replace(
-    "@hidden_num", str(hidden_num)
-).replace(
-    "@cnn_network", str(cnn_network.value)
-).replace(
-    "@recurrent_network", str(recurrent_network.value)
-).replace(
-    "@beam_width", str(beam_width)
-).replace(
-    "@learning_rate", str(learning_rate)
-)
-print(result)
 
-with open("model.yaml".format(size_str), "w", encoding="utf8") as f:
-    f.write(result)
+with open("model.template", encoding="utf8") as f:
+    base_config = "".join(f.readlines())
+    model = base_config.format(
+        MemoryUsage=0.7,
+        CNNNetwork=cnn_network.value,
+        RecurrentNetwork=recurrent_network.value,
+        HiddenNum=hidden_num,
+        Optimizer=optimizer.value,
+        LossFunction=loss.value,
+        Decoder=loss.value,
+        ModelName=model_name,
+        ModelField=ModelField.Image.value,
+        ModelScene=ModelScene.Classification.value,
+        Category=category.value,
+        Resize=resize,
+        ImageChannel=1,
+        ImageWidth=width,
+        ImageHeight=height,
+        MaxLabelNum=label_num if loss == LossFunction.CrossEntropy else -1,
+        LabelFrom=LabelFrom.FileName.value,
+        ExtractRegex='.*?(?=_)',
+        Split='null',
+        TrainsPath=dataset_trains_path,
+        ValidationPath=dataset_validation_path,
+        DatasetPath=trains_path,
+        ValidationSetNum=validation_set_num,
+        SavedSteps=100,
+        ValidationSteps=500,
+        EndAcc=0.95,
+        EndCost=0.1,
+        EndEpochs=2,
+        BatchSize=64,
+        ValidationBatchSize=validation_batch,
+        LearningRate=learning_rate,
+        Binaryzation=-1,
+        MedianBlur=-1,
+        GaussianBlur=-1,
+        EqualizeHist=-1,
+        Laplace=True,
+        Rotate=True
+    )
 
-from make_dataset import make_dataset
+
+with open(model_conf_path, "w", encoding="utf8") as f:
+    f.write(model)
+
+from make_dataset import DataSets
 from trains import main
-
-make_dataset()
-main(None)
+from config import ModelConfig
+model = ModelConfig(model_name)
+DataSets(model).make_dataset()
+main([model_name])

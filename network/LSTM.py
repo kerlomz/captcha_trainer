@@ -2,13 +2,14 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
-from config import NUM_HIDDEN, RunMode
+from config import RunMode, ModelConfig
 from network.utils import NetworkUtils
 
 
 class LSTM(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.training = self.utils.mode == RunMode.Trains
@@ -18,7 +19,7 @@ class LSTM(object):
         with tf.compat.v1.variable_scope('LSTM'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.LSTM(
-                units=NUM_HIDDEN * 2,
+                units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 dropout=0.2,
@@ -30,7 +31,8 @@ class LSTM(object):
 
 class BiLSTM(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.training = self.utils.mode == RunMode.Trains
@@ -41,7 +43,7 @@ class BiLSTM(object):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.LSTM(
-                    units=NUM_HIDDEN,
+                    units=self.model_conf.num_hidden,
                     return_sequences=True,
                 ),
                 input_shape=mask.shape
@@ -52,7 +54,8 @@ class BiLSTM(object):
 
 class LSTMcuDNN(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.training = self.utils.mode == RunMode.Trains
@@ -61,7 +64,7 @@ class LSTMcuDNN(object):
     def build(self):
         with tf.variable_scope('LSTM'):
             self.layer = tf.keras.layers.CuDNNLSTM(
-                units=NUM_HIDDEN * 2,
+                units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
             )
             outputs = self.layer(self.inputs, training=self.training)
@@ -70,7 +73,8 @@ class LSTMcuDNN(object):
 
 class BiLSTMcuDNN(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.training = self.utils.mode == RunMode.Trains
@@ -80,7 +84,7 @@ class BiLSTMcuDNN(object):
         with tf.variable_scope('BiLSTM'):
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.CuDNNLSTM(
-                    units=NUM_HIDDEN,
+                    units=self.model_conf.num_hidden,
                     return_sequences=True
                 )
             )

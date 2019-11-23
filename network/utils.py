@@ -24,17 +24,17 @@ class NetworkUtils(object):
         """
 
         stddev = math.sqrt(2. / (kl ** 2 * dl))
-        return tf.truncated_normal_initializer(stddev=stddev)
+        return tf.keras.initializers.TruncatedNormal(stddev=stddev)
 
     def cnn_layers(self, inputs, filters, kernel_size, strides, training=True):
         x = inputs
         for i in range(len(kernel_size)):
-            with tf.variable_scope('unit-{}'.format(i + 1)):
+            with tf.keras.backend.name_scope('unit-{}'.format(i + 1)):
                 x = tf.keras.layers.Conv2D(
                     filters=filters[i][1],
                     kernel_size=kernel_size[i],
                     strides=strides[i][0],
-                    kernel_regularizer=l1_l2(l1=0.001, l2=0.01),
+                    # kernel_regularizer=l1_l2(l1=0.001, l2=0.01),
                     kernel_initializer=self.msra_initializer(kernel_size[i], filters[i][0]),
                     padding='same',
                     name='cnn-{}'.format(i + 1),
@@ -42,13 +42,13 @@ class NetworkUtils(object):
 
                 bn = tf.layers.BatchNormalization(
                     fused=True,
-                    renorm=True if i == 0 else False,
-                    renorm_clipping={
-                        'rmax': 3,
-                        'rmin': 0.3333,
-                        'dmax': 5
-                    } if i == 0 else None,
-                    epsilon=1.001e-3,
+                    # renorm=True if i == 0 else False,
+                    # renorm_clipping={
+                    #     'rmax': 3,
+                    #     'rmin': 0.3333,
+                    #     'dmax': 5
+                    # } if i == 0 else None,
+                    epsilon=1.001e-5,
                     name='bn{}'.format(i + 1)
                 )
                 x = bn(x, training=training)
