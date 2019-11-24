@@ -28,7 +28,7 @@ class DataIterator:
         self.label_list = []
         self._label_list = []
         self._size = 0
-        self.encoder = Encoder(self.model_conf)
+        self.encoder = Encoder(self.model_conf, self.mode)
 
     @staticmethod
     def parse_example(serial_example):

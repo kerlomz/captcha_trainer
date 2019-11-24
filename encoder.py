@@ -7,14 +7,16 @@ import cv2
 import PIL.Image
 import numpy as np
 from exception import *
+from constants import RunMode
 from config import ModelConfig, LabelFrom, LossFunction
 from category import encode_maps
 from pretreatment import preprocessing
 
 
 class Encoder(object):
-    def __init__(self, model_conf: ModelConfig):
+    def __init__(self, model_conf: ModelConfig, mode: RunMode):
         self.model_conf = model_conf
+        self.mode = mode
 
     def image(self, path_or_bytes):
 
@@ -36,16 +38,16 @@ class Encoder(object):
             pil_image = pil_image.convert('L')
 
         im = np.array(pil_image)
-
-        im = preprocessing(
-            image=im,
-            binaryzation=self.model_conf.binaryzation,
-            median_blur=self.model_conf.median_blur,
-            gaussian_blur=self.model_conf.gaussian_blur,
-            equalize_hist=self.model_conf.equalize_hist,
-            laplacian=self.model_conf.laplace,
-            rotate=self.model_conf.rotate
-        ).astype(np.float32)
+        if self.mode == RunMode.Trains:
+            im = preprocessing(
+                image=im,
+                binaryzation=self.model_conf.binaryzation,
+                median_blur=self.model_conf.median_blur,
+                gaussian_blur=self.model_conf.gaussian_blur,
+                equalize_hist=self.model_conf.equalize_hist,
+                laplacian=self.model_conf.laplace,
+                rotate=self.model_conf.rotate
+            ).astype(np.float32)
 
         if self.model_conf.resize[0] == -1:
             # random_ratio = random.choice([2.5, 3, 3.5, 3.2, 2.7, 2.75])
