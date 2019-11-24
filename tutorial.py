@@ -14,19 +14,19 @@ from config import PATH_SPLIT
 category = SimpleCharset.ALPHANUMERIC
 
 cnn_network = CNNNetwork.CNN5
-recurrent_network = RecurrentNetwork.NoRecurrent
+recurrent_network = RecurrentNetwork.GRU
 optimizer = Optimizer.AdaBound
-loss = LossFunction.CrossEntropy
+loss = LossFunction.CTC
 
 trains_path = [
-    r"H:\Task\验证码\验证码图片内容 参赛数据\train",
+    r"D:\*",
 ]
 
 validation_set_num = 50
 hidden_num = 16
 learning_rate = None
 
-name_prefix = 'sold-100-5-v2'
+name_prefix = 'name_prefix'
 name_suffix = None
 name_prefix = name_prefix if name_prefix else "tutorial"
 name_suffix = '-' + str(name_suffix) if name_suffix else ''
@@ -117,8 +117,8 @@ with open("model.template", encoding="utf8") as f:
         MedianBlur=-1,
         GaussianBlur=-1,
         EqualizeHist=-1,
-        Laplace=True,
-        Rotate=True
+        Laplace=False,
+        Rotate=False
     )
 
 

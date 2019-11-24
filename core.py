@@ -46,10 +46,10 @@ class NeuralNetwork(object):
             x = CNN5(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.CNNm4:
-            x = CNNm4(inputs=self.inputs, utils=self.utils).build()
+            x = CNNm4(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.CNNm6:
-            x = CNNm6(inputs=self.inputs, utils=self.utils).build()
+            x = CNNm6(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.ResNet:
             x = ResNet50(inputs=self.inputs, utils=self.utils).build()

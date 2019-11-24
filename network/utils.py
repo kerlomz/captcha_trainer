@@ -26,6 +26,14 @@ class NetworkUtils(object):
         stddev = math.sqrt(2. / (kl ** 2 * dl))
         return tf.keras.initializers.TruncatedNormal(stddev=stddev)
 
+    @staticmethod
+    def cnn_reshape_layer(x, loss_func, shape_list):
+        if loss_func == LossFunction.CTC:
+            x = tf.reshape(x, [tf.shape(x)[0], -1, shape_list[2] * shape_list[3]])
+        elif loss_func == LossFunction.CrossEntropy:
+            x = tf.reshape(x, [tf.shape(x)[0], shape_list[1], shape_list[2] * shape_list[3]])
+        return x
+
     def cnn_layers(self, inputs, filters, kernel_size, strides, training=True):
         x = inputs
         for i in range(len(kernel_size)):

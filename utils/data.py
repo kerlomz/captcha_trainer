@@ -82,8 +82,6 @@ class DataIterator:
         label_batch = []
         for index, (i1, i2) in enumerate(zip(_input, _label)):
             try:
-                # is_random = bool(random.getrandbits(1))
-                # random_and_training = is_random and self.mode == RunMode.Trains
                 if self.model_conf.model_field == ModelField.Image:
                     input_array = self.encoder.image(i1)
                 else:

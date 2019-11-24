@@ -210,7 +210,8 @@ class Trains:
 
 
 def main(argv):
-    model_conf = ModelConfig(project_name=argv[-1])
+    project_name = argv[-1]
+    model_conf = ModelConfig(project_name=project_name)
     Trains(model_conf).train_process()
     tf.logging.info('Training completed.')
     pass

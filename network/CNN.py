@@ -34,18 +34,16 @@ class CNN5(object):
 
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
-            if self.loss_func == LossFunction.CTC:
-                x = tf.reshape(x, [tf.shape(x)[0], -1 , shape_list[2] * shape_list[3]])
-            elif self.loss_func == LossFunction.CrossEntropy:
-                x = tf.reshape(x, [tf.shape(x)[0], shape_list[1], shape_list[2] * shape_list[3]])
-            return x
+            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
 
 
 class CNNm6(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
+        self.loss_func = self.model_conf.loss_func
         self.filters = [32, 64, 128, 128, 64]
         self.conv_strides = [1, 1, 1, 1, 1]
         self.pool_strides = {
@@ -113,22 +111,20 @@ class CNNm6(object):
                 return tf.logical_and(tf.greater_equal(w, tf.constant(a)), tf.less(w, tf.constant(b)))
 
             x = tf.keras.layers.LeakyReLU(0.01)(x)
-            if POOLING_STRIDES and len(POOLING_STRIDES) == 5:
-                x = self.max_pooling(x, -1, index)
-            else:
-                x = tf.case(
-                    {
-                        logical_sec(a=60): lambda: self.max_pooling(x, 4, index),
-                        logical_sec(a=60, b=90): lambda: self.max_pooling(x, 6, index),
-                        logical_sec(a=90, b=120): lambda: self.max_pooling(x, 8, index),
-                        logical_sec(a=120, b=150): lambda: self.max_pooling(x, 10, index),
-                        logical_sec(a=150, b=180): lambda: self.max_pooling(x, 12, index),
-                        logical_sec(a=180, b=240): lambda: self.max_pooling(x, 16, index),
-                        logical_sec(a=240, b=300): lambda: self.max_pooling(x, 18, index),
-                        logical_sec(b=300): lambda: self.max_pooling(x, 24, index),
-                    },
-                    exclusive=True
-                )
+
+            x = tf.case(
+                {
+                    logical_sec(a=60): lambda: self.max_pooling(x, 4, index),
+                    logical_sec(a=60, b=90): lambda: self.max_pooling(x, 6, index),
+                    logical_sec(a=90, b=120): lambda: self.max_pooling(x, 8, index),
+                    logical_sec(a=120, b=150): lambda: self.max_pooling(x, 10, index),
+                    logical_sec(a=150, b=180): lambda: self.max_pooling(x, 12, index),
+                    logical_sec(a=180, b=240): lambda: self.max_pooling(x, 16, index),
+                    logical_sec(a=240, b=300): lambda: self.max_pooling(x, 18, index),
+                    logical_sec(b=300): lambda: self.max_pooling(x, 24, index),
+                },
+                exclusive=True
+            )
         return x
 
     def max_pooling(self, x, section: int, index, pool_strides=None):
@@ -158,15 +154,16 @@ class CNNm6(object):
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             # tf.multiply(tf.shape(x)[2], shape_list[3])
-            x = tf.reshape(x, [tf.shape(x)[0], shape_list[1], tf.multiply(shape_list[2], shape_list[3])])
-            return x
+            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
 
 
 class CNNm4(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
+        self.loss_func = self.model_conf.loss_func
         self.filters = [32, 64, 128, 128, 64]
         self.conv_strides = [1, 1, 1, 1, 1]
         self.pool_strides = {
@@ -231,22 +228,20 @@ class CNNm4(object):
                 return tf.logical_and(tf.greater_equal(w, tf.constant(a)), tf.less(w, tf.constant(b)))
 
             x = tf.keras.layers.LeakyReLU(0.01)(x)
-            if POOLING_STRIDES and len(POOLING_STRIDES) == 5:
-                x = self.max_pooling(x, -1, index)
-            else:
-                x = tf.case(
-                    {
-                        logical_sec(a=60): lambda: self.max_pooling(x, 6, index),
-                        logical_sec(a=60, b=90): lambda: self.max_pooling(x, 8, index),
-                        logical_sec(a=90, b=130): lambda: self.max_pooling(x, 12, index),
-                        logical_sec(a=130, b=140): lambda: self.max_pooling(x, 16, index),
-                        logical_sec(a=140, b=190): lambda: self.max_pooling(x, 18, index),
-                        logical_sec(a=190, b=260): lambda: self.max_pooling(x, 24, index),
-                        logical_sec(a=260, b=300): lambda: self.max_pooling(x, 32, index),
-                        logical_sec(b=300): lambda: self.max_pooling(x, 36, index),
-                    },
-                    exclusive=True
-                )
+
+            x = tf.case(
+                {
+                    logical_sec(a=60): lambda: self.max_pooling(x, 6, index),
+                    logical_sec(a=60, b=90): lambda: self.max_pooling(x, 8, index),
+                    logical_sec(a=90, b=130): lambda: self.max_pooling(x, 12, index),
+                    logical_sec(a=130, b=140): lambda: self.max_pooling(x, 16, index),
+                    logical_sec(a=140, b=190): lambda: self.max_pooling(x, 18, index),
+                    logical_sec(a=190, b=260): lambda: self.max_pooling(x, 24, index),
+                    logical_sec(a=260, b=300): lambda: self.max_pooling(x, 32, index),
+                    logical_sec(b=300): lambda: self.max_pooling(x, 36, index),
+                },
+                exclusive=True
+            )
         return x
 
     def max_pooling(self, x, section: int, index):
@@ -274,5 +269,4 @@ class CNNm4(object):
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             # tf.multiply(tf.shape(x)[2], shape_list[3])
-            x = tf.reshape(x, [tf.shape(x)[0], -1 if LOSS == 'CTC' else shape_list[1], tf.multiply(shape_list[2], shape_list[3])])
-            return x
+            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)

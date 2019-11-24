@@ -17,6 +17,7 @@ class Encoder(object):
     def __init__(self, model_conf: ModelConfig, mode: RunMode):
         self.model_conf = model_conf
         self.mode = mode
+        self.category_param = self.model_conf.category_param
 
     def image(self, path_or_bytes):
 
@@ -76,6 +77,10 @@ class Encoder(object):
                 found = found.group()
             else:
                 found = content
+            if isinstance(self.category_param, str) and '_LOWER' in self.category_param:
+                found = found.lower()
+            if isinstance(self.category_param, str) and '_UPPER' in self.category_param:
+                found = found.upper()
             if self.model_conf.label_split:
                 labels = found.split(self.model_conf.label_split)
             else:
@@ -94,7 +99,6 @@ class Encoder(object):
                         content, e.args[0]
                     ), ConfigException.SAMPLE_LABEL_ERROR
                 )
-
 
     def split_continuous_char(self, content):
         store_list = []
