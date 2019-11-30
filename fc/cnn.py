@@ -10,7 +10,9 @@ from network.utils import NetworkUtils
 
 
 class FullConnectedCNN(object):
-
+    """
+    CNN的输出层
+    """
     def __init__(self, model_conf: ModelConfig, mode: RunMode, outputs):
         self.model_conf = model_conf
         self.utils = NetworkUtils(mode)
@@ -23,7 +25,7 @@ class FullConnectedCNN(object):
         flatten = tf.keras.layers.Flatten()(outputs)
         shape_list = flatten.get_shape().as_list()
 
-        print(self.max_label_num)
+        print(shape_list[1], self.max_label_num)
         outputs = tf.keras.layers.Reshape([self.max_label_num, int(shape_list[1] / self.max_label_num)])(flatten)
         self.outputs = tf.keras.layers.Dense(
             input_shape=outputs.shape,

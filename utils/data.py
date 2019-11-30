@@ -11,7 +11,12 @@ from encoder import Encoder
 
 
 class DataIterator:
+    """数据集迭代类"""
     def __init__(self, model_conf: ModelConfig, mode: RunMode):
+        """
+        :param model_conf: 工程配置
+        :param mode: 运行模式（区分：训练/验证）
+        """
         self.model_conf = model_conf
         self.mode = mode
         self.path_map = {
@@ -46,6 +51,11 @@ class DataIterator:
         return _input, _label
 
     def read_sample_from_tfrecords(self, path):
+        """
+        从TFRecords中读取样本
+        :param path: 文件路径
+        :return:
+        """
         self._size = len([_ for _ in tf.io.tf_record_iterator(path)])
 
         min_after_dequeue = 1000
@@ -63,20 +73,23 @@ class DataIterator:
 
     @property
     def size(self):
+        """样本数"""
         return self._size
 
     @property
     def labels(self):
+        """标签"""
         return self.label_list
 
     @staticmethod
     def to_sparse(input_batch, label_batch):
+        """密集输入转稀疏"""
         batch_inputs = input_batch
         batch_labels = utils.sparse.sparse_tuple_from_sequences(label_batch)
         return batch_inputs, batch_labels
 
     def generate_batch_by_tfrecords(self, sess):
-
+        """根据TFRecords生成当前批次，输入为当前TensorFlow会话，输出为稀疏型X和Y"""
         _input, _label = sess.run(self.next_element)
         input_batch = []
         label_batch = []
@@ -96,6 +109,7 @@ class DataIterator:
                     f.write(i1)
                 continue
 
+        # 如果图片尺寸不固定则padding当前批次，使用最大的宽度作为序列最大长度
         if self.model_conf.model_field == ModelField.Image and self.model_conf.resize[0] == -1:
             input_batch = tf.keras.preprocessing.sequence.pad_sequences(
                 sequences=input_batch,

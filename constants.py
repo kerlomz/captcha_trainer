@@ -6,6 +6,7 @@ from enum import Enum, unique
 
 @unique
 class LabelFrom(Enum):
+    """标签来源枚举"""
     XML = 'XML'
     LMDB = 'LMDB'
     FileName = 'FileName'
@@ -13,23 +14,27 @@ class LabelFrom(Enum):
 
 @unique
 class LossFunction(Enum):
+    """损失函数枚举"""
     CTC = 'CTC'
     CrossEntropy = 'CrossEntropy'
 
 
 @unique
 class ModelScene(Enum):
+    """模型场景枚举"""
     Classification = 'Classification'
 
 
 @unique
 class ModelField(Enum):
+    """模型类别枚举"""
     Image = 'Image'
     Text = 'Text'
 
 
 @unique
 class RunMode(Enum):
+    """运行模式枚举"""
     Validation = 'Validation'
     Trains = 'Trains'
     Predict = 'Predict'
@@ -37,6 +42,8 @@ class RunMode(Enum):
 
 @unique
 class CNNNetwork(Enum):
+    """卷积层枚举"""
+    CNNX = 'CNNX'
     CNN5 = 'CNN5'
     CNNm6 = 'CNNm6'
     CNNm4 = 'CNNm4'
@@ -46,6 +53,7 @@ class CNNNetwork(Enum):
 
 @unique
 class RecurrentNetwork(Enum):
+    """循环层枚举"""
     LSTM = 'LSTM'
     BiLSTM = 'BiLSTM'
     GRU = 'GRU'
@@ -58,6 +66,7 @@ class RecurrentNetwork(Enum):
 
 @unique
 class Optimizer(Enum):
+    """优化器枚举"""
     AdaBound = 'AdaBound'
     Adam = 'Adam'
     Momentum = 'Momentum'
@@ -68,6 +77,7 @@ class Optimizer(Enum):
 
 @unique
 class SimpleCharset(Enum):
+    """简单字符分类枚举"""
     NUMERIC = 'NUMERIC'
     ALPHANUMERIC = 'ALPHANUMERIC'
     ALPHANUMERIC_LOWER = 'ALPHANUMERIC_LOWER'

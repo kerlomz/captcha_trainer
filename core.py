@@ -3,7 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import sys
 from config import *
-from network.CNN import CNN5, CNNm4, CNNm6
+from network.CNN import *
 from network.DenseNet import DenseNet
 from network.GRU import GRU, BiGRU, GRUcuDNN
 from network.LSTM import LSTM, BiLSTM, BiLSTMcuDNN, LSTMcuDNN
@@ -19,7 +19,9 @@ from fc import *
 
 
 class NeuralNetwork(object):
-
+    """
+    神经网络构建类
+    """
     def __init__(self, model_conf: ModelConfig, mode: RunMode, cnn: CNNNetwork, recurrent: RecurrentNetwork):
         self.model_conf = model_conf
         self.mode = mode
@@ -33,17 +35,25 @@ class NeuralNetwork(object):
 
     @property
     def input_shape(self):
+        """
+        :return: tuple/list 类型，输入的Shape
+        """
         return RESIZE_MAP[self.model_conf.loss_func](*self.model_conf.resize) + [self.model_conf.image_channel]
 
     def build_graph(self):
+        """在当前Session中构建网络计算图，无返回"""
         self._build_model()
         self._build_train_op()
         self.merged_summary = tf.compat.v1.summary.merge_all()
 
     def _build_model(self):
 
+        """选择采用哪种卷积网络"""
         if self.network == CNNNetwork.CNN5:
             x = CNN5(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
+
+        elif self.network == CNNNetwork.CNNX:
+            x = CNNX(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.CNNm4:
             x = CNNm4(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
@@ -52,15 +62,17 @@ class NeuralNetwork(object):
             x = CNNm6(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.ResNet:
-            x = ResNet50(inputs=self.inputs, utils=self.utils).build()
+            x = ResNet50(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.DenseNet:
-            x = DenseNet(inputs=self.inputs, utils=self.utils).build()
+            x = DenseNet(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         else:
             tf.logging.error('This cnn neural network is not supported at this time.')
             sys.exit(-1)
 
+        """选择采用哪种循环网络"""
+        # TODO 这种if-else结构感觉很蠢，循环层
         # time_major = True: [max_time_step, batch_size, num_classes]
         # time_major = False: [batch_size, max_time_step, num_classes]
         tf.compat.v1.logging.info("CNN Output: {}".format(x.get_shape()))
@@ -92,6 +104,7 @@ class NeuralNetwork(object):
 
         logits = self.recurrent_network_builder.build() if self.recurrent_network_builder else x
 
+        """输出层，根据Loss函数区分"""
         with tf.keras.backend.name_scope('output'):
             if self.model_conf.loss_func == LossFunction.CTC:
                 self.outputs = FullConnectedRNN(model_conf=self.model_conf, mode=self.mode, outputs=logits).build()
@@ -100,8 +113,10 @@ class NeuralNetwork(object):
             return self.outputs
 
     def _build_train_op(self):
+        """操作符生成器"""
+        # 步数
         self.global_step = tf.train.get_or_create_global_step()
-
+        # Loss函数
         if self.model_conf.loss_func == LossFunction.CTC:
             self.loss = Loss.ctc(
                 labels=self.labels,
@@ -115,7 +130,10 @@ class NeuralNetwork(object):
             )
 
         self.cost = tf.reduce_mean(self.loss)
+
         tf.compat.v1.summary.scalar('cost', self.cost)
+
+        # 学习率
         self.lrn_rate = tf.compat.v1.train.exponential_decay(
             self.model_conf.trains_learning_rate,
             self.global_step,
@@ -125,10 +143,13 @@ class NeuralNetwork(object):
         )
         tf.compat.v1.summary.scalar('learning_rate', self.lrn_rate)
 
+        # 训练参数更新
         update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
 
         # Storing adjusted smoothed mean and smoothed variance operations
         with tf.control_dependencies(update_ops):
+
+            # TODO 这种if-else结构感觉很蠢，优化器选择器
             if self.model_conf.neu_optimizer == Optimizer.AdaBound:
                 self.train_op = AdaBoundOptimizer(
                     learning_rate=self.lrn_rate,
@@ -178,6 +199,7 @@ class NeuralNetwork(object):
                     global_step=self.global_step
                 )
 
+        # 转录层-Loss函数
         if self.model_conf.loss_func == LossFunction.CTC:
             self.dense_decoded = self.decoder.ctc(
                 inputs=self.outputs,

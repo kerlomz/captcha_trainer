@@ -3,14 +3,18 @@
 # Author: kerlomz <kerlomz@gmail.com>
 # This network was temporarily suspended
 import tensorflow as tf
-from network.utils import NetworkUtils, RunMode
+from network.utils import NetworkUtils
+from config import ModelConfig
+from constants import LossFunction
 
 
 class DenseNet(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
+        self.loss_func = self.model_conf.loss_func
         self.type = {
             '121': [6, 12, 24, 16],
             '169': [6, 12, 32, 32],
@@ -50,5 +54,8 @@ class DenseNet(object):
             x = tf.layers.BatchNormalization(axis=3, epsilon=1.001e-5, name='bn')(x, training=self.utils.training)
 
             shape_list = x.get_shape().as_list()
-            x = tf.reshape(x, [tf.shape(x)[0], -1, shape_list[2] * shape_list[3]])
+            if self.loss_func == LossFunction.CTC:
+                x = tf.keras.layers.Reshape(target_shape=[-1, shape_list[2] * shape_list[3]])(x)
+            elif self.loss_func == LossFunction.CrossEntropy:
+                x = tf.keras.layers.Reshape(target_shape=[shape_list[1], shape_list[2] * shape_list[3]])(x)
             return x

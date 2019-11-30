@@ -21,6 +21,7 @@ MODEL_CONFIG_NAME = "model.yaml"
 IGNORE_FILES = ['.DS_Store']
 
 NETWORK_MAP = {
+    'CNNX': CNNNetwork.CNNX,
     'CNN5': CNNNetwork.CNN5,
     'CNNm6': CNNNetwork.CNNm6,
     'CNNm4': CNNNetwork.CNNm4,
@@ -203,6 +204,8 @@ class ModelConfig:
         self.equalize_hist = self.data_augmentation_root.get('EqualizeHist')
         self.laplace = self.data_augmentation_root.get('Laplace')
         self.rotate = self.data_augmentation_root.get('Rotate')
+        self.warp_perspective = self.data_augmentation_root.get('WarpPerspective')
+        self.sp_noise = self.data_augmentation_root.get('PepperNoise')
 
         """COMPILE_MODEL"""
         self.compile_model_path = os.path.join(self.output_path, '{}{}graph'.format(self.model_name, PATH_SPLIT))
@@ -310,9 +313,11 @@ class ModelConfig:
                 Binaryzation=-1,
                 MedianBlur=-1,
                 GaussianBlur=-1,
-                EqualizeHist=-1,
+                EqualizeHist=True,
                 Laplace=True,
-                Rotate=True
+                WarpPerspective=True,
+                Rotate=-1,
+                PepperNoise=0.1,
             )
         if os.path.exists(self.model_conf_path):
             exception("Already exists {}, unable to create a new profile", -6651)

@@ -14,13 +14,16 @@ from pretreatment import preprocessing
 
 
 class Encoder(object):
+    """
+    编码层：用于将数据输入编码为可输入网络的数据
+    """
     def __init__(self, model_conf: ModelConfig, mode: RunMode):
         self.model_conf = model_conf
         self.mode = mode
         self.category_param = self.model_conf.category_param
 
     def image(self, path_or_bytes):
-
+        """针对图片类型的输入的编码"""
         # im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
         # if im is None:
@@ -47,9 +50,12 @@ class Encoder(object):
                 gaussian_blur=self.model_conf.gaussian_blur,
                 equalize_hist=self.model_conf.equalize_hist,
                 laplacian=self.model_conf.laplace,
-                rotate=self.model_conf.rotate
+                rotate=self.model_conf.rotate,
+                warp_perspective=self.model_conf.warp_perspective,
+                sp_noise=self.model_conf.sp_noise,
             ).astype(np.float32)
-
+        else:
+            im = im.astype(np.float32)
         if self.model_conf.resize[0] == -1:
             # random_ratio = random.choice([2.5, 3, 3.5, 3.2, 2.7, 2.75])
             ratio = self.model_conf.resize[1] / size[1]
@@ -67,9 +73,14 @@ class Encoder(object):
             return np.array(im[:, :]) / 255.
 
     def text(self, content, extracted=False):
+        """针对文本类型的输入的编码"""
         if isinstance(content, bytes):
             content = content.decode("utf8")
+
+        # 如果标签来源为文件名形如 aaa_md5.png
         if self.model_conf.label_from == LabelFrom.FileName:
+
+            # 如果标签尚未提取解析
             if not extracted:
                 found = re.search(self.model_conf.extract_regex, content)
                 if not found:
@@ -77,22 +88,29 @@ class Encoder(object):
                 found = found.group()
             else:
                 found = content
+
+            # 如果匹配内置的大小写规范，触发自动转换
             if isinstance(self.category_param, str) and '_LOWER' in self.category_param:
                 found = found.lower()
             if isinstance(self.category_param, str) and '_UPPER' in self.category_param:
                 found = found.upper()
+
+            # 标签是否包含分隔符
             if self.model_conf.label_split:
                 labels = found.split(self.model_conf.label_split)
             else:
                 labels = [_ for _ in found]
             try:
-                if self.model_conf.loss_func == LossFunction.CTC:
-                    label = self.split_continuous_char(
-                        [encode_maps(self.model_conf.category)[i] for i in labels]
-                    )
-                else:
-                    label = [encode_maps(self.model_conf.category)[i] for i in labels]
-                return label
+                # if self.model_conf.loss_func == LossFunction.CTC:
+                #     label = self.split_continuous_char(
+                #         [encode_maps(self.model_conf.category)[i] for i in labels]
+                #     )
+                # else:
+                #     label = [encode_maps(self.model_conf.category)[i] for i in labels]
+                # return label
+
+                # 根据类别集合找到对应映射编码为dense数组
+                return [encode_maps(self.model_conf.category)[i] for i in labels]
             except KeyError as e:
                 exception(
                     'The sample label {} contains invalid charset: {}.'.format(
@@ -101,6 +119,7 @@ class Encoder(object):
                 )
 
     def split_continuous_char(self, content):
+        # 为连续的分类插入空白符
         store_list = []
         for i in range(len(content) - 1):
             store_list.append(content[i])
@@ -111,8 +130,9 @@ class Encoder(object):
 
 
 if __name__ == '__main__':
+    # 测试编码效果
     _m = ModelConfig("demo")
-    a = Encoder(_m).text("v898999_yuiyui.png")
+    a = Encoder(_m, RunMode.Trains).text("v898999_yuiyui.png")
     print(a)
 
 

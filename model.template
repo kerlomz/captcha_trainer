@@ -105,7 +105,9 @@ DataAugmentation:
   GaussianBlur: {GaussianBlur}
   EqualizeHist: {EqualizeHist}
   Laplace: {Laplace}
+  WarpPerspective: {WarpPerspective}
   Rotate: {Rotate}
+  PepperNoise: {PepperNoise}
 
 
 

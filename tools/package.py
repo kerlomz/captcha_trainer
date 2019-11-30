@@ -5,6 +5,7 @@ from PyInstaller.__main__ import run
 
 
 def package(prefix):
+    """基于PyInstaller打包编译为单可执行文件"""
     opts = ['{}trainer.spec'.format(prefix), '--distpath={}dist'.format(prefix), '--workpath={}build'.format(prefix)]
     run(opts)
 

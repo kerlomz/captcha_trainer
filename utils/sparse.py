@@ -5,6 +5,7 @@ import numpy as np
 
 
 def sparse_tuple_from_sequences(sequences, dtype=np.int32):
+    """密集序列转稀疏序列"""
     indices = []
     values = []
     for n, seq in enumerate(sequences):

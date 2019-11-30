@@ -4,6 +4,10 @@
 import sys
 import time
 
+"""
+此类包含各种异常类别，希望对已知可能的异常进行分类，以便出现问题是方便定位
+"""
+
 
 class SystemException(RuntimeError):
     def __init__(self, message, code=-1):

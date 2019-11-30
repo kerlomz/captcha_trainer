@@ -7,8 +7,10 @@ from config import ModelConfig
 
 class Loss(object):
 
+    """损失函数生成器"""
     @staticmethod
     def cross_entropy(labels, logits):
+        """交叉熵损失函数"""
 
         # return tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=labels)
         # return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
@@ -27,7 +29,8 @@ class Loss(object):
 
     @staticmethod
     def ctc(labels, logits, sequence_length):
-        # print(labels.shape)
+        """CTC 损失函数"""
+
         return tf.nn.ctc_loss_v2(
             labels=labels,
             logits=logits,

@@ -11,25 +11,34 @@ from network.utils import NetworkUtils
 class GRU(object):
 
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        """
+        :param model_conf: 配置
+        :param inputs: 网络上一层输入tf.keras.layers.Input/tf.Tensor类型
+        :param utils: 网络工具类
+        """
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
         self.layer = None
 
     def build(self):
+        """
+        循环层构建参数
+        :return: 返回循环层的输出层
+        """
         with tf.compat.v1.variable_scope('GRU'):
-            mask = tf.keras.layers.Masking()(self.inputs)
+            # mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
                 units=self.model_conf.num_hidden * 2,
                 return_sequences=True,
-                input_shape=mask.shape,
+                input_shape=self.inputs.shape,
                 reset_after=True,
                 recurrent_regularizer=l2(0.01),
                 kernel_regularizer=l2(0.01),
-                bias_regularizer=l2(0.005),
+                # bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
             )
-            outputs = self.layer(mask, training=self.utils.training)
+            outputs = self.layer(self.inputs, training=self.utils.training)
         return outputs
 
 

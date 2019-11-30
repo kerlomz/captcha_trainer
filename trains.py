@@ -15,13 +15,21 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
 class Trains:
-
+    """训练任务的类"""
     def __init__(self, model_conf: ModelConfig):
-
+        """
+        :param model_conf: 读取工程配置文件
+        """
         self.model_conf = model_conf
+        # 准确率验证类，包含验证函数
         self.validation = validation.Validation(self.model_conf)
 
     def compile_graph(self, acc):
+        """
+        编译当前准确率下对应的计算图为pb模型，准确率仅作为模型命名的一部分
+        :param acc: 准确率
+        :return:
+        """
         input_graph = tf.Graph()
         predict_sess = tf.Session(graph=input_graph)
 
@@ -29,8 +37,8 @@ class Trains:
             model = core.NeuralNetwork(
                 model_conf=self.model_conf,
                 mode=RunMode.Predict,
-                cnn=NETWORK_MAP[self.model_conf.neu_cnn],
-                recurrent=NETWORK_MAP[self.model_conf.neu_recurrent]
+                cnn=self.model_conf.neu_cnn,
+                recurrent=NETWORK_MAP[self.model_conf.neu_recurrent] if self.model_conf.neu_recurrent else None
             )
             model.build_graph()
             input_graph_def = predict_sess.graph.as_graph_def()
@@ -58,9 +66,13 @@ class Trains:
         self.generate_config(acc)
 
     def train_process(self):
-
+        """
+        训练任务
+        :return:
+        """
+        # 输出重要的配置参数
         self.model_conf.println()
-
+        # 定义网络结构
         model = core.NeuralNetwork(
             model_conf=self.model_conf,
             mode=RunMode.Trains,
@@ -68,7 +80,7 @@ class Trains:
             recurrent=NETWORK_MAP[self.model_conf.neu_recurrent] if self.model_conf.neu_recurrent else None
         )
         model.build_graph()
-
+        # 加载数据集
         tf.compat.v1.logging.info('Loading Trains DataSet...')
         train_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Trains)
         train_feeder.read_sample_from_tfrecords(self.model_conf.trains_path)
@@ -89,7 +101,7 @@ class Trains:
                 ConfigException.INSUFFICIENT_SAMPLE
             )
         num_batches_per_epoch = int(num_train_samples / self.model_conf.batch_size)
-
+        # 会话配置
         sess_config = tf.compat.v1.ConfigProto(
             # allow_soft_placement=True,
             log_device_placement=False,
@@ -109,19 +121,22 @@ class Trains:
             # try:
             checkpoint_state = tf.train.get_checkpoint_state(self.model_conf.model_root_path)
             if checkpoint_state and checkpoint_state.model_checkpoint_path:
+                # 加载被中断的训练任务
                 saver.restore(sess, checkpoint_state.model_checkpoint_path)
 
             tf.logging.info('Start training...')
 
+            # 进入训练任务循环
             while 1:
                 start_time = time.time()
-                epoch_cost = 0
+
+                # 批次循环
                 for cur_batch in range(num_batches_per_epoch):
                     batch_time = time.time()
 
-                    batch = train_feeder.generate_batch_by_tfrecords(sess)
+                    trains_batch = train_feeder.generate_batch_by_tfrecords(sess)
 
-                    batch_inputs, batch_labels = batch
+                    batch_inputs, batch_labels = trains_batch
 
                     feed = {
                         model.inputs: batch_inputs,
@@ -133,6 +148,7 @@ class Trains:
                         feed_dict=feed
                     )
                     train_writer.add_summary(summary_str, step)
+
                     if step % 100 == 0 and step != 0:
                         tf.logging.info(
                             'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, RNNTimeStep: {}'.format(
@@ -143,15 +159,18 @@ class Trains:
                                 seq_len[0]
                             )
                         )
+
+                    # 达到保存步数对模型过程进行存储
                     if step % self.model_conf.trains_save_steps == 0 and step != 0:
                         saver.save(sess, self.model_conf.save_model, global_step=step)
 
+                    # 进入验证集验证环节
                     if step % self.model_conf.trains_validation_steps == 0 and step != 0:
 
                         batch_time = time.time()
-                        batch = validation_feeder.generate_batch_by_tfrecords(sess)
+                        validation_batch = validation_feeder.generate_batch_by_tfrecords(sess)
 
-                        test_inputs, test_labels = batch
+                        test_inputs, test_labels = validation_batch
                         val_feed = {
                             model.inputs: test_inputs,
                             model.labels: test_labels
@@ -160,7 +179,7 @@ class Trains:
                             [model.dense_decoded, model.lrn_rate],
                             feed_dict=val_feed
                         )
-
+                        # 计算准确率
                         accuracy = self.validation.accuracy_calculation(
                             validation_feeder.labels,
                             dense_decoded,
@@ -173,7 +192,7 @@ class Trains:
                             accuracy,
                             batch_cost,
                             time.time() - batch_time,
-                            lr / len(batch),
+                            lr / len(validation_batch),
                         ))
                         # epoch_cost = batch_cost
                         achieve_accuracy = accuracy >= self.model_conf.trains_end_acc
@@ -181,6 +200,7 @@ class Trains:
                         achieve_cost = batch_cost <= self.model_conf.trains_end_cost
                         over_epochs = epoch_count > 10000
 
+                        # 满足终止条件但尚未完成当前epoch时跳出epoch循环
                         if (achieve_accuracy and achieve_epochs and achieve_cost) or over_epochs:
                             break
 
@@ -188,6 +208,8 @@ class Trains:
                 achieve_epochs = epoch_count >= self.model_conf.trains_end_epochs
                 achieve_cost = batch_cost <= self.model_conf.trains_end_cost
                 over_epochs = epoch_count > 10000
+
+                # 满足终止条件时，跳出任务循环
                 if (achieve_accuracy and achieve_epochs and achieve_cost) or over_epochs:
                     self.compile_graph(accuracy)
                     tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
@@ -195,6 +217,8 @@ class Trains:
                 epoch_count += 1
 
     def generate_config(self, acc):
+        """训练结束时的配置文件生成器，用于部署加载使用"""
+
         with open(self.model_conf.model_conf_path, "r", encoding="utf8") as current_fp:
             text = "".join(current_fp.readlines())
             text = text.replace("ModelName: {}".format(self.model_conf.model_name),

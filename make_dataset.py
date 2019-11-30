@@ -17,6 +17,7 @@ TFRECORDS_TYPE = [
 
 class DataSets:
 
+    """此类用于打包数据集为TFRecords格式"""
     def __init__(self, model: ModelConfig, ):
         self.model = model
         if not os.path.exists(self.model.dataset_root_path):
@@ -24,10 +25,16 @@ class DataSets:
 
     @staticmethod
     def read_image(path):
+        """
+        读取图片
+        :param path: 图片路径
+        :return:
+        """
         with open(path, "rb") as f:
             return f.read()
 
     def dataset_exists(self):
+        """数据集是否存在判断函数"""
         for split_name in TFRECORDS_TYPE:
             output_filename = os.path.join(self.model.dataset_root_path, "{}_{}.tfrecords".format(self.model.model_name, split_name.value))
             if not tf.io.gfile.exists(output_filename):

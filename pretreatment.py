@@ -7,7 +7,9 @@ import numpy as np
 
 
 class Pretreatment(object):
-
+    """
+    预处理功能函数集合（目前仅用于训练过程中随机启动）
+    """
     def __init__(self, origin):
         self.origin = origin
 
@@ -15,6 +17,8 @@ class Pretreatment(object):
         return self.origin
 
     def binarization(self, value, modify=False) -> np.ndarray:
+        if isinstance(value, list) and len(value) == 2:
+            value = random.randint(value[0], value[1])
         ret, _binarization = cv2.threshold(self.origin, value, 255, cv2.THRESH_BINARY)
         if modify:
             self.origin = _binarization
@@ -56,7 +60,7 @@ class Pretreatment(object):
             self.origin = _laplacian
         return _laplacian
 
-    def rotate(self, value, modify=False):
+    def rotate(self, value, modify=False) -> np.ndarray:
         if not value:
             return self.origin
         size = self.origin.shape
@@ -75,10 +79,67 @@ class Pretreatment(object):
             self.origin = _rotate
         return _rotate
 
+    def warp_perspective(self, modify=False) -> np.ndarray:
+        size = self.origin.shape
+        height, width = size[0], size[1]
+        size0 = random.randint(3, 9)
+        size1 = random.randint(25, 30)
+        size2 = random.randint(23, 27)
+        size3 = random.randint(33, 37)
+        pts1 = np.float32([[0, 0], [0, size1], [size1, size1], [size1, 0]])
+        pts2 = np.float32([[size0, 0], [-size0, size1], [size2, size1], [size3, 0]])
+        is_random = bool(random.getrandbits(1))
+        param = (pts2, pts1) if is_random else (pts1, pts2)
+        warp_mat = cv2.getPerspectiveTransform(*param)
+        dst = cv2.warpPerspective(self.origin, warp_mat, (width, height))
+        if modify:
+            self.origin = dst
+        return dst
 
-def preprocessing(image, binaryzation=-1, median_blur=-1, gaussian_blur=-1, equalize_hist=False, laplacian=False, rotate=-1):
+    def sp_noise(self, prob, modify=False):
+        size = self.origin.shape
+        output = np.zeros(self.origin.shape, np.uint8)
+        thres = 1 - prob
+        for i in range(size[0]):
+            for j in range(size[1]):
+                rdn = random.random()
+                if rdn < prob:
+                    output[i][j] = 0
+                elif rdn > thres:
+                    output[i][j] = 255
+                else:
+                    output[i][j] = self.origin[i][j]
+        if modify:
+            self.origin = output
+        return output
+
+
+def preprocessing(
+        image,
+        binaryzation=-1,
+        median_blur=-1,
+        gaussian_blur=-1,
+        equalize_hist=False,
+        laplacian=False,
+        warp_perspective=False,
+        sp_noise=-1,
+        rotate=-1
+):
+    """
+    各种预处理函数是否启用及参数配置
+    :param image: numpy图片数组
+    :param binaryzation: list-int数字范围
+    :param median_blur: int数字
+    :param gaussian_blur: int数字
+    :param equalize_hist: bool
+    :param laplacian: bool
+    :param warp_perspective: bool
+    :param sp_noise: 浮点
+    :param rotate: 数字
+    :return:
+    """
     pretreatment = Pretreatment(image)
-    if binaryzation > 0 and bool(random.getrandbits(1)):
+    if binaryzation != -1 and bool(random.getrandbits(1)):
         pretreatment.binarization(binaryzation, True)
     if median_blur != -1 and bool(random.getrandbits(1)):
         pretreatment.median_blur(median_blur, True)
@@ -90,6 +151,10 @@ def preprocessing(image, binaryzation=-1, median_blur=-1, gaussian_blur=-1, equa
         pretreatment.laplacian(True, True)
     if rotate > 0 and bool(random.getrandbits(1)):
         pretreatment.rotate(rotate, True)
+    if warp_perspective and bool(random.getrandbits(1)):
+        pretreatment.warp_perspective(True)
+    if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
+        pretreatment.sp_noise(sp_noise, True)
     return pretreatment.get()
 
 

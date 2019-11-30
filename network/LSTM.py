@@ -7,8 +7,15 @@ from network.utils import NetworkUtils
 
 
 class LSTM(object):
-
+    """
+    LSTM 网络实现
+    """
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        """
+        :param model_conf: 配置
+        :param inputs: 网络上一层输入tf.keras.layers.Input/tf.Tensor类型
+        :param utils: 网络工具类
+        """
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
@@ -16,6 +23,10 @@ class LSTM(object):
         self.layer = None
 
     def build(self):
+        """
+        循环层构建参数
+        :return: 返回循环层的输出层
+        """
         with tf.compat.v1.variable_scope('LSTM'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.LSTM(
@@ -32,6 +43,7 @@ class LSTM(object):
 class BiLSTM(object):
 
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        """同上"""
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
@@ -39,6 +51,7 @@ class BiLSTM(object):
         self.layer = None
 
     def build(self):
+        """同上"""
         with tf.variable_scope('BiLSTM'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.Bidirectional(
@@ -55,6 +68,7 @@ class BiLSTM(object):
 class LSTMcuDNN(object):
 
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        """同上"""
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
@@ -62,6 +76,7 @@ class LSTMcuDNN(object):
         self.layer = None
 
     def build(self):
+        """同上"""
         with tf.variable_scope('LSTM'):
             self.layer = tf.keras.layers.CuDNNLSTM(
                 units=self.model_conf.num_hidden * 2,
@@ -74,6 +89,7 @@ class LSTMcuDNN(object):
 class BiLSTMcuDNN(object):
 
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        """同上"""
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
@@ -81,6 +97,7 @@ class BiLSTMcuDNN(object):
         self.layer = None
 
     def build(self):
+        """同上"""
         with tf.variable_scope('BiLSTM'):
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.CuDNNLSTM(

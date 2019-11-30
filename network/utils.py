@@ -3,7 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import math
 import tensorflow as tf
-from tensorflow.python.keras.regularizers import l2, l1_l2
+from tensorflow.python.keras.regularizers import l2, l1_l2, l1
 from config import *
 
 
@@ -29,12 +29,13 @@ class NetworkUtils(object):
     @staticmethod
     def cnn_reshape_layer(x, loss_func, shape_list):
         if loss_func == LossFunction.CTC:
-            x = tf.reshape(x, [tf.shape(x)[0], -1, shape_list[2] * shape_list[3]])
+            x = tf.keras.layers.Reshape(target_shape=[-1, shape_list[2] * shape_list[3]])(x)
         elif loss_func == LossFunction.CrossEntropy:
-            x = tf.reshape(x, [tf.shape(x)[0], shape_list[1], shape_list[2] * shape_list[3]])
+            x = tf.keras.layers.Reshape(target_shape=[shape_list[1], shape_list[2] * shape_list[3]])(x)
         return x
 
     def cnn_layers(self, inputs, filters, kernel_size, strides, training=True):
+        """卷积-BN-激活函数-池化结构生成器"""
         x = inputs
         for i in range(len(kernel_size)):
             with tf.keras.backend.name_scope('unit-{}'.format(i + 1)):
@@ -42,7 +43,7 @@ class NetworkUtils(object):
                     filters=filters[i][1],
                     kernel_size=kernel_size[i],
                     strides=strides[i][0],
-                    # kernel_regularizer=l1_l2(l1=0.001, l2=0.01),
+                    kernel_regularizer=l2(0.01),
                     kernel_initializer=self.msra_initializer(kernel_size[i], filters[i][0]),
                     padding='same',
                     name='cnn-{}'.format(i + 1),
@@ -102,8 +103,8 @@ class NetworkUtils(object):
         x1 = tf.keras.layers.Activation('relu', name=name + '_0_relu')(x1)
         x1 = tf.keras.layers.Conv2D(
             4 * growth_rate, 1,
-            kernel_regularizer=l2(0.01),
-            bias_regularizer=l2(0.005),
+            # kernel_regularizer=l2(0.01),
+            # bias_regularizer=l2(0.005),
             use_bias=False,
             kernel_initializer=self.msra_initializer(3, growth_rate),
             name=name + '_1_conv'
@@ -159,7 +160,7 @@ class NetworkUtils(object):
             filters=int(tf.keras.backend.int_shape(x)[bn_axis] * reduction),
             kernel_size=1,
             use_bias=False,
-            kernel_regularizer=l1_l2(0.01),
+            # kernel_regularizer=l1_l2(0.01),
             name=name + '_conv'
         )(x)
         x = tf.keras.layers.AveragePooling2D(2, strides=2, name=name + '_pool')(x)

@@ -7,13 +7,22 @@ from config import ModelConfig
 
 
 class Validation(object):
-
+    """验证类，用于准确率计算"""
     def __init__(self, model: ModelConfig):
+        """
+        :param model: 读取配置文件获取当前工程的重要参数：category_num, category
+        """
         self.model = model
         self.category_num = self.model.category_num
         self.category = self.model.category
 
     def accuracy_calculation(self, original_seq, decoded_seq):
+        """
+        准确率计算函数
+        :param original_seq: 密集数组-Y标签
+        :param decoded_seq: 密集数组-预测标签
+        :return:
+        """
         # print(decoded_seq)
         # print(original_seq)
         ignore_value = [-1, self.category_num]

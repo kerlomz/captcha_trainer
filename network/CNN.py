@@ -9,7 +9,15 @@ from tensorflow.python.keras.regularizers import l1, l2, l1_l2
 
 class CNN5(object):
 
+    """
+    CNN5网络的实现
+    """
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        """
+        :param model_conf: 从配置文件
+        :param inputs: 网络上一层输入tf.keras.layers.Input/tf.Tensor类型
+        :param utils: 网络工具类
+        """
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
@@ -17,7 +25,7 @@ class CNN5(object):
         # (in_channels, out_channels)
         self.filters = [(self.model_conf.image_channel, 32), (32, 64), (64, 128), (128, 128), (128, 64)]
         # (conv2d_strides, max_pool_strides)
-        self.strides = [(1, 1), (1, 1), (1, 2), (1, 2), (1, 2)]
+        self.strides = [(1, 1), (1, 2), (1, 2), (1, 2), (1, 2)]
         self.kernel_size = [7, 5, 3, 3, 3]
 
     def build(self):
@@ -31,7 +39,7 @@ class CNN5(object):
                 strides=self.strides,
                 training=self.utils.training
             )
-
+            x = tf.keras.layers.Dropout(0.1)(x)
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
@@ -183,7 +191,7 @@ class CNNm4(object):
         with tf.variable_scope('unit-{}'.format(index + 1)):
             x = tf.keras.layers.Conv2D(
                 filters=filters,
-                kernel_size=(kernel_size, kernel_size-2),
+                kernel_size=(kernel_size, kernel_size - 2),
                 strides=conv_strides,
                 kernel_regularizer=l2(0.01),
                 kernel_initializer=self.utils.msra_initializer(kernel_size, filters if index != 0 else 1),
@@ -269,4 +277,147 @@ class CNNm4(object):
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             # tf.multiply(tf.shape(x)[2], shape_list[3])
+            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
+
+
+class CNNX(object):
+    """暂时不用管，设计到一半的一个网络结构"""
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
+        self.inputs = inputs
+        self.utils = utils
+        self.loss_func = self.model_conf.loss_func
+
+    def block(self, inputs, filters, kernel_size, strides, dilation_rate=(1, 1)):
+        inputs = tf.keras.layers.Conv2D(
+            filters=filters,
+            dilation_rate=dilation_rate,
+            kernel_size=kernel_size,
+            strides=strides,
+            kernel_initializer=self.utils.msra_initializer(kernel_size, filters),
+            padding='SAME',
+        )(inputs)
+        inputs = tf.layers.BatchNormalization(
+            fused=True,
+            epsilon=1.001e-5,
+        )(inputs, training=self.utils.training)
+        inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
+        return inputs
+
+    def depth_block(self, inputs, kernel_size=1, depth_multiplier=2, strides=1):
+        inputs = tf.keras.layers.DepthwiseConv2D(
+            depthwise_regularizer=l2(0.1),
+            strides=strides,
+            padding='SAME',
+            kernel_size=kernel_size,
+            depth_multiplier=depth_multiplier
+        )(inputs)
+        inputs = tf.layers.BatchNormalization(
+            fused=True,
+            epsilon=1e-3,
+            momentum=0.999,
+        )(inputs, training=self.utils.training)
+        inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
+        inputs = tf.keras.layers.Conv2D(
+            filters=16,
+            kernel_size=1,
+            padding='same',
+        )(inputs)
+        inputs = tf.keras.layers.BatchNormalization(
+            epsilon=1e-3,
+            momentum=0.999,
+        )(inputs)
+        return inputs
+
+    def customized_block(self, inputs, filters=None):
+        if filters is None:
+            filters = [64, 64, 64]
+
+        x1 = self.block(inputs, filters=filters[0], kernel_size=7, strides=1)
+        x1 = self.block(x1, filters=filters[0], kernel_size=1, strides=1)
+
+        x2 = self.block(inputs, filters=filters[1], kernel_size=5, strides=1)
+        x2 = self.block(x2, filters=filters[1], kernel_size=1, strides=1)
+
+        x3 = self.block(inputs, filters=filters[2], kernel_size=1, strides=1)
+        x3 = tf.keras.layers.MaxPooling2D(
+            pool_size=(2, 2),
+            strides=1,
+            padding='same'
+        )(x3)
+
+        x4 = self.block(inputs, filters=filters[2], kernel_size=1, strides=1)
+        return tf.keras.layers.Concatenate()([x1, x2, x3, x4])
+
+    def build(self):
+        with tf.compat.v1.variable_scope('CNNX'):
+            x = self.inputs
+
+            x = self.block(x, filters=32, kernel_size=7, strides=1)
+            x = self.block(x, filters=64, kernel_size=5, strides=1)
+
+            x = tf.keras.layers.MaxPooling2D(
+                pool_size=(2, 2),
+                strides=2,
+                padding='SAME',
+            )(x)
+
+            xx2 = self.block(x, filters=128, kernel_size=3, strides=1, dilation_rate=2)
+            xx2 = self.block(xx2, filters=128, kernel_size=3, strides=1, dilation_rate=4)
+
+            xx2 = tf.keras.layers.MaxPooling2D(
+                pool_size=(2, 2),
+                strides=2,
+                padding='SAME',
+            )(xx2)
+            xx3 = self.block(x, filters=128, kernel_size=3, strides=2, dilation_rate=1)
+            x = tf.keras.layers.Concatenate()([xx2, xx3])
+
+            x = self.customized_block(x, filters=[128, 128, 256])
+
+            max_pool1 = tf.keras.layers.MaxPooling2D(
+                pool_size=(3, 2),
+                strides=2,
+                padding='same'
+            )(x)
+            max_pool2 = tf.keras.layers.MaxPooling2D(
+                pool_size=(5, 2),
+                strides=2,
+                padding='same'
+            )(x)
+            max_pool3 = tf.keras.layers.MaxPooling2D(
+                pool_size=(7, 2),
+                strides=2,
+                padding='same'
+            )(x)
+
+            xx1 = tf.keras.layers.Concatenate()([max_pool1, max_pool2, max_pool3])
+            x = self.block(x, filters=128, kernel_size=3, strides=1)
+            x = self.block(x, filters=128, kernel_size=3, strides=1)
+            x = self.block(x, filters=256, kernel_size=1, strides=1)
+            xx4 = tf.keras.layers.MaxPooling2D(
+                pool_size=(2, 2),
+                strides=2,
+                padding='SAME',
+            )(x)
+            x = tf.keras.layers.Concatenate()([xx1, xx4])
+
+            x6 = self.depth_block(x, kernel_size=3, strides=1, depth_multiplier=1)
+
+            x = tf.keras.layers.MaxPooling2D(
+                pool_size=(2, 2),
+                strides=2,
+                padding='SAME',
+            )(x6)
+
+            x = self.block(x, filters=128, kernel_size=3, strides=1)
+
+            x = tf.keras.layers.MaxPooling2D(
+                pool_size=(2, 2),
+                strides=(2, 2),
+                padding='SAME',
+            )(x)
+
+            shape_list = x.get_shape().as_list()
+            print("x.get_shape()", shape_list)
             return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)

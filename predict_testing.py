@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-
+"""此脚本用于训练过程中检验训练效果的脚本，功能为：通过启动参数加载【工程名】中的网络进行预测"""
 import random
 import tensorflow as tf
 from config import *
@@ -20,10 +20,12 @@ def get_image_batch(img_bytes):
 
 
 def decode_maps(categories):
+    """解码器"""
     return {index: category for index, category in enumerate(categories, 0)}
 
 
 def predict_func(image_batch, _sess, dense_decoded, op_input):
+    """预测函数"""
     dense_decoded_code = _sess.run(dense_decoded, feed_dict={
         op_input: image_batch,
     })
@@ -43,6 +45,7 @@ def predict_func(image_batch, _sess, dense_decoded, op_input):
 
 if __name__ == '__main__':
 
+    """构建计算图"""
     graph = tf.Graph()
     tf_checkpoint = tf.train.latest_checkpoint(model_conf.model_root_path)
     sess = tf.Session(
@@ -71,30 +74,37 @@ if __name__ == '__main__':
             model_conf,
             RunMode.Predict,
             model_conf.neu_cnn,
-            NETWORK_MAP[model_conf.neu_recurrent]
+            NETWORK_MAP[model_conf.neu_recurrent] if model_conf.neu_recurrent else None
         )
         model.build_graph()
 
         saver = tf.train.Saver(var_list=tf.global_variables())
 
+        """从项目中加载最后一次训练的网络参数"""
         saver.restore(sess, tf.train.latest_checkpoint(model_conf.model_root_path))
 
         # _ = tf.import_graph_def(graph_def, name="")
 
+    """定义操作符"""
     dense_decoded_op = sess.graph.get_tensor_by_name("dense_decoded:0")
     x_op = sess.graph.get_tensor_by_name('input:0')
+    """固定网络"""
     sess.graph.finalize()
 
     true_count = 0
     false_count = 0
+    """
+    以下为根据路径调用预测函数输出结果的demo
+    """
     # Fill in your own sample path
-    image_dir = r"D:\*"
+    image_dir = r"H:\test\test"
     dir_list = os.listdir(image_dir)
     random.shuffle(dir_list)
+    tt = []
     for i, p in enumerate(dir_list):
         n = os.path.join(image_dir, p)
-        if i > 10000:
-            break
+        # if i > 10000:
+        #     break
         with open(n, "rb") as f:
             b = f.read()
 
@@ -113,6 +123,12 @@ if __name__ == '__main__':
             true_count += 1
         else:
             false_count += 1
-        print(i, p, p.split("_")[0].lower(), predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
+        rrr = "{},{}".format(p.split(".")[0], predict_text)
+        tt.append(rrr)
+        print(rrr)
+        # print(i, p, p.split("_")[0].lower(), predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
+    with open("ccc.csv", "w", encoding="utf8") as f:
+        f.write("\n".join(tt))
+
 
 

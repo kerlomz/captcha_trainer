@@ -220,4 +220,4 @@ def category_extract(param):
 
 
 def encode_maps(source):
-    return {char: i for i, char in enumerate(source, 0)}
+    return {category: i for i, category in enumerate(source, 0)}

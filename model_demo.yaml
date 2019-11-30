@@ -101,4 +101,12 @@ Trains:
   VerificationBatchSize: 300
   LearningRate: 0.001
 
+DataAugmentation:
+  Binaryzation: -1
+  MedianBlur: -1
+  GaussianBlur: -1
+  EqualizeHist: True
+  Laplace: True
+  Rotate: True
+
 

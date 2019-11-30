@@ -13,20 +13,21 @@ from config import PATH_SPLIT
 
 category = SimpleCharset.ALPHANUMERIC
 
-cnn_network = CNNNetwork.CNN5
-recurrent_network = RecurrentNetwork.GRU
-optimizer = Optimizer.AdaBound
-loss = LossFunction.CTC
+cnn_network = CNNNetwork.CNNX
+recurrent_network = RecurrentNetwork.NoRecurrent
+optimizer = Optimizer.Adam
+loss = LossFunction.CrossEntropy
 
 trains_path = [
-    r"D:\*",
+    r"H:\Back\train\train",
 ]
 
-validation_set_num = 50
-hidden_num = 16
+validation_set_num = 10
+hidden_num = 64
 learning_rate = None
+ratio = 1.5
 
-name_prefix = 'name_prefix'
+name_prefix = 'bss6'
 name_suffix = None
 name_prefix = name_prefix if name_prefix else "tutorial"
 name_suffix = '-' + str(name_suffix) if name_suffix else ''
@@ -43,9 +44,9 @@ height = size[1]
 
 size_str = "{}x{}".format(width, height)
 
-resize = "[{}, {}]".format(width, height)
+resize = "[{}, {}]".format(int(width * ratio), int(height * ratio))
 validation_batch = validation_set_num if validation_set_num < 300 else 300
-model_name = '{}-mix-{}{}-{}-H{}-{}{}'.format(
+model_name = '{}-mix-{}-{}-{}-H{}-{}{}'.format(
     name_prefix,
     cnn_network.value,
     recurrent_network.value,
@@ -64,9 +65,9 @@ model_conf_path = os.path.join(project_path, "model.yaml")
 trains_path = "".join(["\n    - " + i for i in trains_path])
 
 BEST_LEARNING_RATE = {
-    Optimizer.AdaBound: 0.001,
+    Optimizer.AdaBound: 0.0001,
     Optimizer.Momentum: 0.01,
-    Optimizer.Adam: 0.01,
+    Optimizer.Adam: 0.001,
     Optimizer.SGD: 0.01,
     Optimizer.RMSProp: 0.01,
     Optimizer.AdaGrad: 0.01,
@@ -94,7 +95,7 @@ with open("model.template", encoding="utf8") as f:
         ModelScene=ModelScene.Classification.value,
         Category=category.value,
         Resize=resize,
-        ImageChannel=1,
+        ImageChannel=3,
         ImageWidth=width,
         ImageHeight=height,
         MaxLabelNum=label_num if loss == LossFunction.CrossEntropy else -1,
@@ -107,18 +108,20 @@ with open("model.template", encoding="utf8") as f:
         ValidationSetNum=validation_set_num,
         SavedSteps=100,
         ValidationSteps=500,
-        EndAcc=0.95,
-        EndCost=0.1,
+        EndAcc=0.96,
+        EndCost=0.5,
         EndEpochs=2,
         BatchSize=64,
         ValidationBatchSize=validation_batch,
         LearningRate=learning_rate,
         Binaryzation=-1,
         MedianBlur=-1,
-        GaussianBlur=-1,
-        EqualizeHist=-1,
+        GaussianBlur=8,
+        EqualizeHist=False,
         Laplace=False,
-        Rotate=False
+        WarpPerspective=True,
+        PepperNoise=0.4,
+        Rotate=15,
     )
 
 
