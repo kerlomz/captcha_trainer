@@ -3,6 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 from exception import *
 
+#:todo 需要单独配置文件:
 SPACE_INDEX = 0
 SPACE_TOKEN = ['']
 NUMBER = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
