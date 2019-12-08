@@ -34,6 +34,8 @@ class Wizard:
         self.parent.iconbitmap(Wizard.resource_path("resource/icon.ico"))
         self.current_project: str = ""
         self.project_root_path = "./projects"
+        if not os.path.exists(self.project_root_path):
+            os.makedirs(self.project_root_path)
         self.parent.title('Image Classification Wizard Tool based on Deep Learning')
         self.parent.resizable(width=False, height=False)
         self.window_width = 815
