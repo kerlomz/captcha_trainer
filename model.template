@@ -2,11 +2,12 @@
 # - If you use the GPU version, you need to install some additional applications.
 System:
   MemoryUsage: {MemoryUsage}
+  Version: 2
 
 # CNNNetwork: [CNN5, ResNet, DenseNet]
 # RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU, None]
 # - The recommended configuration is CNN5+BiGRU / CNNX+BiGRU
-# HiddenNum: [16, 64, 128, 256]
+# UnitsNum: [16, 64, 128, 256, 512]
 # - This parameter indicates the number of nodes used to remember and store past states.
 # Optimizer: Loss function algorithm for calculating gradient.
 # - [AdaBound, Adam, Momentum]
@@ -16,7 +17,7 @@ System:
 NeuralNet:
   CNNNetwork: {CNNNetwork}
   RecurrentNetwork: {RecurrentNetwork}
-  HiddenNum: {HiddenNum}
+  UnitsNum: {UnitsNum}
   Optimizer: {Optimizer}
   OutputLayer:
     LossFunction: {LossFunction}
@@ -55,6 +56,9 @@ FieldParam:
   ImageWidth: {ImageWidth}
   ImageHeight: {ImageHeight}
   MaxLabelNum: {MaxLabelNum}
+  ReplaceTransparent: {ReplaceTransparent}
+  HorizontalStitching: {HorizontalStitching}
+  OutputSplit: {OutputSplit}
 
 
 # The configuration is applied to the label of the data source.
@@ -68,11 +72,11 @@ FieldParam:
 Label:
   LabelFrom: {LabelFrom}
   ExtractRegex: {ExtractRegex}
-  Split: {Split}
+  LabelSplit: {LabelSplit}
 
 
-# TrainsPath and TestPath: The local absolute path of your training and testing set.
-# DatasetPath: Package a sample of the TFRecords format from this path.
+# DatasetPath: [Training/Validation], The local absolute path of a packed training or validation set.
+# SourcePath:  [Training/Validation], The local absolute path to the source folder of the training or validation set.
 # ValidationSetNum: This is an optional parameter that is used when you want to extract some of the test set
 # - from the training set when you are not preparing the test set separately.
 # SavedSteps: A Session.run() execution is called a Step,
@@ -86,9 +90,12 @@ Label:
 # ValidationBatchSize: Number of samples selected for one validation step.
 # LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
 Trains:
-  TrainsPath: {TrainsPath}
-  ValidationPath: {ValidationPath}
-  DatasetPath: {DatasetPath}
+  DatasetPath:
+    Training: {DatasetTrainsPath}
+    Validation: {DatasetValidationPath}
+  SourcePath:
+    Training: {SourceTrainPath}
+    Validation: {SourceValidationPath}
   ValidationSetNum: {ValidationSetNum}
   SavedSteps: {SavedSteps}
   ValidationSteps: {ValidationSteps}
@@ -108,6 +115,8 @@ DataAugmentation:
   WarpPerspective: {WarpPerspective}
   Rotate: {Rotate}
   PepperNoise: {PepperNoise}
+
+
 
 
 

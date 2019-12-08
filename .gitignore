@@ -78,7 +78,6 @@ ENV/
 .idea/
 # image file
 *.jpg
-*.png
 *.gif
 # linux系统生成的文件
 *.pid

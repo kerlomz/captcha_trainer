@@ -5,7 +5,7 @@ import hashlib
 import utils
 import utils.sparse
 import tensorflow as tf
-from constants import RunMode, ModelField
+from constants import RunMode, ModelField, DatasetType
 from config import ModelConfig, EXCEPT_FORMAT_MAP
 from encoder import Encoder
 
@@ -20,8 +20,8 @@ class DataIterator:
         self.model_conf = model_conf
         self.mode = mode
         self.path_map = {
-            RunMode.Trains: self.model_conf.trains_path,
-            RunMode.Validation: self.model_conf.validation_path
+            RunMode.Trains: self.model_conf.trains_path[DatasetType.TFRecords],
+            RunMode.Validation: self.model_conf.validation_path[DatasetType.TFRecords]
         }
         self.batch_map = {
             RunMode.Trains: self.model_conf.batch_size,
@@ -53,10 +53,14 @@ class DataIterator:
     def read_sample_from_tfrecords(self, path):
         """
         从TFRecords中读取样本
-        :param path: 文件路径
+        :param path: TFRecords文件路径
         :return:
         """
-        self._size = len([_ for _ in tf.io.tf_record_iterator(path)])
+        if isinstance(path, list):
+            for p in path:
+                self._size += len([_ for _ in tf.io.tf_record_iterator(p)])
+        else:
+            self._size = len([_ for _ in tf.io.tf_record_iterator(path)])
 
         min_after_dequeue = 1000
         batch = self.batch_map[self.mode]

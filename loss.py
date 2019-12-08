@@ -17,6 +17,7 @@ class Loss(object):
         # return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
         # return tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels)
         target = tf.sparse.to_dense(labels)
+        # target = labels
         print('logits', logits.shape)
         print('target', target.shape)
 

@@ -29,7 +29,7 @@ class GRU(object):
         with tf.compat.v1.variable_scope('GRU'):
             # mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
-                units=self.model_conf.num_hidden * 2,
+                units=self.model_conf.units_num * 2,
                 return_sequences=True,
                 input_shape=self.inputs.shape,
                 reset_after=True,
@@ -53,14 +53,14 @@ class BiGRU(object):
         with tf.compat.v1.variable_scope('BiGRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             forward_layer = tf.keras.layers.GRU(
-                units=self.model_conf.num_hidden * 2,
+                units=self.model_conf.units_num * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
                 trainable=self.utils.training,
             )
             backward_layer = tf.keras.layers.GRU(
-                units=self.model_conf.num_hidden * 2,
+                units=self.model_conf.units_num * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True,
@@ -86,7 +86,7 @@ class GRUcuDNN(object):
         with tf.variable_scope('GRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
-                units=self.model_conf.num_hidden * 2,
+                units=self.model_conf.units_num * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 reset_after=True

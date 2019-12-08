@@ -27,141 +27,229 @@ class NetworkUtils(object):
         return tf.keras.initializers.TruncatedNormal(stddev=stddev)
 
     @staticmethod
-    def cnn_reshape_layer(x, loss_func, shape_list):
+    def reshape_layer(input_tensor, loss_func, shape_list):
         if loss_func == LossFunction.CTC:
-            x = tf.keras.layers.Reshape(target_shape=[-1, shape_list[2] * shape_list[3]])(x)
+            output_tensor = tf.keras.layers.Reshape([-1, shape_list[2] * shape_list[3]])(input_tensor)
         elif loss_func == LossFunction.CrossEntropy:
-            x = tf.keras.layers.Reshape(target_shape=[shape_list[1], shape_list[2] * shape_list[3]])(x)
-        return x
+            output_tensor = tf.keras.layers.Reshape([shape_list[1], shape_list[2] * shape_list[3]])(input_tensor)
+        else:
+            raise exception("The current loss function is not supported.", ConfigException.LOSS_FUNC_NOT_SUPPORTED)
+        return output_tensor
 
-    def cnn_layers(self, inputs, filters, kernel_size, strides, training=True):
+    def cnn_layer(self, index, inputs, filters, kernel_size, strides):
         """卷积-BN-激活函数-池化结构生成器"""
-        x = inputs
-        for i in range(len(kernel_size)):
-            with tf.keras.backend.name_scope('unit-{}'.format(i + 1)):
-                x = tf.keras.layers.Conv2D(
-                    filters=filters[i][1],
-                    kernel_size=kernel_size[i],
-                    strides=strides[i][0],
-                    kernel_regularizer=l2(0.01),
-                    kernel_initializer=self.msra_initializer(kernel_size[i], filters[i][0]),
-                    padding='same',
-                    name='cnn-{}'.format(i + 1),
-                )(x)
-
-                bn = tf.layers.BatchNormalization(
-                    fused=True,
-                    # renorm=True if i == 0 else False,
-                    # renorm_clipping={
-                    #     'rmax': 3,
-                    #     'rmin': 0.3333,
-                    #     'dmax': 5
-                    # } if i == 0 else None,
-                    epsilon=1.001e-5,
-                    name='bn{}'.format(i + 1)
-                )
-                x = bn(x, training=training)
-
-                # bn = tf.keras.layers.BatchNormalization(
-                #     fused=True,
-                #     renorm_clipping={
-                #         'rmax': 3,
-                #         'rmin': 0.3333,
-                #         'dmax': 5
-                #     },
-                #     epsilon=1.001e-5,
-                #     name='bn{}'.format(i + 1)
-                # )
-                # x = bn(x, training=training)
-                # for op in bn.updates:
-                #     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
-
-                x = tf.keras.layers.LeakyReLU(0.01)(x)
-                x = tf.keras.layers.MaxPooling2D(
-                    pool_size=(2, 2),
-                    strides=strides[i][1]
-                )(x)
+        # for i in range(len(kernel_size)):
+        with tf.keras.backend.name_scope('unit-{}'.format(index + 1)):
+            x = tf.keras.layers.Conv2D(
+                filters=filters,
+                kernel_size=kernel_size,
+                strides=strides[0],
+                kernel_regularizer=l2(0.01),
+                kernel_initializer=self.msra_initializer(kernel_size, filters),
+                padding='same',
+                name='cnn-{}'.format(index + 1),
+            )(inputs)
+            x = tf.layers.BatchNormalization(
+                fused=True,
+                renorm_clipping={
+                    'rmax': 3,
+                    'rmin': 0.3333,
+                    'dmax': 5
+                } if index == 0 else None,
+                epsilon=1.001e-5,
+                name='bn{}'.format(index + 1))(x, training=self.training)
+            x = tf.keras.layers.LeakyReLU(0.01)(x)
+            x = tf.keras.layers.MaxPooling2D(
+                pool_size=(2, 2),
+                strides=strides[1]
+            )(x)
         return x
 
-    def conv_block(self, x, growth_rate, name):
+    def dense_building_block(self, input_tensor, growth_rate, name, dropout_rate=None):
         """A building block for a dense block.
 
         # Arguments
-            x: input tensor.
+            input_tensor: input tensor.
             growth_rate: float, growth rate at dense layers.
             name: string, block label.
 
         # Returns
             Output tensor for the block.
         """
-        bn_axis = 3 if tf.keras.backend.image_data_format() == 'channels_last' else 1
-        x1 = tf.layers.BatchNormalization(
-            axis=bn_axis,
-            epsilon=1.001e-5,
-            name=name + '_0_bn'
-        )(x, training=self.training)
-        x1 = tf.keras.layers.Activation('relu', name=name + '_0_relu')(x1)
-        x1 = tf.keras.layers.Conv2D(
-            4 * growth_rate, 1,
-            # kernel_regularizer=l2(0.01),
-            # bias_regularizer=l2(0.005),
+        # 1x1 Convolution (Bottleneck layer)
+        x = tf.layers.BatchNormalization(epsilon=1.001e-5, name=name + '_0_bn')(input_tensor, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01, name=name + '_0_relu')(x)
+        x = tf.keras.layers.Conv2D(
+            filters=4 * growth_rate,
+            kernel_size=1,
             use_bias=False,
-            kernel_initializer=self.msra_initializer(3, growth_rate),
-            name=name + '_1_conv'
-        )(x1)
-        x1 = tf.layers.BatchNormalization(
-            axis=bn_axis,
-            epsilon=1.001e-5,
-            name=name + '_1_bn'
-        )(x1, training=self.training)
-        x1 = tf.keras.layers.Activation(
-            'relu',
-            name=name + '_1_relu'
-        )(x1)
-        x1 = tf.keras.layers.Conv2D(
-            growth_rate, 3,
+            name=name + '_1_conv')(x)
+
+        if dropout_rate:
+            x = tf.keras.layers.Dropout(dropout_rate)(x)
+
+        # 3x3 Convolution
+        x = tf.layers.BatchNormalization(epsilon=1.001e-5, name=name + '_1_bn')(x, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01, name=name + '_1_relu')(x)
+        x = tf.keras.layers.Conv2D(
+            filters=growth_rate,
+            kernel_size=3,
             padding='same',
             use_bias=False,
-            name=name + '_2_conv'
-        )(x1)
-        x = tf.keras.layers.Concatenate(axis=bn_axis, name=name + '_concat')([x, x1])
+            name=name + '_2_conv')(x)
+
+        if dropout_rate:
+            x = tf.keras.layers.Dropout(dropout_rate)(x)
+
+        x = tf.keras.layers.Concatenate(name=name + '_concat')([input_tensor, x])
         return x
 
-    def dense_block(self, x, blocks, name):
+    def dense_block(self, input_tensor, blocks, name):
         """A dense block.
 
         # Arguments
-            x: input tensor.
+            input_tensor: input tensor.
             blocks: integer, the number of building blocks.
             name: string, block label.
 
-        # Returnsconv_block
+        # Returns conv_block
             output tensor for the block.
         """
         for i in range(blocks):
-            x = self.conv_block(x, 32, name=name + '_block' + str(i + 1))
-        return x
+            input_tensor = self.dense_building_block(input_tensor, 32, name=name + '_block' + str(i + 1))
+        return input_tensor
 
-    def transition_block(self, x, reduction, name):
+    def transition_block(self, input_tensor, reduction, name):
         """A transition block.
 
         # Arguments
-            x: input tensor.
+            input_tensor: input tensor.
             reduction: float, compression rate at transition layers.
             name: string, block label.
 
         # Returns
             output tensor for the block.
         """
-        bn_axis = 3 if tf.keras.backend.image_data_format() == 'channels_last' else 1
-        x = tf.layers.BatchNormalization(axis=bn_axis, epsilon=1.001e-5, name=name + '_bn')(x, training=self.training)
-        x = tf.keras.layers.Activation('relu', name=name + '_relu')(x)
+        x = tf.layers.BatchNormalization(epsilon=1.001e-5, name=name + '_bn')(input_tensor, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
         x = tf.keras.layers.Conv2D(
-            filters=int(tf.keras.backend.int_shape(x)[bn_axis] * reduction),
+            filters=int(tf.keras.backend.int_shape(x)[3] * reduction),
             kernel_size=1,
             use_bias=False,
-            # kernel_regularizer=l1_l2(0.01),
-            name=name + '_conv'
-        )(x)
+            name=name + '_conv')(x)
         x = tf.keras.layers.AveragePooling2D(2, strides=2, name=name + '_pool')(x)
+        return x
+
+    def residual_building_block(self, input_tensor, kernel_size, filters, stage, block, strides=(2, 2)):
+        """A block that has a conv layer at shortcut.
+
+        # Arguments
+            input_tensor: input tensor
+            kernel_size: default 3, the kernel size of
+                middle conv layer at main path
+            filters: list of integers, the filters of 3 conv layer at main path
+            stage: integer, current stage label, used for generating layer names
+            block: 'a','b'..., current block label, used for generating layer names
+            strides: Strides for the first conv layer in the block.
+
+        # Returns
+            Output tensor for the block.
+
+        Note that from stage 3,
+        the first conv layer at main path is with strides=(2, 2)
+        And the shortcut should have strides=(2, 2) as well
+        """
+        filters1, filters2, filters3 = filters
+        conv_name_base = 'res' + str(stage) + block + '_branch'
+        bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+        x = tf.keras.layers.Conv2D(
+            filters=filters1,
+            kernel_size=(1, 1),
+            strides=strides,
+            kernel_initializer='he_normal',
+            name=conv_name_base + '2a')(input_tensor)
+        x = tf.layers.BatchNormalization(name=bn_name_base + '2a')(x, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+
+        x = tf.keras.layers.Conv2D(
+            filters=filters2,
+            kernel_size=kernel_size,
+            padding='same',
+            kernel_initializer='he_normal',
+            name=conv_name_base + '2b')(x)
+        x = tf.layers.BatchNormalization(name=bn_name_base + '2b')(x, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+
+        x = tf.keras.layers.Conv2D(
+            filters=filters3,
+            kernel_size=(1, 1),
+            kernel_initializer='he_normal',
+            name=conv_name_base + '2c')(x)
+        x = tf.layers.BatchNormalization(name=bn_name_base + '2c')(x, training=self.training)
+
+        shortcut = tf.keras.layers.Conv2D(
+            filters=filters3,
+            kernel_size=(1, 1),
+            strides=strides,
+            kernel_initializer='he_normal',
+            name=conv_name_base + '1')(input_tensor)
+        shortcut = tf.layers.BatchNormalization(name=bn_name_base + '1')(shortcut, training=self.training)
+
+        x = tf.keras.layers.add([x, shortcut])
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+        return x
+
+    def identity_block(self, input_tensor, kernel_size, filters, stage, block):
+        """The identity block is the block that has no conv layer at shortcut.
+
+        # Arguments
+            input_tensor: input tensor
+            kernel_size: default 3, the kernel size of
+                middle conv layer at main path
+            filters: list of integers, the filters of 3 conv layer at main path
+            stage: integer, current stage label, used for generating layer names
+            block: 'a','b'..., current block label, used for generating layer names
+
+        # Returns
+            Output tensor for the block.
+        """
+        filters1, filters2, filters3 = filters
+        bn_axis = 3
+        conv_name_base = 'res' + str(stage) + block + '_branch'
+        bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+        x = tf.keras.layers.Conv2D(
+            filters=filters1,
+            kernel_size=(1, 1),
+            kernel_initializer='he_normal',
+            name=conv_name_base + '2a'
+        )(input_tensor)
+        x = tf.layers.BatchNormalization(
+            axis=bn_axis,
+            name=bn_name_base + '2a'
+        )(x, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+
+        x = tf.keras.layers.Conv2D(
+            filters=filters2,
+            kernel_size=kernel_size,
+            padding='same',
+            kernel_initializer='he_normal',
+            name=conv_name_base + '2b'
+        )(x)
+        x = tf.layers.BatchNormalization(
+            axis=bn_axis, name=bn_name_base + '2b'
+        )(x, training=self.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+
+        x = tf.keras.layers.Conv2D(
+            filters=filters3,
+            kernel_size=(1, 1),
+            kernel_initializer='he_normal',
+            name=conv_name_base + '2c')(x)
+        x = tf.layers.BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x, training=self.training)
+        x = tf.keras.layers.add([x, input_tensor])
+
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
         return x

@@ -2,8 +2,9 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 from exception import *
+from constants import SimpleCharset
 
-#:todo 需要单独配置文件:
+# TODO 需要单独配置文件:
 SPACE_INDEX = 0
 SPACE_TOKEN = ['']
 NUMBER = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -200,24 +201,24 @@ SIMPLE_CATEGORY_MODEL = dict(
     ALPHABET_UPPER=ALPHA_UPPER,
     ALPHABET=ALPHA_LOWER + ALPHA_UPPER,
     ARITHMETIC=NUMBER + ARITHMETIC_SYMBOL,
-    ALPHANUMERIC_LOWER_MIX_ARITHMETIC=NUMBER + ALPHA_LOWER + ARITHMETIC_SYMBOL,
     FLOAT=NUMBER + FLOAT_SYMBOL,
-    CHINESE_3500=CHINESE_3500,
-    ALPHANUMERIC_LOWER_MIX_CHINESE_3500=NUMBER + ALPHA_LOWER + CHINESE_3500
+    CHS_3500=CHINESE_3500,
+    ALPHANUMERIC_MIX_CHS_3500_LOWER=NUMBER + ALPHA_LOWER + CHINESE_3500
 )
 
 
 def category_extract(param):
     if isinstance(param, list):
         return param
+    if isinstance(param, SimpleCharset):
+        param = param.value
     if isinstance(param, str):
         if param in SIMPLE_CATEGORY_MODEL.keys():
             return SIMPLE_CATEGORY_MODEL.get(param)
-        else:
-            exception(
-                "Category set configuration error, customized category set should be list type",
-                ConfigException.CATEGORY_INCORRECT
-            )
+        exception(
+            "Category set configuration error, customized category set should be list type",
+            ConfigException.CATEGORY_INCORRECT
+        )
 
 
 def encode_maps(source):

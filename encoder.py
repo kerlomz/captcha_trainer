@@ -4,6 +4,7 @@
 import io
 import re
 import cv2
+import random
 import PIL.Image
 import numpy as np
 from exception import *
@@ -42,7 +43,7 @@ class Encoder(object):
             pil_image = pil_image.convert('L')
 
         im = np.array(pil_image)
-        if self.mode == RunMode.Trains:
+        if self.mode == RunMode.Trains and bool(random.getrandbits(1)):
             im = preprocessing(
                 image=im,
                 binaryzation=self.model_conf.binaryzation,
@@ -98,19 +99,22 @@ class Encoder(object):
             # 标签是否包含分隔符
             if self.model_conf.label_split:
                 labels = found.split(self.model_conf.label_split)
+            elif self.model_conf.max_label_num == 1:
+                labels = [found]
             else:
                 labels = [_ for _ in found]
+            # [encode_maps(self.model_conf.category)[i] for i in labels]
             try:
-                # if self.model_conf.loss_func == LossFunction.CTC:
-                #     label = self.split_continuous_char(
-                #         [encode_maps(self.model_conf.category)[i] for i in labels]
-                #     )
-                # else:
-                #     label = [encode_maps(self.model_conf.category)[i] for i in labels]
-                # return label
+                if self.model_conf.loss_func == LossFunction.CTC:
+                    label = self.split_continuous_char(
+                        [encode_maps(self.model_conf.category)[i] for i in labels]
+                    )
+                else:
+                    label = [encode_maps(self.model_conf.category)[i] for i in labels]
+                return label
 
                 # 根据类别集合找到对应映射编码为dense数组
-                return [encode_maps(self.model_conf.category)[i] for i in labels]
+                # return [encode_maps(self.model_conf.category)[i] for i in labels]
             except KeyError as e:
                 exception(
                     'The sample label {} contains invalid charset: {}.'.format(
@@ -130,10 +134,7 @@ class Encoder(object):
 
 
 if __name__ == '__main__':
-    # 测试编码效果
-    _m = ModelConfig("demo")
-    a = Encoder(_m, RunMode.Trains).text("v898999_yuiyui.png")
-    print(a)
+    pass
 
 
 

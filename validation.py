@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import json
+import numpy as np
 import tensorflow as tf
 from config import ModelConfig
 
@@ -23,8 +24,13 @@ class Validation(object):
         :param decoded_seq: 密集数组-预测标签
         :return:
         """
+        # print(decoded_seq[1], type(decoded_seq))
+        if isinstance(decoded_seq, np.ndarray):
+            # print(decoded_seq)
+            decoded_seq = decoded_seq.tolist()
         # print(decoded_seq)
         # print(original_seq)
+
         ignore_value = [-1, self.category_num]
         original_seq_len = len(original_seq)
         decoded_seq_len = len(decoded_seq)
@@ -44,6 +50,8 @@ class Validation(object):
         for i, origin_label in enumerate(original_seq):
 
             decoded_label = decoded_seq[i]
+            if isinstance(decoded_label, int):
+                decoded_label = [decoded_label]
             processed_decoded_label = [j for j in decoded_label if j not in ignore_value]
             processed_origin_label = [j for j in origin_label if j not in ignore_value]
 

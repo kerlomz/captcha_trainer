@@ -113,6 +113,15 @@ class Pretreatment(object):
             self.origin = output
         return output
 
+    def light(self, modify=False):
+        alpha = 0.3
+        beta = random.randint(0, 80)
+        alpha = alpha * 0.01
+        output = np.uint8(np.clip((alpha * self.origin + beta), 0, 255))
+        if modify:
+            self.origin = output
+        return output
+
 
 def preprocessing(
         image,
@@ -123,10 +132,12 @@ def preprocessing(
         laplacian=False,
         warp_perspective=False,
         sp_noise=-1,
-        rotate=-1
+        rotate=-1,
+        light=False
 ):
     """
     各种预处理函数是否启用及参数配置
+    :param light: bool
     :param image: numpy图片数组
     :param binaryzation: list-int数字范围
     :param median_blur: int数字
@@ -155,6 +166,8 @@ def preprocessing(
         pretreatment.warp_perspective(True)
     if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
         pretreatment.sp_noise(sp_noise, True)
+    if light and bool(random.getrandbits(1)):
+        pretreatment.light(True)
     return pretreatment.get()
 
 

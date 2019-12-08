@@ -21,7 +21,7 @@ class FullConnectedRNN(object):
             kernel_regularizer=l1_l2(l1=0.001, l2=0.01),
             bias_initializer='zeros',
         )
-        # self.dense = lambda: tf.keras.layers.Flatten()
+
         self.time_distributed = lambda: tf.keras.layers.TimeDistributed(
             layer=self.dense(),
             name='predict',

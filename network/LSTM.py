@@ -30,7 +30,7 @@ class LSTM(object):
         with tf.compat.v1.variable_scope('LSTM'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.LSTM(
-                units=self.model_conf.num_hidden * 2,
+                units=self.model_conf.units_num * 2,
                 return_sequences=True,
                 input_shape=mask.shape,
                 dropout=0.2,
@@ -56,7 +56,7 @@ class BiLSTM(object):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.LSTM(
-                    units=self.model_conf.num_hidden,
+                    units=self.model_conf.units_num,
                     return_sequences=True,
                 ),
                 input_shape=mask.shape
@@ -79,7 +79,7 @@ class LSTMcuDNN(object):
         """同上"""
         with tf.variable_scope('LSTM'):
             self.layer = tf.keras.layers.CuDNNLSTM(
-                units=self.model_conf.num_hidden * 2,
+                units=self.model_conf.units_num * 2,
                 return_sequences=True,
             )
             outputs = self.layer(self.inputs, training=self.training)
@@ -101,7 +101,7 @@ class BiLSTMcuDNN(object):
         with tf.variable_scope('BiLSTM'):
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.CuDNNLSTM(
-                    units=self.model_conf.num_hidden,
+                    units=self.model_conf.units_num,
                     return_sequences=True
                 )
             )

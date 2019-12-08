@@ -9,16 +9,11 @@ from constants import RunMode
 
 _RANDOM_SEED = 0
 
-TFRECORDS_TYPE = [
-    RunMode.Trains,
-    RunMode.Validation
-]
-
 
 class DataSets:
 
     """此类用于打包数据集为TFRecords格式"""
-    def __init__(self, model: ModelConfig, ):
+    def __init__(self, model: ModelConfig):
         self.model = model
         if not os.path.exists(self.model.dataset_root_path):
             os.makedirs(self.model.dataset_root_path)
@@ -35,9 +30,8 @@ class DataSets:
 
     def dataset_exists(self):
         """数据集是否存在判断函数"""
-        for split_name in TFRECORDS_TYPE:
-            output_filename = os.path.join(self.model.dataset_root_path, "{}_{}.tfrecords".format(self.model.model_name, split_name.value))
-            if not tf.io.gfile.exists(output_filename):
+        for file in (self.model.trains_path[DatasetType.TFRecords] + self.model.validation_path[DatasetType.TFRecords]):
+            if not os.path.exists(file):
                 return False
         return True
 
@@ -51,8 +45,12 @@ class DataSets:
             'label': self.bytes_feature(label),
         }))
 
-    def convert_dataset(self, file_list, mode):
-        output_filename = os.path.join(self.model.dataset_root_path, "{}_{}.tfrecords".format(self.model.model_name, mode.value))
+    def convert_dataset(self, output_filename, file_list, mode: RunMode, is_add=False):
+        if is_add:
+            output_filename = self.model.dataset_increasing_name(mode)
+            if not output_filename:
+                raise FileNotFoundError('Basic data set missing, please check.')
+            output_filename = os.path.join(self.model.dataset_root_path, output_filename)
         with tf.io.TFRecordWriter(output_filename) as writer:
             pbar = tqdm(file_list)
             for i, file_name in enumerate(pbar):
@@ -63,8 +61,6 @@ class DataSets:
                         labels = labels.group()
                     else:
                         raise NameError('invalid filename {}'.format(file_name))
-
-                    # labels = "".join([CH_NUMBER_MAP[c] if c in CH_NUMBER else c for c in labels])
                     labels = labels.encode('utf-8')
 
                     example = self.input_to_tfrecords(image_data, labels)
@@ -76,28 +72,85 @@ class DataSets:
                     print('error:', e)
                     print('skip it \n')
 
-    def make_dataset(self):
-        if self.dataset_exists():
-            print('Exists!')
+    @staticmethod
+    def merge_source(source):
+        if isinstance(source, list):
+            origin_dataset = []
+            for trains_path in source:
+                origin_dataset += [
+                    os.path.join(trains_path, trains).replace("\\", "/") for trains in os.listdir(trains_path)
+                ]
+        elif isinstance(source, str):
+            origin_dataset = [os.path.join(source, trains) for trains in os.listdir(source)]
         else:
+            return
+        random.seed(0)
+        random.shuffle(origin_dataset)
+        return origin_dataset
 
-            if isinstance(self.model.dataset_path, list):
-                origin_dataset = []
-                for trains_path in self.model.dataset_path:
-                    origin_dataset += [os.path.join(trains_path, trains) for trains in os.listdir(trains_path)]
-            else:
-                origin_dataset = [os.path.join(self.model.dataset_path, trains) for trains in os.listdir(self.model.dataset_path)]
+    def make_dataset(self, trains_path=None, validation_path=None, is_add=False, callback=None, msg=None):
+        if self.dataset_exists() and not is_add:
+            state = "EXISTS"
+            if callback:
+                callback()
+            if msg:
+                msg(state)
+            return
 
-            random.seed(_RANDOM_SEED)
-            random.shuffle(origin_dataset)
+        if not self.model.dataset_path_root:
+            state = "CONF_ERROR"
+            if callback:
+                callback()
+            if msg:
+                msg(state)
+            return
+
+        trains_path = trains_path if is_add else self.model.trains_path[DatasetType.Directory]
+        validation_path = validation_path if is_add else self.model.validation_path[DatasetType.Directory]
+
+        trains_path = [trains_path] if isinstance(trains_path, str) else trains_path
+        validation_path = [validation_path] if isinstance(validation_path, str) else validation_path
+
+        if validation_path:
+            trains_dataset = self.merge_source(trains_path)
+            validation_dataset = self.merge_source(validation_path)
+            self.convert_dataset(
+                self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                validation_dataset,
+                mode=RunMode.Validation,
+                is_add=is_add,
+            )
+            self.convert_dataset(
+                self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
+                trains_dataset,
+                mode=RunMode.Trains,
+                is_add=is_add,
+            )
+
+        else:
+            origin_dataset = self.merge_source(trains_path)
             validation_dataset = origin_dataset[:self.model.validation_set_num]
             trains_dataset = origin_dataset[self.model.validation_set_num:]
-
-            self.convert_dataset(validation_dataset, mode=RunMode.Validation)
-            self.convert_dataset(trains_dataset, mode=RunMode.Trains)
-            print("Done!")
+            self.convert_dataset(
+                self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                validation_dataset,
+                mode=RunMode.Validation,
+                is_add=is_add
+            )
+            self.convert_dataset(
+                self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
+                trains_dataset,
+                mode=RunMode.Trains,
+                is_add=is_add
+            )
+        state = "DONE"
+        if callback:
+            callback()
+        if msg:
+            msg(state)
+        return
 
 
 if __name__ == '__main__':
-    m = ModelConfig("a")
-    DataSets(m).make_dataset()
+    pass
+    # print(a)

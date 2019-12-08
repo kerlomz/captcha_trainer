@@ -15,13 +15,14 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
 class Trains:
+
+    stop_flag: bool = False
     """训练任务的类"""
     def __init__(self, model_conf: ModelConfig):
         """
         :param model_conf: 读取工程配置文件
         """
         self.model_conf = model_conf
-        # 准确率验证类，包含验证函数
         self.validation = validation.Validation(self.model_conf)
 
     def compile_graph(self, acc):
@@ -38,7 +39,7 @@ class Trains:
                 model_conf=self.model_conf,
                 mode=RunMode.Predict,
                 cnn=self.model_conf.neu_cnn,
-                recurrent=NETWORK_MAP[self.model_conf.neu_recurrent] if self.model_conf.neu_recurrent else None
+                recurrent=self.model_conf.neu_recurrent
             )
             model.build_graph()
             input_graph_def = predict_sess.graph.as_graph_def()
@@ -63,7 +64,7 @@ class Trains:
         with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
             gf.write(output_graph_def.SerializeToString())
 
-        self.generate_config(acc)
+        self.model_conf.output_config(target_model_name="{}_{}".format(self.model_conf.model_name, int(acc * 10000)))
 
     def train_process(self):
         """
@@ -77,16 +78,17 @@ class Trains:
             model_conf=self.model_conf,
             mode=RunMode.Trains,
             cnn=self.model_conf.neu_cnn,
-            recurrent=NETWORK_MAP[self.model_conf.neu_recurrent] if self.model_conf.neu_recurrent else None
+            recurrent=self.model_conf.neu_recurrent
         )
         model.build_graph()
-        # 加载数据集
+
         tf.compat.v1.logging.info('Loading Trains DataSet...')
         train_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Trains)
-        train_feeder.read_sample_from_tfrecords(self.model_conf.trains_path)
+        train_feeder.read_sample_from_tfrecords(self.model_conf.trains_path[DatasetType.TFRecords])
+
         tf.compat.v1.logging.info('Loading Test DataSet...')
         validation_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Validation)
-        validation_feeder.read_sample_from_tfrecords(self.model_conf.validation_path)
+        validation_feeder.read_sample_from_tfrecords(self.model_conf.validation_path[DatasetType.TFRecords])
 
         tf.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
         tf.logging.info('Total {} Test DataSets'.format(validation_feeder.size))
@@ -128,10 +130,15 @@ class Trains:
 
             # 进入训练任务循环
             while 1:
+
                 start_time = time.time()
 
                 # 批次循环
                 for cur_batch in range(num_batches_per_epoch):
+
+                    if self.stop_flag:
+                        return
+
                     batch_time = time.time()
 
                     trains_batch = train_feeder.generate_batch_by_tfrecords(sess)
@@ -151,7 +158,7 @@ class Trains:
 
                     if step % 100 == 0 and step != 0:
                         tf.logging.info(
-                            'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, RNNTimeStep: {}'.format(
+                            'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, Shape[1]: {}'.format(
                                 step,
                                 time.time() - batch_time,
                                 batch_cost,
@@ -215,22 +222,6 @@ class Trains:
                     tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
                     break
                 epoch_count += 1
-
-    def generate_config(self, acc):
-        """训练结束时的配置文件生成器，用于部署加载使用"""
-
-        with open(self.model_conf.model_conf_path, "r", encoding="utf8") as current_fp:
-            text = "".join(current_fp.readlines())
-            text = text.replace("ModelName: {}".format(self.model_conf.model_name),
-                                "ModelName: {}_{}".format(self.model_conf.model_name, int(acc * 10000)))
-        compiled_config_path = os.path.join(self.model_conf.output_path, "{}/model".format(self.model_conf.model_name))
-
-        if not os.path.exists(compiled_config_path):
-            os.makedirs(compiled_config_path)
-
-        compiled_config_path = os.path.join(compiled_config_path, "{}_model.yaml".format(self.model_conf.model_name))
-        with open(compiled_config_path, "w", encoding="utf8") as save_fp:
-            save_fp.write(text)
 
 
 def main(argv):

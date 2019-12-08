@@ -7,7 +7,7 @@ from network.CNN import *
 from network.DenseNet import DenseNet
 from network.GRU import GRU, BiGRU, GRUcuDNN
 from network.LSTM import LSTM, BiLSTM, BiLSTMcuDNN, LSTMcuDNN
-from network.ResNet import ResNet50
+from network.ResNet import ResNet50, ResNetTiny
 from network.utils import NetworkUtils
 from optimizer.AdaBound import AdaBoundOptimizer
 from loss import *
@@ -55,13 +55,10 @@ class NeuralNetwork(object):
         elif self.network == CNNNetwork.CNNX:
             x = CNNX(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
-        elif self.network == CNNNetwork.CNNm4:
-            x = CNNm4(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
+        elif self.network == CNNNetwork.ResNetTiny:
+            x = ResNetTiny(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
-        elif self.network == CNNNetwork.CNNm6:
-            x = CNNm6(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
-
-        elif self.network == CNNNetwork.ResNet:
+        elif self.network == CNNNetwork.ResNet50:
             x = ResNet50(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.DenseNet:
@@ -72,17 +69,13 @@ class NeuralNetwork(object):
             sys.exit(-1)
 
         """选择采用哪种循环网络"""
-        # TODO 这种if-else结构感觉很蠢，循环层
+
         # time_major = True: [max_time_step, batch_size, num_classes]
-        # time_major = False: [batch_size, max_time_step, num_classes]
         tf.compat.v1.logging.info("CNN Output: {}".format(x.get_shape()))
 
-        # self.seq_len = tf.fill([tf.shape(x)[0]], 12, name="seq_len")
         self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
         # self.labels_len = tf.fill([BATCH_SIZE], 12, name="labels_len")
-        if not self.recurrent:
-            self.recurrent_network_builder = None
-        elif self.recurrent == RecurrentNetwork.NoRecurrent:
+        if self.recurrent == RecurrentNetwork.NoRecurrent:
             self.recurrent_network_builder = None
         elif self.recurrent == RecurrentNetwork.LSTM:
             self.recurrent_network_builder = LSTM(model_conf=self.model_conf, inputs=x, utils=self.utils)
@@ -153,7 +146,7 @@ class NeuralNetwork(object):
             if self.model_conf.neu_optimizer == Optimizer.AdaBound:
                 self.train_op = AdaBoundOptimizer(
                     learning_rate=self.lrn_rate,
-                    final_lr=0.01,
+                    final_lr=0.001,
                     beta1=0.9,
                     beta2=0.999,
                     amsbound=True

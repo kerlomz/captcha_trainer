@@ -5,6 +5,13 @@ from enum import Enum, unique
 
 
 @unique
+class DatasetType(Enum):
+    """数据集类别枚举"""
+    Directory = 'Directory'
+    TFRecords = 'TFRecords'
+
+
+@unique
 class LabelFrom(Enum):
     """标签来源枚举"""
     XML = 'XML'
@@ -15,8 +22,8 @@ class LabelFrom(Enum):
 @unique
 class LossFunction(Enum):
     """损失函数枚举"""
-    CTC = 'CTC'
     CrossEntropy = 'CrossEntropy'
+    CTC = 'CTC'
 
 
 @unique
@@ -45,31 +52,31 @@ class CNNNetwork(Enum):
     """卷积层枚举"""
     CNNX = 'CNNX'
     CNN5 = 'CNN5'
-    CNNm6 = 'CNNm6'
-    CNNm4 = 'CNNm4'
-    ResNet = 'ResNet'
+    ResNetTiny = 'ResNetTiny'
+    ResNet50 = 'ResNet50'
     DenseNet = 'DenseNet'
 
 
 @unique
 class RecurrentNetwork(Enum):
     """循环层枚举"""
-    LSTM = 'LSTM'
-    BiLSTM = 'BiLSTM'
+    NoRecurrent = 'NoRecurrent'
     GRU = 'GRU'
     BiGRU = 'BiGRU'
+    GRUcuDNN = 'GRUcuDNN'
+    LSTM = 'LSTM'
+    BiLSTM = 'BiLSTM'
     LSTMcuDNN = 'LSTMcuDNN'
     BiLSTMcuDNN = 'BiLSTMcuDNN'
-    GRUcuDNN = 'GRUcuDNN'
-    NoRecurrent = 'null'
+
 
 
 @unique
 class Optimizer(Enum):
     """优化器枚举"""
-    AdaBound = 'AdaBound'
     Adam = 'Adam'
     Momentum = 'Momentum'
+    AdaBound = 'AdaBound'
     SGD = 'SGD'
     AdaGrad = 'AdaGrad'
     RMSProp = 'RMSProp'
@@ -86,8 +93,7 @@ class SimpleCharset(Enum):
     ALPHABET_UPPER = 'ALPHABET_UPPER'
     ALPHABET = 'ALPHABET'
     ARITHMETIC = 'ARITHMETIC'
-    ALPHANUMERIC_LOWER_MIX_ARITHMETIC = 'ALPHANUMERIC_LOWER_MIX_ARITHMETIC'
     FLOAT = 'FLOAT'
-    CHINESE_3500 = 'CHINESE_3500'
-    ALPHANUMERIC_LOWER_MIX_CHINESE_3500 = 'ALPHANUMERIC_LOWER_MIX_CHINESE_3500'
+    CHS_3500 = 'CHS_3500'
+    ALPHANUMERIC_CHS_3500_LOWER = 'ALPHANUMERIC_CHS_3500_LOWER'
 

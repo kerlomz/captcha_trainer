@@ -25,7 +25,7 @@ class FullConnectedCNN(object):
         flatten = tf.keras.layers.Flatten()(outputs)
         shape_list = flatten.get_shape().as_list()
 
-        print(shape_list[1], self.max_label_num)
+        # print(shape_list[1], self.max_label_num)
         outputs = tf.keras.layers.Reshape([self.max_label_num, int(shape_list[1] / self.max_label_num)])(flatten)
         self.outputs = tf.keras.layers.Dense(
             input_shape=outputs.shape,

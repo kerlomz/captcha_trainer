@@ -22,262 +22,17 @@ class CNN5(object):
         self.inputs = inputs
         self.utils = utils
         self.loss_func = self.model_conf.loss_func
-        # (in_channels, out_channels)
-        self.filters = [(self.model_conf.image_channel, 32), (32, 64), (64, 128), (128, 128), (128, 64)]
-        # (conv2d_strides, max_pool_strides)
-        self.strides = [(1, 1), (1, 2), (1, 2), (1, 2), (1, 2)]
-        self.kernel_size = [7, 5, 3, 3, 3]
 
     def build(self):
         with tf.compat.v1.variable_scope("CNN5"):
-            x = self.inputs
-
-            x = self.utils.cnn_layers(
-                inputs=x,
-                kernel_size=self.kernel_size,
-                filters=self.filters,
-                strides=self.strides,
-                training=self.utils.training
-            )
-            x = tf.keras.layers.Dropout(0.1)(x)
+            x = self.utils.cnn_layer(0, inputs=self.inputs, kernel_size=7, filters=32, strides=(1, 1))
+            x = self.utils.cnn_layer(1, inputs=x, kernel_size=5, filters=64, strides=(1, 2))
+            x = self.utils.cnn_layer(2, inputs=x, kernel_size=3, filters=128, strides=(1, 2))
+            x = self.utils.cnn_layer(3, inputs=x, kernel_size=3, filters=129, strides=(1, 2))
+            x = self.utils.cnn_layer(4, inputs=x, kernel_size=3, filters=64, strides=(1, 2))
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
-            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
-
-
-class CNNm6(object):
-
-    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
-        self.model_conf = model_conf
-        self.inputs = inputs
-        self.utils = utils
-        self.loss_func = self.model_conf.loss_func
-        self.filters = [32, 64, 128, 128, 64]
-        self.conv_strides = [1, 1, 1, 1, 1]
-        self.pool_strides = {
-            4: [(1, 1), (2, 2), (1, 1), (2, 2), (1, 2)],
-            6: [(1, 1), (2, 2), (1, 1), (3, 2), (1, 2)],
-            8: [(1, 1), (2, 2), (1, 1), (2, 2), (2, 2)],
-            10: [(1, 1), (2, 2), (1, 1), (2, 2), (2, 2)],
-            12: [(1, 1), (2, 2), (1, 1), (2, 2), (3, 2)],
-            16: [(1, 1), (2, 2), (2, 1), (2, 2), (2, 2)],
-            18: [(1, 1), (2, 2), (1, 1), (3, 2), (3, 2)],
-            24: [(1, 1), (2, 2), (2, 1), (3, 2), (2, 2)],
-        }
-        self.kernel_size = [7, 5, 3, 3, 3]
-        self.trainable = True
-        self.renorm = [False, False, True, False, False]
-        # self.renorm = [True] * 5
-
-    def block(self, w, inputs, filters, kernel_size, conv_strides, re=True, index=0):
-
-        with tf.variable_scope('unit-{}'.format(index + 1)):
-            x = tf.keras.layers.Conv2D(
-                filters=filters,
-                kernel_size=kernel_size,
-                strides=conv_strides,
-                kernel_regularizer=l2(0.01),
-                kernel_initializer=self.utils.msra_initializer(kernel_size, filters if index != 0 else 1),
-                padding='SAME',
-                name='cnn-{}'.format(index + 1),
-            )(inputs)
-            bn = tf.layers.BatchNormalization(
-                renorm=re,
-                fused=True,
-                renorm_clipping={
-                    'rmax': 3,
-                    'rmin': 0.3333,
-                    'dmax': 5
-                } if index == 0 else None,
-                epsilon=1.001e-5,
-                name='bn{}'.format(index + 1)
-            )
-            x = bn(x, training=self.utils.training)
-
-            # Implementation of Keras
-            # bn = tf.keras.layers.BatchNormalization(
-            #     renorm=re,
-            #     fused=True,
-            #     renorm_clipping={
-            #         'rmax': 3,
-            #         'rmin': 0.3333,
-            #         'dmax': 5
-            #     } if clipping else None,
-            #     epsilon=1.001e-5,
-            #     trainable=self.trainable,
-            #     name='bn{}'.format(index + 1)
-            # )
-            # x = bn(x, training=self.utils.training)
-            # for op in bn.updates:
-            #     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
-
-            def logical_sec(a=None, b=None):
-                if not b:
-                    return tf.less(w, tf.constant(a))
-                if not a:
-                    return tf.greater_equal(w, tf.constant(b))
-                return tf.logical_and(tf.greater_equal(w, tf.constant(a)), tf.less(w, tf.constant(b)))
-
-            x = tf.keras.layers.LeakyReLU(0.01)(x)
-
-            x = tf.case(
-                {
-                    logical_sec(a=60): lambda: self.max_pooling(x, 4, index),
-                    logical_sec(a=60, b=90): lambda: self.max_pooling(x, 6, index),
-                    logical_sec(a=90, b=120): lambda: self.max_pooling(x, 8, index),
-                    logical_sec(a=120, b=150): lambda: self.max_pooling(x, 10, index),
-                    logical_sec(a=150, b=180): lambda: self.max_pooling(x, 12, index),
-                    logical_sec(a=180, b=240): lambda: self.max_pooling(x, 16, index),
-                    logical_sec(a=240, b=300): lambda: self.max_pooling(x, 18, index),
-                    logical_sec(b=300): lambda: self.max_pooling(x, 24, index),
-                },
-                exclusive=True
-            )
-        return x
-
-    def max_pooling(self, x, section: int, index, pool_strides=None):
-        x = tf.keras.layers.MaxPooling2D(
-            padding='SAME',
-            pool_size=(2, 2),
-            strides=pool_strides[index] if pool_strides else self.pool_strides[section][index]
-        )(x)
-        return x
-
-    def build(self):
-        with tf.compat.v1.variable_scope('CNNm6'):
-            x = self.inputs
-            w = tf.shape(self.inputs)[1]
-
-            for i in range(5):
-                x = self.block(
-                    w=w,
-                    inputs=x,
-                    filters=self.filters[i],
-                    kernel_size=self.kernel_size[i],
-                    conv_strides=self.conv_strides[i],
-                    re=self.renorm[i],
-                    index=i
-                )
-
-            shape_list = x.get_shape().as_list()
-            print("x.get_shape()", shape_list)
-            # tf.multiply(tf.shape(x)[2], shape_list[3])
-            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
-
-
-class CNNm4(object):
-
-    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
-        self.model_conf = model_conf
-        self.inputs = inputs
-        self.utils = utils
-        self.loss_func = self.model_conf.loss_func
-        self.filters = [32, 64, 128, 128, 64]
-        self.conv_strides = [1, 1, 1, 1, 1]
-        self.pool_strides = {
-            6: [(1, 1), (2, 2), (1, 1), (3, 2), (1, 2)],
-            8: [(1, 1), (2, 2), (1, 1), (2, 2), (2, 2)],
-            12: [(1, 1), (2, 2), (1, 1), (2, 2), (3, 2)],
-            16: [(1, 1), (2, 2), (2, 1), (2, 2), (2, 2)],
-            18: [(1, 1), (2, 2), (1, 1), (3, 2), (3, 2)],
-            24: [(1, 1), (2, 2), (2, 1), (3, 2), (2, 2)],
-            32: [(1, 1), (2, 2), (2, 1), (2, 2), (4, 2)],
-            36: [(1, 1), (2, 2), (2, 1), (3, 2), (3, 2)],
-        }
-        self.kernel_size = [7, 5, 3, 3, 3]
-
-    def block(self, w, inputs, filters, kernel_size, conv_strides, index=0):
-
-        with tf.variable_scope('unit-{}'.format(index + 1)):
-            x = tf.keras.layers.Conv2D(
-                filters=filters,
-                kernel_size=(kernel_size, kernel_size - 2),
-                strides=conv_strides,
-                kernel_regularizer=l2(0.01),
-                kernel_initializer=self.utils.msra_initializer(kernel_size, filters if index != 0 else 1),
-                padding='SAME',
-                name='cnn-{}'.format(index + 1),
-            )(inputs)
-            bn = tf.layers.BatchNormalization(
-                # renorm=True if index == 0 else False,
-                fused=True,
-                # renorm_clipping={
-                #     'rmax': 3,
-                #     'rmin': 0.3333,
-                #     'dmax': 5
-                # } if index == 0 else None,
-                epsilon=1.001e-5,
-                name='bn{}'.format(index + 1)
-            )
-            x = bn(x, training=self.utils.training)
-
-            # Implementation of Keras
-            # bn = tf.keras.layers.BatchNormalization(
-            #     renorm=re,
-            #     fused=True,
-            #     renorm_clipping={
-            #         'rmax': 3,
-            #         'rmin': 0.3333,
-            #         'dmax': 5
-            #     } if clipping else None,
-            #     epsilon=1.001e-5,
-            #     trainable=self.trainable,
-            #     name='bn{}'.format(index + 1)
-            # )
-            # x = bn(x, training=self.utils.training)
-            # for op in bn.updates:
-            #     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
-
-            def logical_sec(a=None, b=None):
-                if not b:
-                    return tf.less(w, tf.constant(a))
-                if not a:
-                    return tf.greater_equal(w, tf.constant(b))
-                return tf.logical_and(tf.greater_equal(w, tf.constant(a)), tf.less(w, tf.constant(b)))
-
-            x = tf.keras.layers.LeakyReLU(0.01)(x)
-
-            x = tf.case(
-                {
-                    logical_sec(a=60): lambda: self.max_pooling(x, 6, index),
-                    logical_sec(a=60, b=90): lambda: self.max_pooling(x, 8, index),
-                    logical_sec(a=90, b=130): lambda: self.max_pooling(x, 12, index),
-                    logical_sec(a=130, b=140): lambda: self.max_pooling(x, 16, index),
-                    logical_sec(a=140, b=190): lambda: self.max_pooling(x, 18, index),
-                    logical_sec(a=190, b=260): lambda: self.max_pooling(x, 24, index),
-                    logical_sec(a=260, b=300): lambda: self.max_pooling(x, 32, index),
-                    logical_sec(b=300): lambda: self.max_pooling(x, 36, index),
-                },
-                exclusive=True
-            )
-        return x
-
-    def max_pooling(self, x, section: int, index):
-        x = tf.keras.layers.MaxPooling2D(
-            padding='SAME',
-            pool_size=(2, 2),
-            strides=self.pool_strides[section][index]
-        )(x)
-        return x
-
-    def build(self):
-        with tf.compat.v1.variable_scope('CNNm4'):
-            x = self.inputs
-            w = tf.shape(self.inputs)[1]
-            for i in range(5):
-                x = self.block(
-                    w=w,
-                    inputs=x,
-                    filters=self.filters[i],
-                    kernel_size=self.kernel_size[i],
-                    conv_strides=self.conv_strides[i],
-                    index=i
-                )
-
-            shape_list = x.get_shape().as_list()
-            print("x.get_shape()", shape_list)
-            # tf.multiply(tf.shape(x)[2], shape_list[3])
-            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
+            return self.utils.reshape_layer(x, self.loss_func, shape_list)
 
 
 class CNNX(object):
@@ -321,7 +76,7 @@ class CNNX(object):
         inputs = tf.keras.layers.Conv2D(
             filters=16,
             kernel_size=1,
-            padding='same',
+            padding='SAME',
         )(inputs)
         inputs = tf.keras.layers.BatchNormalization(
             epsilon=1e-3,
@@ -356,25 +111,11 @@ class CNNX(object):
             x = self.block(x, filters=32, kernel_size=7, strides=1)
             x = self.block(x, filters=64, kernel_size=5, strides=1)
 
-            x = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 2),
+            max_pool0 = tf.keras.layers.MaxPooling2D(
+                pool_size=(1, 2),
                 strides=2,
-                padding='SAME',
+                padding='same'
             )(x)
-
-            xx2 = self.block(x, filters=128, kernel_size=3, strides=1, dilation_rate=2)
-            xx2 = self.block(xx2, filters=128, kernel_size=3, strides=1, dilation_rate=4)
-
-            xx2 = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 2),
-                strides=2,
-                padding='SAME',
-            )(xx2)
-            xx3 = self.block(x, filters=128, kernel_size=3, strides=2, dilation_rate=1)
-            x = tf.keras.layers.Concatenate()([xx2, xx3])
-
-            x = self.customized_block(x, filters=[128, 128, 256])
-
             max_pool1 = tf.keras.layers.MaxPooling2D(
                 pool_size=(3, 2),
                 strides=2,
@@ -391,26 +132,18 @@ class CNNX(object):
                 padding='same'
             )(x)
 
-            xx1 = tf.keras.layers.Concatenate()([max_pool1, max_pool2, max_pool3])
-            x = self.block(x, filters=128, kernel_size=3, strides=1)
-            x = self.block(x, filters=128, kernel_size=3, strides=1)
-            x = self.block(x, filters=256, kernel_size=1, strides=1)
-            xx4 = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 2),
-                strides=2,
-                padding='SAME',
-            )(x)
-            x = tf.keras.layers.Concatenate()([xx1, xx4])
+            multi_scale_pool = tf.keras.layers.Add()([max_pool0, max_pool1, max_pool2, max_pool3])
 
-            x6 = self.depth_block(x, kernel_size=3, strides=1, depth_multiplier=1)
+            x = self.depth_block(multi_scale_pool, kernel_size=3, strides=1, depth_multiplier=2)
+            x = self.depth_block(x, kernel_size=3, strides=2, depth_multiplier=4)
 
             x = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
                 strides=2,
                 padding='SAME',
-            )(x6)
+            )(x)
 
-            x = self.block(x, filters=128, kernel_size=3, strides=1)
+            x = self.block(x, filters=64, kernel_size=3, strides=1)
 
             x = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
@@ -420,4 +153,4 @@ class CNNX(object):
 
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
-            return self.utils.cnn_reshape_layer(x, self.loss_func, shape_list)
+            return self.utils.reshape_layer(x, self.loss_func, shape_list)

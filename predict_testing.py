@@ -3,6 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 """此脚本用于训练过程中检验训练效果的脚本，功能为：通过启动参数加载【工程名】中的网络进行预测"""
 import random
+import numpy as np
 import tensorflow as tf
 from config import *
 from constants import RunMode
@@ -33,7 +34,9 @@ def predict_func(image_batch, _sess, dense_decoded, op_input):
     decoded_expression = []
     for item in dense_decoded_code:
         expression = ''
-
+        # print(item)
+        if isinstance(item, int) or isinstance(item, np.int64):
+            item = [item]
         for class_index in item:
             if class_index == -1 or class_index == model_conf.category_num:
                 expression += ''
@@ -97,10 +100,10 @@ if __name__ == '__main__':
     以下为根据路径调用预测函数输出结果的demo
     """
     # Fill in your own sample path
-    image_dir = r"H:\test\test"
+    image_dir = r"H:\Task\*"
     dir_list = os.listdir(image_dir)
     random.shuffle(dir_list)
-    tt = []
+    lines = []
     for i, p in enumerate(dir_list):
         n = os.path.join(image_dir, p)
         # if i > 10000:
@@ -117,18 +120,20 @@ if __name__ == '__main__':
             x_op,
         )
         et = time.time()
-        t = p.split("_")[0].lower() == predict_text.lower()
-        # t = p.split(".")[0].lower() == predict_text.lower()
-        if t:
-            true_count += 1
-        else:
-            false_count += 1
-        rrr = "{},{}".format(p.split(".")[0], predict_text)
-        tt.append(rrr)
-        print(rrr)
+        t = p.split(".")[0].lower() == predict_text.lower()
+        csv_output = "{},{}".format(p.split(".")[0], predict_text)
+        lines.append(csv_output)
+        print(csv_output)
+
+        # Used to verify test sets
+        # t = p.split("_")[0].lower() == predict_text.lower()
+        # if t:
+        #     true_count += 1
+        # else:
+        #     false_count += 1
         # print(i, p, p.split("_")[0].lower(), predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
-    with open("ccc.csv", "w", encoding="utf8") as f:
-        f.write("\n".join(tt))
+    with open("competition_format.csv", "w", encoding="utf8") as f:
+        f.write("\n".join(lines))
 
 
 
