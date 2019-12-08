@@ -78,12 +78,9 @@ ENV/
 .idea/
 # image file
 *.jpg
-*.png
 *.gif
 # linux系统生成的文件
 *.pid
 nohup.out
 
-model/*
-config.yaml
-model.yaml
+projects/*

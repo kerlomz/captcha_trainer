@@ -3,61 +3,95 @@
 # Author: kerlomz <kerlomz@gmail.com>
 
 import tensorflow as tf
-from network.utils import NetworkUtils
+from tensorflow.contrib.slim import nets
+from network.utils import NetworkUtils, RunMode
+from constants import LossFunction
+from config import ModelConfig
+
+slim = tf.contrib.slim
+
+
+class ResNetUtils(object):
+
+    def __init__(self, utils: NetworkUtils):
+        self.utils = utils
+
+    def first_layer(self, inputs):
+        x = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name='conv1_pad')(inputs)
+        x = tf.keras.layers.Conv2D(
+            filters=64,
+            kernel_size=(3, 3),
+            strides=(2, 2),
+            padding='valid',
+            kernel_initializer='he_normal',
+            name='conv1')(x)
+
+        x = tf.layers.BatchNormalization(name='bn_conv1')(x, training=self.utils.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+        x = tf.keras.layers.ZeroPadding2D(padding=(1, 1), name='pool1_pad')(x)
+        x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
+        return x
 
 
 class ResNet50(object):
 
-    def __init__(self, inputs: tf.Tensor, utils: NetworkUtils):
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
+        self.loss_func = self.model_conf.loss_func
 
     def build(self):
-        x = self.utils.zero_padding(self.inputs, (3, 3))
 
-        # Stage 1
-        _, _, _, in_channels = x.shape.as_list()
+        x = ResNetUtils(self.utils).first_layer(self.inputs)
+        x = self.utils.residual_building_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
+        x = self.utils.identity_block(x, 3, [64, 64, 256], stage=2, block='b')
+        x = self.utils.identity_block(x, 3, [64, 64, 256], stage=2, block='c')
 
-        a1 = self.utils.conv2d(
-            x=x,
-            name="conv1",
-            filter_size=7,
-            in_channels=in_channels,
-            out_channels=64,
-            strides=2,
-            padding='VALID'
-        )
+        x = self.utils.residual_building_block(x, 3, [128, 128, 512], stage=3, block='a')
+        x = self.utils.identity_block(x, 3, [128, 128, 512], stage=3, block='b')
+        x = self.utils.identity_block(x, 3, [128, 128, 512], stage=3, block='c')
+        x = self.utils.identity_block(x, 3, [128, 128, 512], stage=3, block='d')
 
-        a1 = self.utils.batch_norm(x=a1, name='bn_conv1')
-        # a1 = tf.nn.relu(a1)
-        a1 = self.utils.leaky_relu(a1)
+        x = self.utils.residual_building_block(x, 3, [256, 256, 1024], stage=4, block='a')
+        x = self.utils.identity_block(x, 3, [256, 256, 1024], stage=4, block='b')
+        x = self.utils.identity_block(x, 3, [256, 256, 1024], stage=4, block='c')
+        x = self.utils.identity_block(x, 3, [256, 256, 1024], stage=4, block='d')
+        x = self.utils.identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
+        x = self.utils.identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
 
-        a1 = tf.nn.max_pool(a1, ksize=(1, 3, 3, 1), strides=(1, 2, 2, 1), padding='VALID')
+        x = self.utils.residual_building_block(x, 3, [512, 512, 2048], stage=5, block='a', strides=(1, 1))
+        x = self.utils.identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
+        x = self.utils.identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
 
-        # Stage 2
-        a2 = self.utils.convolutional_block(a1, f=3, out_channels=[64, 64, 256], stage=2, block='a', s=1)
-        a2 = self.utils.identity_block(a2, f=3, out_channels=[64, 64, 256], stage=2, block='b')
-        a2 = self.utils.identity_block(a2, f=3, out_channels=[64, 64, 256], stage=2, block='c')
-
-        # Stage 3
-        a3 = self.utils.convolutional_block(a2, 3, [128, 128, 512], stage=3, block='a', s=2)
-        a3 = self.utils.identity_block(a3, 3, [128, 128, 512], stage=3, block='b')
-        a3 = self.utils.identity_block(a3, 3, [128, 128, 512], stage=3, block='c')
-        a3 = self.utils.identity_block(a3, 3, [128, 128, 512], stage=3, block='d')
-
-        # Stage 4
-        a4 = self.utils.convolutional_block(a3, 3, [256, 256, 1024], stage=4, block='a', s=2)
-        a4 = self.utils.identity_block(a4, 3, [256, 256, 1024], stage=4, block='b')
-        a4 = self.utils.identity_block(a4, 3, [256, 256, 1024], stage=4, block='c')
-        a4 = self.utils.identity_block(a4, 3, [256, 256, 1024], stage=4, block='d')
-        a4 = self.utils.identity_block(a4, 3, [256, 256, 1024], stage=4, block='e')
-        a4 = self.utils.identity_block(a4, 3, [256, 256, 1024], stage=4, block='f')
-
-        # Stage 5
-        a5 = self.utils.convolutional_block(a4, 3, [512, 512, 2048], stage=5, block='a', s=2)
-        a5 = self.utils.identity_block(a5, 3, [512, 512, 2048], stage=5, block='b')
-        x = self.utils.identity_block(a5, 3, [512, 512, 2048], stage=5, block='c')
-
+        print("x.get_shape()", x.get_shape())
         shape_list = x.get_shape().as_list()
-        x = tf.reshape(x, [tf.shape(x)[0], tf.shape(x)[1] * shape_list[2], shape_list[3]])
-        return x
+        return self.utils.reshape_layer(x, self.loss_func, shape_list)
+
+
+class ResNetTiny(object):
+
+    def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
+        self.model_conf = model_conf
+        self.inputs = inputs
+        self.utils = utils
+        self.loss_func = self.model_conf.loss_func
+
+    def build(self):
+
+        x = ResNetUtils(self.utils).first_layer(self.inputs)
+        x = self.utils.residual_building_block(x, 3, [64, 64, 128], stage=2, block='a', strides=(1, 1))
+        x = self.utils.identity_block(x, 3, [64, 64, 128], stage=2, block='b')
+
+        x = self.utils.residual_building_block(x, 3, [128, 128, 256], stage=3, block='a')
+        x = self.utils.identity_block(x, 3, [128, 128, 256], stage=3, block='b')
+
+        x = self.utils.residual_building_block(x, 3, [256, 256, 512], stage=4, block='a')
+        x = self.utils.identity_block(x, 3, [256, 256, 512], stage=4, block='b')
+
+        x = self.utils.residual_building_block(x, 3, [512, 512, 1024], stage=5, block='a', strides=(1, 1))
+        x = self.utils.identity_block(x, 3, [512, 512, 1024], stage=5, block='b')
+
+        print("x.get_shape()", x.get_shape())
+        shape_list = x.get_shape().as_list()
+        return self.utils.reshape_layer(x, self.loss_func, shape_list)

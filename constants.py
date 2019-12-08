@@ -5,33 +5,78 @@ from enum import Enum, unique
 
 
 @unique
+class DatasetType(Enum):
+    """数据集类别枚举"""
+    Directory = 'Directory'
+    TFRecords = 'TFRecords'
+
+
+@unique
+class LabelFrom(Enum):
+    """标签来源枚举"""
+    XML = 'XML'
+    LMDB = 'LMDB'
+    FileName = 'FileName'
+
+
+@unique
+class LossFunction(Enum):
+    """损失函数枚举"""
+    CrossEntropy = 'CrossEntropy'
+    CTC = 'CTC'
+
+
+@unique
+class ModelScene(Enum):
+    """模型场景枚举"""
+    Classification = 'Classification'
+
+
+@unique
+class ModelField(Enum):
+    """模型类别枚举"""
+    Image = 'Image'
+    Text = 'Text'
+
+
+@unique
 class RunMode(Enum):
-    Test = 'test'
-    Trains = 'trains'
-    Predict = 'predict'
+    """运行模式枚举"""
+    Validation = 'Validation'
+    Trains = 'Trains'
+    Predict = 'Predict'
 
 
 @unique
 class CNNNetwork(Enum):
+    """卷积层枚举"""
+    CNNX = 'CNNX'
     CNN5 = 'CNN5'
-    ResNet = 'ResNet'
+    ResNetTiny = 'ResNetTiny'
+    ResNet50 = 'ResNet50'
     DenseNet = 'DenseNet'
 
 
 @unique
 class RecurrentNetwork(Enum):
-    LSTM = 'LSTM'
-    BLSTM = 'BLSTM'
-    SRU = 'SRU'
-    BSRU = 'BSRU'
+    """循环层枚举"""
+    NoRecurrent = 'NoRecurrent'
     GRU = 'GRU'
+    BiGRU = 'BiGRU'
+    GRUcuDNN = 'GRUcuDNN'
+    LSTM = 'LSTM'
+    BiLSTM = 'BiLSTM'
+    LSTMcuDNN = 'LSTMcuDNN'
+    BiLSTMcuDNN = 'BiLSTMcuDNN'
+
 
 
 @unique
 class Optimizer(Enum):
-    AdaBound = 'AdaBound'
+    """优化器枚举"""
     Adam = 'Adam'
     Momentum = 'Momentum'
+    AdaBound = 'AdaBound'
     SGD = 'SGD'
     AdaGrad = 'AdaGrad'
     RMSProp = 'RMSProp'
@@ -39,7 +84,8 @@ class Optimizer(Enum):
 
 @unique
 class SimpleCharset(Enum):
-    NUMERIC = 'NUMBER'
+    """简单字符分类枚举"""
+    NUMERIC = 'NUMERIC'
     ALPHANUMERIC = 'ALPHANUMERIC'
     ALPHANUMERIC_LOWER = 'ALPHANUMERIC_LOWER'
     ALPHANUMERIC_UPPER = 'ALPHANUMERIC_UPPER'
@@ -47,8 +93,7 @@ class SimpleCharset(Enum):
     ALPHABET_UPPER = 'ALPHABET_UPPER'
     ALPHABET = 'ALPHABET'
     ARITHMETIC = 'ARITHMETIC'
-    ALPHANUMERIC_LOWER_MIX_ARITHMETIC = 'ALPHANUMERIC_LOWER_MIX_ARITHMETIC'
     FLOAT = 'FLOAT'
-    CHINESE_3500 = 'CHINESE_3500'
-    ALPHANUMERIC_LOWER_MIX_CHINESE_3500 = 'ALPHANUMERIC_LOWER_MIX_CHINESE_3500'
+    CHS_3500 = 'CHS_3500'
+    ALPHANUMERIC_CHS_3500_LOWER = 'ALPHANUMERIC_CHS_3500_LOWER'
 
