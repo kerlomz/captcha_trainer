@@ -137,7 +137,7 @@ class Trains:
                 for cur_batch in range(num_batches_per_epoch):
 
                     if self.stop_flag:
-                        return
+                        break
 
                     batch_time = time.time()
 
@@ -217,6 +217,8 @@ class Trains:
                 over_epochs = epoch_count > 10000
 
                 # 满足终止条件时，跳出任务循环
+                if self.stop_flag:
+                    break
                 if (achieve_accuracy and achieve_epochs and achieve_cost) or over_epochs:
                     self.compile_graph(accuracy)
                     tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
