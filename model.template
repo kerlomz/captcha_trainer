@@ -5,8 +5,8 @@ System:
   Version: 2
 
 # CNNNetwork: [CNN5, ResNet, DenseNet]
-# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU, None]
-# - The recommended configuration is CNN5+BiGRU / CNNX+BiGRU
+# RecurrentNetwork: [CuDNNBiLSTM, CuDNNLSTM, CuDNNGRU, BiLSTM, LSTM, GRU, BiGRU, NoRecurrent]
+# - The recommended configuration is CNN5+GRU
 # UnitsNum: [16, 64, 128, 256, 512]
 # - This parameter indicates the number of nodes used to remember and store past states.
 # Optimizer: Loss function algorithm for calculating gradient.
@@ -37,10 +37,10 @@ Model:
 # When you filed to Image:
 # - Category: Provides a default optional built-in solution:
 # -- [ALPHANUMERIC, ALPHANUMERIC_LOWER, ALPHANUMERIC_UPPER,
-# -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_LOWER_MIX_CHINESE_3500]
+# -- NUMERIC, ALPHABET_LOWER, ALPHABET_UPPER, ALPHABET, ALPHANUMERIC_CHS_3500_LOWER]
 # - or can be customized by:
 # -- ['Cat', 'Lion', 'Tiger', 'Fish', 'BigCat']
-# - Resize: [ImageWidth, ImageHeight/-1]
+# - Resize: [ImageWidth, ImageHeight/-1, ImageChannel]
 # - ImageChannel: [1, 3]
 # - In order to automatically select models using image size, when multiple models are deployed at the same time:
 # -- ImageWidth: The width of the image.
@@ -66,7 +66,7 @@ FieldParam:
 # ExtractRegex: Only for methods extracted from FileName:
 # - Default matching apple_20181010121212.jpg file.
 # - The Default is .*?(?=_.*\.)
-# Split: Only for methods extracted from FileName:
+# LabelSplit: Only for methods extracted from FileName:
 # - The split symbol in the file name is like: cat&big cat&lion_20181010121212.png
 # - The Default is null.
 Label:
@@ -77,18 +77,18 @@ Label:
 
 # DatasetPath: [Training/Validation], The local absolute path of a packed training or validation set.
 # SourcePath:  [Training/Validation], The local absolute path to the source folder of the training or validation set.
-# ValidationSetNum: This is an optional parameter that is used when you want to extract some of the test set
-# - from the training set when you are not preparing the test set separately.
+# ValidationSetNum: This is an optional parameter that is used when you want to extract some of the validation set
+# - from the training set when you are not preparing the validation set separately.
 # SavedSteps: A Session.run() execution is called a Step,
 # - Used to save training progress, Default value is 100.
 # ValidationSteps: Used to calculate accuracy, Default value is 500.
-# TestSetNum: The number of test sets, if an automatic allocation strategy is used (TestPath not set).
 # EndAcc: Finish the training when the accuracy reaches [EndAcc*100]% and other conditions.
 # EndCost: Finish the training when the cost reaches EndCost and other conditions.
 # EndEpochs: Finish the training when the epoch is greater than the defined epoch and other conditions.
 # BatchSize: Number of samples selected for one training step.
 # ValidationBatchSize: Number of samples selected for one validation step.
-# LearningRate: Recommended value[0.01: MomentumOptimizer/AdamOptimizer, 0.001: AdaBoundOptimizer]
+# LearningRate: [0.1, 0.01, 0.001, 0.0001]
+# - Use a smaller learning rate for fine-tuning.
 Trains:
   DatasetPath:
     Training: {DatasetTrainsPath}
@@ -106,6 +106,14 @@ Trains:
   ValidationBatchSize: {ValidationBatchSize}
   LearningRate: {LearningRate}
 
+# Binaryzation: The argument is of type list and contains the range of int values, -1 is not enabled.
+# MedianBlur: The parameter is an int value, -1 is not enabled.
+# GaussianBlur: The parameter is an int value, -1 is not enabled.
+# EqualizeHist: The parameter is an bool value.
+# Laplace: The parameter is an bool value.
+# WarpPerspective: The parameter is an bool value.
+# Rotate: The parameter is a positive integer int type greater than 0, -1 is not enabled.
+# PepperNoise: This parameter is a float type less than 1, -1 is not enabled.
 DataAugmentation:
   Binaryzation: {Binaryzation}
   MedianBlur: {MedianBlur}
