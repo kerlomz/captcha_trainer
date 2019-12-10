@@ -46,7 +46,7 @@
 
 本项目对应的部署服务支持同时部署多套模型，模型支持热拔插，版本迭代等，业务层可拓展颜色提取，算术运算等常见的验证码解决方案。详情可以移步：https://github.com/kerlomz/captcha_platform 
 <div align=center>
-![](https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/main.png)
+<img src="https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/main.png" style="zoom:80%;" />
 </div>
 
 ## 2. 特性
