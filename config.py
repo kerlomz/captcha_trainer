@@ -287,7 +287,7 @@ class ModelConfig:
         self.sp_noise = self.data_augmentation_root.get('PepperNoise')
 
         """COMPILE_MODEL"""
-        self.compile_model_path = os.path.join(self.output_path, '{}{}graph'.format(self.model_name, PATH_SPLIT))
+        self.compile_model_path = os.path.join(self.output_path, 'graph')
         self.compile_model_path = self.compile_model_path.replace("\\", "/")
         self.check_field()
 
@@ -476,7 +476,7 @@ class ModelConfig:
             f.write(model)
 
     def output_config(self, target_model_name=None):
-        compiled_config_dir_path = os.path.join(self.output_path, "{}/model".format(self.model_name))
+        compiled_config_dir_path = os.path.join(self.output_path, "model")
         if not os.path.exists(compiled_config_dir_path):
             os.makedirs(compiled_config_dir_path)
         compiled_config_path = os.path.join(compiled_config_dir_path, "{}_model.yaml".format(self.model_name))

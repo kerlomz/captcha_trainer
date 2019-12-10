@@ -3,6 +3,7 @@ import re
 import sys
 import shutil
 import json
+import traceback
 import numpy.core._dtype_ctypes
 import PIL.Image as PilImage
 import threading
@@ -21,6 +22,7 @@ class Wizard:
 
     job: threading.Thread
     current_task: Trains
+    is_task_running: bool = False
 
     def __init__(self, parent):
         self.layout = {
@@ -1026,13 +1028,17 @@ class Wizard:
         self.save_conf()
 
     def attach_dataset(self):
-
-        filename = filedialog.askdirectory()
-        if not self.current_project:
+        if self.is_task_running:
             messagebox.showerror(
-                "Error!", "Please set the project name first.".format(RunMode.Trains.value)
+                "Error!", "Please terminate the current training first or wait for the training to end."
             )
             return
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
+        filename = filedialog.askdirectory()
         if not filename:
             return
         model_conf = ModelConfig(self.current_project)
@@ -1065,6 +1071,16 @@ class Wizard:
         btn['state'] = state
 
     def delete_project(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please select a project to delete."
+            )
+            return
+        if self.is_task_running:
+            messagebox.showerror(
+                "Error!", "Please terminate the current training first or wait for the training to end."
+            )
+            return
         project_path = "./projects/{}".format(self.current_project)
         try:
             shutil.rmtree(project_path)
@@ -1078,6 +1094,16 @@ class Wizard:
         self.comb_project_name.delete(0, tk.END)
 
     def reset_history(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please select a project first."
+            )
+            return
+        if self.is_task_running:
+            messagebox.showerror(
+                "Error!", "Please terminate the current training first or wait for the training to end."
+            )
+            return
         project_history_path = "./projects/{}/model".format(self.current_project)
         try:
             shutil.rmtree(project_history_path)
@@ -1152,6 +1178,11 @@ class Wizard:
         return model_conf
 
     def save_conf(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
         model_conf = ModelConfig(
             project_name=self.current_project,
             MemoryUsage=0.7,
@@ -1210,6 +1241,16 @@ class Wizard:
         return model_conf
 
     def make_dataset(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
+        if self.is_task_running:
+            messagebox.showerror(
+                "Error!", "Please terminate the current training first or wait for the training to end."
+            )
+            return
         self.save_conf()
         self.button_state(self.btn_make_dataset, tk.DISABLED)
         model_conf = ModelConfig(self.current_project)
@@ -1230,9 +1271,6 @@ class Wizard:
                 msg=lambda x: tk.messagebox.showinfo('Make Dataset Status', x)
             )
         )
-
-        print('make_dataset')
-        pass
 
     @property
     def size(self):
@@ -1304,6 +1342,11 @@ class Wizard:
         return value
 
     def compile_task(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
         model_conf = ModelConfig(project_name=self.current_project)
         if not os.path.exists(model_conf.model_root_path):
             messagebox.showerror(
@@ -1338,15 +1381,18 @@ class Wizard:
         try:
             self.button_state(self.btn_training, tk.DISABLED)
             self.button_state(self.btn_stop, tk.NORMAL)
+            self.is_task_running = True
             self.current_task.train_process()
             status = 'Training completed'
         except Exception as e:
+            traceback.print_exc()
             messagebox.showerror(
                 e.__class__.__name__, json.dumps(e.args)
             )
             status = 'Training failure'
         self.button_state(self.btn_training, tk.NORMAL)
         self.button_state(self.btn_stop, tk.DISABLED)
+        self.is_task_running = False
         tk.messagebox.showinfo('Training Status', status)
 
     @staticmethod
@@ -1373,10 +1419,14 @@ class Wizard:
         return True
 
     def start_training(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
         model_conf = self.save_conf()
         if not self.check_dataset(model_conf):
             return
-        self.button_state(self.btn_stop, tk.NORMAL)
         self.job = self.threading_exec(
             lambda: self.training_task()
         )
@@ -1464,3 +1514,4 @@ if __name__ == '__main__':
     root = tk.Tk()
     app = Wizard(root)
     root.mainloop()
+

@@ -20,7 +20,7 @@ class ResNetUtils(object):
         x = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name='conv1_pad')(inputs)
         x = tf.keras.layers.Conv2D(
             filters=64,
-            kernel_size=(3, 3),
+            kernel_size=(7, 7),
             strides=(2, 2),
             padding='valid',
             kernel_initializer='he_normal',

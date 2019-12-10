@@ -65,8 +65,7 @@ class NeuralNetwork(object):
             x = DenseNet(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         else:
-            tf.logging.error('This cnn neural network is not supported at this time.')
-            sys.exit(-1)
+            raise ValueError('This cnn neural network is not supported at this time.')
 
         """选择采用哪种循环网络"""
 
@@ -92,10 +91,11 @@ class NeuralNetwork(object):
         elif self.recurrent == RecurrentNetwork.GRUcuDNN:
             self.recurrent_network_builder = GRUcuDNN(model_conf=self.model_conf, inputs=x, utils=self.utils)
         else:
-            tf.logging.error('This recurrent neural network is not supported at this time.')
-            sys.exit(-1)
+            raise ValueError('This recurrent neural network is not supported at this time.')
 
         logits = self.recurrent_network_builder.build() if self.recurrent_network_builder else x
+        if self.recurrent_network_builder and self.model_conf.loss_func != LossFunction.CTC:
+            raise ValueError('CTC loss must use recurrent neural network.')
 
         """输出层，根据Loss函数区分"""
         with tf.keras.backend.name_scope('output'):

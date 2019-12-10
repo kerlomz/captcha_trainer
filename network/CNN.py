@@ -49,6 +49,7 @@ class CNNX(object):
             dilation_rate=dilation_rate,
             kernel_size=kernel_size,
             strides=strides,
+            kernel_regularizer=l1(0.1),
             kernel_initializer=self.utils.msra_initializer(kernel_size, filters),
             padding='SAME',
         )(inputs)
@@ -59,30 +60,30 @@ class CNNX(object):
         inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
         return inputs
 
-    def depth_block(self, inputs, kernel_size=1, depth_multiplier=2, strides=1):
-        inputs = tf.keras.layers.DepthwiseConv2D(
+    def depth_block(self, input_tensor, kernel_size=1, depth_multiplier=2, strides=1):
+        x = tf.keras.layers.DepthwiseConv2D(
             depthwise_regularizer=l2(0.1),
             strides=strides,
             padding='SAME',
             kernel_size=kernel_size,
             depth_multiplier=depth_multiplier
-        )(inputs)
-        inputs = tf.layers.BatchNormalization(
+        )(input_tensor)
+        x = tf.layers.BatchNormalization(
             fused=True,
             epsilon=1e-3,
             momentum=0.999,
-        )(inputs, training=self.utils.training)
-        inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
-        inputs = tf.keras.layers.Conv2D(
+        )(x, training=self.utils.training)
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+        x = tf.keras.layers.Conv2D(
             filters=16,
             kernel_size=1,
             padding='SAME',
-        )(inputs)
-        inputs = tf.keras.layers.BatchNormalization(
+        )(x)
+        x = tf.keras.layers.BatchNormalization(
             epsilon=1e-3,
             momentum=0.999,
-        )(inputs)
-        return inputs
+        )(x)
+        return x
 
     def customized_block(self, inputs, filters=None):
         if filters is None:
@@ -114,43 +115,34 @@ class CNNX(object):
             max_pool0 = tf.keras.layers.MaxPooling2D(
                 pool_size=(1, 2),
                 strides=2,
-                padding='same'
-            )(x)
+                padding='same')(x)
             max_pool1 = tf.keras.layers.MaxPooling2D(
                 pool_size=(3, 2),
                 strides=2,
-                padding='same'
-            )(x)
+                padding='same')(x)
             max_pool2 = tf.keras.layers.MaxPooling2D(
                 pool_size=(5, 2),
                 strides=2,
-                padding='same'
-            )(x)
+                padding='same')(x)
             max_pool3 = tf.keras.layers.MaxPooling2D(
                 pool_size=(7, 2),
                 strides=2,
-                padding='same'
-            )(x)
+                padding='same')(x)
 
             multi_scale_pool = tf.keras.layers.Add()([max_pool0, max_pool1, max_pool2, max_pool3])
-
-            x = self.depth_block(multi_scale_pool, kernel_size=3, strides=1, depth_multiplier=2)
-            x = self.depth_block(x, kernel_size=3, strides=2, depth_multiplier=4)
-
-            x = tf.keras.layers.MaxPooling2D(
+            x = self.utils.dense_block(multi_scale_pool, 1, name='conv2')
+            x = self.utils.transition_block(x, 0.5, name='pool2')
+            x1 = self.depth_block(x, kernel_size=3, strides=2, depth_multiplier=2)
+            x2 = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
                 strides=2,
-                padding='SAME',
-            )(x)
-
+                padding='same')(x)
+            x = tf.keras.layers.Concatenate()([x2, x1])
             x = self.block(x, filters=64, kernel_size=3, strides=1)
-
             x = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
-                strides=(2, 2),
-                padding='SAME',
-            )(x)
-
+                strides=1,
+                padding='same')(x)
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
             return self.utils.reshape_layer(x, self.loss_func, shape_list)

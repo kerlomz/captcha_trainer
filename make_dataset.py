@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+import sys
 import random
 from tqdm import tqdm
 import tensorflow as tf
@@ -152,5 +153,6 @@ class DataSets:
 
 
 if __name__ == '__main__':
-    pass
-    # print(a)
+    model_conf = ModelConfig(sys.argv[-1])
+    _dataset = DataSets(model_conf)
+    _dataset.make_dataset()

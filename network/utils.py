@@ -29,7 +29,7 @@ class NetworkUtils(object):
     @staticmethod
     def reshape_layer(input_tensor, loss_func, shape_list):
         if loss_func == LossFunction.CTC:
-            output_tensor = tf.keras.layers.Reshape([-1, shape_list[2] * shape_list[3]])(input_tensor)
+            output_tensor = tf.keras.layers.Reshape([-1, shape_list[3]])(input_tensor)
         elif loss_func == LossFunction.CrossEntropy:
             output_tensor = tf.keras.layers.Reshape([shape_list[1], shape_list[2] * shape_list[3]])(input_tensor)
         else:
@@ -44,7 +44,7 @@ class NetworkUtils(object):
                 filters=filters,
                 kernel_size=kernel_size,
                 strides=strides[0],
-                kernel_regularizer=l2(0.01),
+                kernel_regularizer=l1(0.01),
                 kernel_initializer=self.msra_initializer(kernel_size, filters),
                 padding='same',
                 name='cnn-{}'.format(index + 1),

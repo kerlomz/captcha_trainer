@@ -7,6 +7,7 @@ import cv2
 import random
 import PIL.Image
 import numpy as np
+import tensorflow as tf
 from exception import *
 from constants import RunMode
 from config import ModelConfig, LabelFrom, LossFunction
@@ -66,7 +67,6 @@ class Encoder(object):
             im = cv2.resize(im, (resize_width, self.model_conf.resize[1]))
         else:
             im = cv2.resize(im, (self.model_conf.resize[0], self.model_conf.resize[1]))
-
         im = im.swapaxes(0, 1)
         if self.model_conf.image_channel == 1:
             return np.array((im[:, :, np.newaxis]) / 255.)
@@ -103,14 +103,14 @@ class Encoder(object):
                 labels = [found]
             else:
                 labels = [_ for _ in found]
-            # [encode_maps(self.model_conf.category)[i] for i in labels]
             try:
-                if self.model_conf.loss_func == LossFunction.CTC:
-                    label = self.split_continuous_char(
-                        [encode_maps(self.model_conf.category)[i] for i in labels]
-                    )
-                else:
-                    label = [encode_maps(self.model_conf.category)[i] for i in labels]
+                # if self.model_conf.loss_func == LossFunction.CTC:
+                #     label = self.split_continuous_char(
+                #         [encode_maps(self.model_conf.category)[i] for i in labels]
+                #     )
+                # else:
+                #     label = [encode_maps(self.model_conf.category)[i] for i in labels]
+                label = [encode_maps(self.model_conf.category)[i] for i in labels]
                 return label
 
                 # 根据类别集合找到对应映射编码为dense数组
