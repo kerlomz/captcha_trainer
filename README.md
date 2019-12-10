@@ -20,7 +20,7 @@
 
 
 
-> **编译版下载地址：**https://github.com/kerlomz/captcha_trainer/releases/tag/1.0
+> **编译版下载地址：** https://github.com/kerlomz/captcha_trainer/releases/tag/1.0
 
 ------
 
@@ -28,7 +28,7 @@
 <div align=center>
 <img src="https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/net_structure.png" style="zoom:80%;" />
 </div>
-> 输入OP:  **input**， 输出OP:  **dense_decoded**
+>  输入OP:  **input** ， 输出OP:   **dense_decoded** 
 
 
 
@@ -255,7 +255,7 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 
 **采集样本：** 一般可以通过抓包得到对方网站的接口请求及参数，通过构造请求采集样本。
 
-**标注样本：**标注渠道是有一定讲究的，一般采用多个渠道组合，因为现在大多是机器识别，导致保存过滤下来的正确样本可能存在特征缺失，举个例子，这个渠道把所有的b都识别成a，为了避免这种情况建议通过多个渠道组合采集样本，以此保证图片特征的覆盖率。
+**标注样本：** 标注渠道是有一定讲究的，一般采用多个渠道组合，因为现在大多是机器识别，导致保存过滤下来的正确样本可能存在特征缺失，举个例子，这个渠道把所有的b都识别成a，为了避免这种情况建议通过多个渠道组合采集样本，以此保证图片特征的覆盖率。
 
 **验证样本**：如何提交验证？比如如何从登录页面中获取样本，其实大多时候后端设计都会为了避免过多恶意的数据库访问而先验证验证码的准确性，例如可以提交明显错误的信息，输入不存在的用户名，将对方网站返回的“用户名不存在”作为验证码正确性的判断条件，当验证码错误时如返回“验证码错误”，则验证样本的流程便成立了。
 
@@ -365,49 +365,49 @@ for file in all_files:
 # 3. 项目结构
 
 ```
-|-- fc												// 全连接层
-|   |-- cnn.py										// 卷积层的全连接
-|   `-- rnn.py										// 循环层的全连接
-|-- logs											// Tensor Board 日志
-|-- network											// 神经网络实现
-|   |   |-- CNN.py									// CNN5/CNNX
-|   |   |-- DenseNet.py								// DenseNet
-|   |   |-- GRU.py									// GRU/BiBRU/GRUcuDNN
-|   |   |-- LSTM.py									// LSTM/BiLSTM/LSTMcuDNN
-|   |   |-- ResNet.py								// ResNet50
-|   |   `-- utils.py								// 各种网络 block 的实现
-|-- optimizer										// 优化器
-|   |   `-- AdaBound.py								// AdaBound 优化算法实现
-|-- projects										// 项目存放路径
-|   `-- demo										// 项目名
+|-- fc										// 全连接层
+|   |-- cnn.py									// 卷积层的全连接
+|   `-- rnn.py									// 循环层的全连接
+|-- logs									// Tensor Board 日志
+|-- network									// 神经网络实现
+|   |   |-- CNN.py								// CNN5/CNNX
+|   |   |-- DenseNet.py							// DenseNet
+|   |   |-- GRU.py								// GRU/BiBRU/GRUcuDNN
+|   |   |-- LSTM.py								// LSTM/BiLSTM/LSTMcuDNN
+|   |   |-- ResNet.py							// ResNet50
+|   |   `-- utils.py							// 各种网络 block 的实现
+|-- optimizer								// 优化器
+|   |   `-- AdaBound.py							// AdaBound 优化算法实现
+|-- projects								// 项目存放路径
+|   `-- demo									// 项目名
 |       |-- dataset 								// 数据集存放
-|       |-- model									// 训练过程记录存放
-|       `-- out										// 模型编译输出
+|       |-- model								// 训练过程记录存放
+|       `-- out									// 模型编译输出
 |           |-- graph								// 存放编译pb模型
 |           `-- model								// 存放编译yaml配置
-|-- resource										// 资源：图标，README 所需图片
+|-- resource									// 资源：图标，README 所需图片
 |-- tools
-|   `-- package.py									// PyInstaller编译脚本
+|   `-- package.py								// PyInstaller编译脚本
 |-- utils
-|   |-- data.py										// 数据加载工具类
-|   `-- sparse.py									// 稀疏矩阵处理工具类
-|-- app.py											// GUI配置生成器
-|-- app.spec										// PyInstaller编译配置文件
-|-- category.py										// 内置类别模块
-|-- config.py										// 配置实体模块
-|-- constants.py									// 各种枚举类
-|-- core.py											// 神经网络模块
-|-- decoder.py										// 解码器
-|-- encoder.py										// 编码器
-|-- exception.py									// 异常模块
-|-- loss.py											// 损失函数
-|-- make_dataset.py									// 样本集打包
-|-- model.template									// 配置模板
+|   |-- data.py									// 数据加载工具类
+|   `-- sparse.py								// 稀疏矩阵处理工具类
+|-- app.py									// GUI配置生成器
+|-- app.spec									// PyInstaller编译配置文件
+|-- category.py									// 内置类别模块
+|-- config.py									// 配置实体模块
+|-- constants.py								// 各种枚举类
+|-- core.py									// 神经网络模块
+|-- decoder.py									// 解码器
+|-- encoder.py									// 编码器
+|-- exception.py								// 异常模块
+|-- loss.py									// 损失函数
+|-- make_dataset.py								// 样本集打包
+|-- model.template								// 配置模板
 |-- predict_testing.py								// 预测测试
-|-- pretreatment.py									// 预处理
+|-- pretreatment.py								// 预处理
 |-- requirements.txt								// 项目依赖
-|-- trains.py										// 训练模块
-`-- validation.py									// 验证模块
+|-- trains.py									// 训练模块
+`-- validation.py								// 验证模块
 ```
 
 
