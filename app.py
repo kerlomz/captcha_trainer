@@ -52,6 +52,7 @@ class Wizard:
         )
         self.parent.geometry(size)
 
+        self.parent.bind('<Button-1>', lambda x: self.blank_click(x))
         # ============================= Group 1 =====================================
         self.label_frame_source = ttk.Labelframe(self.parent, text='Sample Source')
         self.label_frame_source.place(
@@ -991,6 +992,10 @@ class Wizard:
         )
         y_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         listbox.config(yscrollcommand=y_scrollbar.set)
+
+    def blank_click(self, event):
+        if self.current_project != self.comb_project_name.get():
+            self.project_name_fill_callback(event)
 
     def project_name_fill_callback(self, event):
         suffix = '-{}-{}-H{}-{}-C{}'.format(
