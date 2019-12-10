@@ -2,10 +2,13 @@
 # 1. 项目介绍
 
 基于深度学习的图片验证码的解决方案 - 该项目能够秒杀字符粘连重叠/透视变形/模糊/噪声等各种干扰情况，足以解决市面上绝大多数复杂的[验证码场景](#jump)，目前也被用于其他OCR场景。 
+<div align=center>
+<img src="https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/logo.png" style="zoom:70%;" />
+</div>
 
-![](https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/logo.png)
-
+<div align=center>
 <a href="https://github.com/kerlomz/captcha_trainer/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+</div>
 
 该项目基于 TensorFlow 1.14 开发，旨在帮助中小企业或个人用户快速构建图像分类模型并投入生产环境使用，降低技术应用门槛。
 
@@ -15,12 +18,16 @@
 
 面向需求频繁者：同样的类型的需求一天10个，它的复用程度让您无需一份代码一个需求，一套服务全部搞定。
 
+
+
+> **编译版下载地址：**https://github.com/kerlomz/captcha_trainer/releases/tag/1.0
+
 ------
 
 其使用的网络结构主要包含三部分，从下至上依次为：
-
+<div align=center>
 <img src="https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/net_structure.png" style="zoom:80%;" />
-
+</div>
 > 输入OP:  **input**， 输出OP:  **dense_decoded**
 
 
@@ -38,8 +45,9 @@
 为每个图像分类任务创建一个独立的项目，每个项目拥有完全独立的管理空间，方便多任务切换和管理。**全程无需修改一行代码**，根据模板生成模型配置，生成的配置文件可直接用模型部署服务。
 
 本项目对应的部署服务支持同时部署多套模型，模型支持热拔插，版本迭代等，业务层可拓展颜色提取，算术运算等常见的验证码解决方案。详情可以移步：https://github.com/kerlomz/captcha_platform 
-
+<div align=center>
 ![](https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/main.png)
+</div>
 
 ## 2. 特性
 
@@ -239,8 +247,9 @@ cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey 
 图像分类问题，以验证码为例，用深度学习来解决无非就是训练标注样本。那么样本从何而来？这就是建模流程的第一步。
 
 
-
+<div align=center>
 <img src="https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/sample_process.png" style="zoom:50%;" />
+</div>
 
 
 
@@ -422,13 +431,15 @@ for file in all_files:
 
 <span id="jump"> </span>
 
-![](https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/captcha_snapshot.png)
+<div align=center>
+<img src="https://raw.githubusercontent.com/kerlomz/captcha_trainer/master/resource/captcha_snapshot.png" />
+</div>
 
 
 
-**问题一：**有人问，验证码是什么，简单送上一幅图，验证码早已不是Tesseract能解决的时代了，为什么选择验证码作为图像分类的入门，其一因为随处可见，对于深度学习样本不可或缺，验证码的采集难度及成本低。其二，现在的验证码越来越难也越来越具备研究价值，因为它本为安全而生，各种人为的干扰甚至于机器学习对抗等等，也在不断促进图像识别的发展。
+**问题一：** 有人问，验证码是什么，简单送上一幅图，验证码早已不是Tesseract能解决的时代了，为什么选择验证码作为图像分类的入门，其一因为随处可见，对于深度学习样本不可或缺，验证码的采集难度及成本低。其二，现在的验证码越来越难也越来越具备研究价值，因为它本为安全而生，各种人为的干扰甚至于机器学习对抗等等，也在不断促进图像识别的发展。
 
-**问题二：**部署识别也需要GPU吗？我的答案是，完全没必要。理想中是用GPU训练，使用CPU部署识别服务，部署如果也需要这么高的成本，那还有什么现实意义和应用场景呢，实测CNN5网络，我的i7-9900k大约5-10ms之间。
+**问题二：** 部署识别也需要GPU吗？我的答案是，完全没必要。理想中是用GPU训练，使用CPU部署识别服务，部署如果也需要这么高的成本，那还有什么现实意义和应用场景呢，实测CNN5网络，我的i7-9900k大约5-10ms之间。
 
 
 
