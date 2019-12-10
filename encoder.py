@@ -104,17 +104,15 @@ class Encoder(object):
             else:
                 labels = [_ for _ in found]
             try:
-                # if self.model_conf.loss_func == LossFunction.CTC:
-                #     label = self.split_continuous_char(
-                #         [encode_maps(self.model_conf.category)[i] for i in labels]
-                #     )
-                # else:
-                #     label = [encode_maps(self.model_conf.category)[i] for i in labels]
-                label = [encode_maps(self.model_conf.category)[i] for i in labels]
+                # 根据类别集合找到对应映射编码为dense数组
+                if self.model_conf.loss_func == LossFunction.CTC:
+                    label = self.split_continuous_char(
+                        [encode_maps(self.model_conf.category)[i] for i in labels]
+                    )
+                else:
+                    label = [encode_maps(self.model_conf.category)[i] for i in labels]
                 return label
 
-                # 根据类别集合找到对应映射编码为dense数组
-                # return [encode_maps(self.model_conf.category)[i] for i in labels]
             except KeyError as e:
                 exception(
                     'The sample label {} contains invalid charset: {}.'.format(

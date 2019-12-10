@@ -66,6 +66,15 @@ class Trains:
 
         self.model_conf.output_config(target_model_name="{}_{}".format(self.model_conf.model_name, int(acc * 10000)))
 
+    def achieve_cond(self, acc, cost, epoch):
+        achieve_accuracy = acc >= self.model_conf.trains_end_acc
+        achieve_cost = cost <= self.model_conf.trains_end_cost
+        achieve_epochs = epoch >= self.model_conf.trains_end_epochs
+        over_epochs = epoch > 10000
+        if (achieve_accuracy and achieve_epochs and achieve_cost) or over_epochs:
+            return True
+        return False
+
     def train_process(self):
         """
         训练任务
@@ -201,25 +210,15 @@ class Trains:
                             time.time() - batch_time,
                             lr / len(validation_batch),
                         ))
-                        # epoch_cost = batch_cost
-                        achieve_accuracy = accuracy >= self.model_conf.trains_end_acc
-                        achieve_epochs = epoch_count >= self.model_conf.trains_end_epochs
-                        achieve_cost = batch_cost <= self.model_conf.trains_end_cost
-                        over_epochs = epoch_count > 10000
 
                         # 满足终止条件但尚未完成当前epoch时跳出epoch循环
-                        if (achieve_accuracy and achieve_epochs and achieve_cost) or over_epochs:
+                        if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
                             break
-
-                achieve_accuracy = accuracy >= self.model_conf.trains_end_acc
-                achieve_epochs = epoch_count >= self.model_conf.trains_end_epochs
-                achieve_cost = batch_cost <= self.model_conf.trains_end_cost
-                over_epochs = epoch_count > 10000
 
                 # 满足终止条件时，跳出任务循环
                 if self.stop_flag:
                     break
-                if (achieve_accuracy and achieve_epochs and achieve_cost) or over_epochs:
+                if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
                     self.compile_graph(accuracy)
                     tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
                     break
