@@ -304,9 +304,13 @@ Reshape([label_num, int(outputs_shape[1] / label_num)])
 ```
 
 为了保证运算 int(outputs_shape[1] / label_num) 能够取得正整数，也意味着他们之间存在某种关系，对于CNN5+Cross Entropy的网络结构，Conv2D层的步长皆为1，那么需要保证以下关系成立：
+
+
 $$
 mod(\frac{输入宽度\times n}{池化步长^{池化层数}\times标签数})= 0
 $$
+
+
 所以有时候需要Resize网络输入的Shape。
 
 同理如果CNN5+RNN+CTC，卷积层之后的输出经过以下变换：
