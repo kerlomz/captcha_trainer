@@ -25,8 +25,8 @@ class Error(object):
 
 
 def exception(text, code=-1):
-    # raise SystemException(text, code)
-    Error(text, code)
+    raise SystemException(text, code)
+    # Error(text, code)
 
 
 class ConfigException:

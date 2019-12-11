@@ -513,8 +513,8 @@ class Wizard:
 
         # 验证批次大小 - 输入框
         self.validation_batch_size_val = tk.IntVar()
-        self.validation_batch_size_val.set(64)
-        self.validation_batch_size_entry = ttk.Entry(self.parent, textvariable=self.batch_size_val, justify=tk.LEFT)
+        self.validation_batch_size_val.set(300)
+        self.validation_batch_size_entry = ttk.Entry(self.parent, textvariable=self.validation_batch_size_val, justify=tk.LEFT)
         self.next_to_widget(
             src=self.validation_batch_size_entry,
             target=self.validation_batch_size_text,
@@ -1182,6 +1182,13 @@ class Wizard:
             self.dataset_train_listbox.insert(tk.END, dataset_train)
         return model_conf
 
+    @property
+    def validation_batch_size(self):
+        if self.dataset_validation_listbox.size() > 1:
+            return self.validation_batch_size_val.get()
+        else:
+            min(self.validation_batch_size_val.get(), self.validation_num_val.get())
+
     def save_conf(self):
         if not self.current_project:
             messagebox.showerror(
@@ -1231,7 +1238,7 @@ class Wizard:
             EndCost=self.end_cost_val.get(),
             EndEpochs=self.end_epochs_spin.get(),
             BatchSize=self.batch_size_val.get(),
-            ValidationBatchSize=self.validation_batch_size_val.get(),
+            ValidationBatchSize=self.validation_batch_size,
             LearningRate=self.learning_rate_spin.get(),
             Binaryzation=self.binaryzation_val.get(),
             MedianBlur=self.median_blur_val.get(),
