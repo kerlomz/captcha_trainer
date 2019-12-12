@@ -17,19 +17,19 @@ class ResNetUtils(object):
         self.utils = utils
 
     def first_layer(self, inputs):
-        x = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name='conv1_pad')(inputs)
+        # x = tf.keras.layers.ZeroPadding2D(padding=(3, 3), name='conv1_pad')(inputs)
         x = tf.keras.layers.Conv2D(
             filters=64,
             kernel_size=(7, 7),
             strides=(2, 2),
-            padding='valid',
+            padding='same',
             kernel_initializer='he_normal',
-            name='conv1')(x)
+            name='conv1')(inputs)
 
         x = tf.layers.BatchNormalization(name='bn_conv1')(x, training=self.utils.training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
-        x = tf.keras.layers.ZeroPadding2D(padding=(1, 1), name='pool1_pad')(x)
-        x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
+        # x = tf.keras.layers.ZeroPadding2D(padding=(1, 1), name='pool1_pad')(x)
+        x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same',)(x)
         return x
 
 

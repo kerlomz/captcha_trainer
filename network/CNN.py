@@ -85,26 +85,6 @@ class CNNX(object):
         )(x)
         return x
 
-    def customized_block(self, inputs, filters=None):
-        if filters is None:
-            filters = [64, 64, 64]
-
-        x1 = self.block(inputs, filters=filters[0], kernel_size=7, strides=1)
-        x1 = self.block(x1, filters=filters[0], kernel_size=1, strides=1)
-
-        x2 = self.block(inputs, filters=filters[1], kernel_size=5, strides=1)
-        x2 = self.block(x2, filters=filters[1], kernel_size=1, strides=1)
-
-        x3 = self.block(inputs, filters=filters[2], kernel_size=1, strides=1)
-        x3 = tf.keras.layers.MaxPooling2D(
-            pool_size=(2, 2),
-            strides=1,
-            padding='same'
-        )(x3)
-
-        x4 = self.block(inputs, filters=filters[2], kernel_size=1, strides=1)
-        return tf.keras.layers.Concatenate()([x1, x2, x3, x4])
-
     def build(self):
         with tf.compat.v1.variable_scope('CNNX'):
             x = self.inputs

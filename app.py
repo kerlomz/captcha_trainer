@@ -1,5 +1,6 @@
 import os
 import re
+import math
 import sys
 import shutil
 import json
@@ -12,7 +13,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from constants import *
-from config import ModelConfig
+from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP
 from make_dataset import DataSets
 from trains import Trains
 from category import category_extract, SIMPLE_CATEGORY_MODEL
@@ -1431,6 +1432,8 @@ class Wizard:
         return True
 
     def start_training(self):
+        if not self.check_resize():
+            return
         if not self.current_project:
             messagebox.showerror(
                 "Error!", "Please set the project name first."
@@ -1445,7 +1448,6 @@ class Wizard:
 
     def stop_training(self):
         self.current_task.stop_flag = True
-        self.button_state(self.btn_training, tk.NORMAL)
 
     @property
     def project_names(self):
@@ -1502,7 +1504,6 @@ class Wizard:
     def listbox_delete_item_callback(event, listbox: tk.Listbox):
         i = listbox.curselection()[0]
         listbox.delete(i)
-        print(i)
 
     def comb_category_callback(self, event):
         comb_selected = self.comb_category.get()
@@ -1511,6 +1512,20 @@ class Wizard:
         else:
             self.category_entry.delete(0, tk.END)
             self.category_entry['state'] = tk.DISABLED
+
+    def check_resize(self):
+        param = OUTPUT_SHAPE1_MAP[NETWORK_MAP[self.neu_cnn]]
+        shape1w = math.ceil(1.0*self.resize[0]/param[0])
+        shape1h = math.ceil(1.0*self.resize[1]/param[0])
+        input_s1 = shape1w * shape1h * param[1]
+        label_num = int(self.label_num_spin.get())
+        if input_s1 % label_num != 0:
+            messagebox.showerror(
+                "Error!", "Shape[1] = {} must divide the label_num = {}.".format(input_s1, label_num)
+            )
+            return False
+        return True
+
 
     @staticmethod
     def resource_path(relative_path):

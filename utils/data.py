@@ -5,7 +5,7 @@ import hashlib
 import utils
 import utils.sparse
 import tensorflow as tf
-from constants import RunMode, ModelField, DatasetType
+from constants import RunMode, ModelField, DatasetType, LossFunction
 from config import ModelConfig, EXCEPT_FORMAT_MAP
 from encoder import Encoder
 
@@ -104,6 +104,13 @@ class DataIterator:
                 else:
                     input_array = self.encoder.text(i1)
                 label_array = self.encoder.text(i2, extracted=True)
+                label_len_correct = len(label_array) != self.model_conf.max_label_num
+                using_cross_entropy = self.model_conf.loss_func == LossFunction.CrossEntropy
+                if label_len_correct and using_cross_entropy:
+                    tf.logging.warn("The number of labels must be fixed when using cross entropy, label: {}, "
+                                    "the number of tags is incorrect, ignored.".format(i2))
+                    continue
+
                 input_batch.append(input_array)
                 label_batch.append(label_array)
             except OSError:

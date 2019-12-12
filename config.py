@@ -91,6 +91,14 @@ MODEL_FIELD_MAP = {
     'Text': ModelField.Text
 }
 
+OUTPUT_SHAPE1_MAP = {
+    CNNNetwork.CNN5: [16, 64],
+    CNNNetwork.CNNX: [8, 64],
+    CNNNetwork.ResNetTiny: [16, 1024],
+    CNNNetwork.ResNet50: [16, 2048],
+    CNNNetwork.DenseNet: [32, 2048]
+}
+
 
 class ModelConfig:
 
