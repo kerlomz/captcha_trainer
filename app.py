@@ -1187,7 +1187,7 @@ class Wizard:
         if self.dataset_validation_listbox.size() > 1:
             return self.validation_batch_size_val.get()
         else:
-            min(self.validation_batch_size_val.get(), self.validation_num_val.get())
+            return min(self.validation_batch_size_val.get(), self.validation_num_val.get())
 
     def save_conf(self):
         if not self.current_project:
