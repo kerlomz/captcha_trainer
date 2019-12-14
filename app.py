@@ -1154,7 +1154,8 @@ class Wizard:
 
         if isinstance(model_conf.category_param, list):
             self.category_entry['state'] = tk.NORMAL
-            self.category_val.set(model_conf.category_param)
+            self.comb_category.set('CUSTOMIZED')
+            self.category_val.set(json.dumps(model_conf.category_param, ensure_ascii=False))
         else:
             self.category_entry['state'] = tk.DISABLED
             self.comb_category.set(model_conf.category_param)

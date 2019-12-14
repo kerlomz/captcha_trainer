@@ -28,7 +28,7 @@ class CNN5(object):
             x = self.utils.cnn_layer(0, inputs=self.inputs, kernel_size=7, filters=32, strides=(1, 1))
             x = self.utils.cnn_layer(1, inputs=x, kernel_size=5, filters=64, strides=(1, 2))
             x = self.utils.cnn_layer(2, inputs=x, kernel_size=3, filters=128, strides=(1, 2))
-            x = self.utils.cnn_layer(3, inputs=x, kernel_size=3, filters=129, strides=(1, 2))
+            x = self.utils.cnn_layer(3, inputs=x, kernel_size=3, filters=128, strides=(1, 2))
             x = self.utils.cnn_layer(4, inputs=x, kernel_size=3, filters=64, strides=(1, 2))
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
@@ -55,6 +55,11 @@ class CNNX(object):
         )(inputs)
         inputs = tf.layers.BatchNormalization(
             fused=True,
+            renorm_clipping={
+                'rmax': 3,
+                'rmin': 0.3333,
+                'dmax': 5
+            },
             epsilon=1.001e-5,
         )(inputs, training=self.utils.training)
         inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)

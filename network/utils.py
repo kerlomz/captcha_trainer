@@ -38,7 +38,7 @@ class NetworkUtils(object):
 
     def cnn_layer(self, index, inputs, filters, kernel_size, strides):
         """卷积-BN-激活函数-池化结构生成器"""
-        # for i in range(len(kernel_size)):
+
         with tf.keras.backend.name_scope('unit-{}'.format(index + 1)):
             x = tf.keras.layers.Conv2D(
                 filters=filters,

@@ -514,7 +514,7 @@ class ModelConfig:
         self.model_scene_param = argv.get('ModelScene')
 
         if isinstance(argv.get('Category'), list):
-            self.category_param = json.dumps(argv.get('Category'))
+            self.category_param = json.dumps(argv.get('Category'), ensure_ascii=False)
         else:
             self.category_param = argv.get('Category')
 

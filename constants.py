@@ -70,7 +70,6 @@ class RecurrentNetwork(Enum):
     BiLSTMcuDNN = 'BiLSTMcuDNN'
 
 
-
 @unique
 class Optimizer(Enum):
     """优化器枚举"""

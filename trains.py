@@ -95,12 +95,12 @@ class Trains:
         train_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Trains)
         train_feeder.read_sample_from_tfrecords(self.model_conf.trains_path[DatasetType.TFRecords])
 
-        tf.compat.v1.logging.info('Loading Test DataSet...')
+        tf.compat.v1.logging.info('Loading Validation DataSet...')
         validation_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Validation)
         validation_feeder.read_sample_from_tfrecords(self.model_conf.validation_path[DatasetType.TFRecords])
 
         tf.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
-        tf.logging.info('Total {} Test DataSets'.format(validation_feeder.size))
+        tf.logging.info('Total {} Validation DataSets'.format(validation_feeder.size))
         if validation_feeder.size >= train_feeder.size:
             exception("The number of training sets cannot be less than the test set.", )
 

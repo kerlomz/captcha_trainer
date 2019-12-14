@@ -77,7 +77,7 @@ if __name__ == '__main__':
             model_conf,
             RunMode.Predict,
             model_conf.neu_cnn,
-            NETWORK_MAP[model_conf.neu_recurrent] if model_conf.neu_recurrent else None
+            model_conf.neu_recurrent
         )
         model.build_graph()
 
@@ -120,20 +120,20 @@ if __name__ == '__main__':
             x_op,
         )
         et = time.time()
-        t = p.split(".")[0].lower() == predict_text.lower()
-        csv_output = "{},{}".format(p.split(".")[0], predict_text)
-        lines.append(csv_output)
-        print(csv_output)
+        # t = p.split(".")[0].lower() == predict_text.lower()
+        # csv_output = "{},{}".format(p.split(".")[0], predict_text)
+        # lines.append(csv_output)
+        # print(csv_output)
 
         # Used to verify test sets
-        # t = p.split("_")[0].lower() == predict_text.lower()
-        # if t:
-        #     true_count += 1
-        # else:
-        #     false_count += 1
-        # print(i, p, p.split("_")[0].lower(), predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
-    with open("competition_format.csv", "w", encoding="utf8") as f:
-        f.write("\n".join(lines))
+        t = p.split("_")[0].lower() == predict_text.lower()
+        if t:
+            true_count += 1
+        else:
+            false_count += 1
+        print(i, p, p.split("_")[0].lower(), predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
+    # with open("competition_format.csv", "w", encoding="utf8") as f:
+    #     f.write("\n".join(lines))
 
 
 

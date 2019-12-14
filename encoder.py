@@ -56,6 +56,7 @@ class Encoder(object):
                 warp_perspective=self.model_conf.warp_perspective,
                 sp_noise=self.model_conf.sp_noise,
             ).astype(np.float32)
+
         else:
             im = im.astype(np.float32)
         if self.model_conf.resize[0] == -1:
@@ -68,6 +69,7 @@ class Encoder(object):
         else:
             im = cv2.resize(im, (self.model_conf.resize[0], self.model_conf.resize[1]))
         im = im.swapaxes(0, 1)
+
         if self.model_conf.image_channel == 1:
             return np.array((im[:, :, np.newaxis]) / 255.)
         else:
