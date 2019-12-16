@@ -32,6 +32,10 @@ class Encoder(object):
         path_or_stream = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, bytes) else path_or_bytes
         pil_image = PIL.Image.open(path_or_stream)
         rgb = pil_image.split()
+        if len(rgb) == 1 and self.model_conf.image_channel == 3:
+            return "The number of image channels {} is inconsistent with the number of configured channels {}.".format(
+                len(rgb), self.model_conf.image_channel
+            )
 
         size = pil_image.size
 
@@ -44,6 +48,7 @@ class Encoder(object):
             pil_image = pil_image.convert('L')
 
         im = np.array(pil_image)
+
         if self.mode == RunMode.Trains and bool(random.getrandbits(1)):
             im = preprocessing(
                 image=im,
@@ -69,7 +74,6 @@ class Encoder(object):
         else:
             im = cv2.resize(im, (self.model_conf.resize[0], self.model_conf.resize[1]))
         im = im.swapaxes(0, 1)
-
         if self.model_conf.image_channel == 1:
             return np.array((im[:, :, np.newaxis]) / 255.)
         else:

@@ -130,14 +130,15 @@ class DataSets:
 
         else:
             origin_dataset = self.merge_source(trains_path)
-            validation_dataset = origin_dataset[:self.model.validation_set_num]
             trains_dataset = origin_dataset[self.model.validation_set_num:]
-            self.convert_dataset(
-                self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
-                validation_dataset,
-                mode=RunMode.Validation,
-                is_add=is_add
-            )
+            if self.model.validation_set_num > 0:
+                validation_dataset = origin_dataset[:self.model.validation_set_num]
+                self.convert_dataset(
+                    self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    validation_dataset,
+                    mode=RunMode.Validation,
+                    is_add=is_add
+                )
             self.convert_dataset(
                 self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
                 trains_dataset,

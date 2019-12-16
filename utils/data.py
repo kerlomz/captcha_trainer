@@ -50,6 +50,13 @@ class DataIterator:
 
         return _input, _label
 
+    @staticmethod
+    def total_sample(file_name):
+        sample_nums = 0
+        for _ in tf.python_io.tf_record_iterator(file_name):
+            sample_nums += 1
+        return sample_nums
+
     def read_sample_from_tfrecords(self, path):
         """
         从TFRecords中读取样本
@@ -58,9 +65,9 @@ class DataIterator:
         """
         if isinstance(path, list):
             for p in path:
-                self._size += len([_ for _ in tf.io.tf_record_iterator(p)])
+                self._size += self.total_sample(p)
         else:
-            self._size = len([_ for _ in tf.io.tf_record_iterator(path)])
+            self._size = self.total_sample(path)
 
         min_after_dequeue = 1000
         batch = self.batch_map[self.mode]
@@ -99,11 +106,16 @@ class DataIterator:
         label_batch = []
         for index, (i1, i2) in enumerate(zip(_input, _label)):
             try:
+                label_array = self.encoder.text(i2, extracted=True)
                 if self.model_conf.model_field == ModelField.Image:
                     input_array = self.encoder.image(i1)
                 else:
                     input_array = self.encoder.text(i1)
-                label_array = self.encoder.text(i2, extracted=True)
+
+                if isinstance(input_array, str):
+                    tf.logging.warn("{}, \nInput errors labeled: {}, ignored.".format(input_array, label_array))
+                    continue
+
                 label_len_correct = len(label_array) != self.model_conf.max_label_num
                 using_cross_entropy = self.model_conf.loss_func == LossFunction.CrossEntropy
                 if label_len_correct and using_cross_entropy:

@@ -65,8 +65,8 @@ class Validation(object):
                 )
             if processed_origin_label == processed_decoded_label:
                 count += 1
-        # Training is not useful for decoding
-        # Here is for debugging, positioning error source use
+            # Training is not useful for decoding
+            # Here is for debugging, positioning error source use
             if processed_origin_label != processed_decoded_label and len(error_sample) < 5:
                 error_sample.append({
                     "origin": "".join([self.category[_] if _ != self.category_num else '-' for _ in origin_label if _ != -1]),

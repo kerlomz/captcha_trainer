@@ -1060,8 +1060,11 @@ class Wizard:
             attached_dataset_name = "dataset/{}".format(attached_dataset_name)
             attached_dataset_path = os.path.join(self.project_path, attached_dataset_name)
             attached_dataset_path = attached_dataset_path.replace("\\", '/')
+            if mode == RunMode.Validation and self.validation_num_val.get() == 0:
+                continue
             self.sample_map[DatasetType.TFRecords][mode].insert(tk.END, attached_dataset_path)
         self.save_conf()
+        model_conf = ModelConfig(self.current_project)
         self.threading_exec(
             lambda: DataSets(model_conf).make_dataset(
                 trains_path=filename,
@@ -1167,6 +1170,7 @@ class Wizard:
         self.end_epochs_spin.set(model_conf.trains_end_epochs)
         self.batch_size_val.set(model_conf.batch_size)
         self.validation_batch_size_val.set(model_conf.validation_batch_size)
+        self.validation_num_val.set(model_conf.validation_set_num)
         self.binaryzation_val.set(model_conf.binaryzation)
         self.median_blur_val.set(model_conf.median_blur)
         self.gaussian_blur_val.set(model_conf.gaussian_blur)
@@ -1215,7 +1219,7 @@ class Wizard:
             ImageWidth=self.image_width,
             ImageHeight=self.image_height,
             MaxLabelNum=self.label_num_spin.get(),
-            ReplaceTransparent=False,
+            ReplaceTransparent=True,
             HorizontalStitching=False,
             OutputSplit='',
             LabelFrom=LabelFrom.FileName.value,
@@ -1501,10 +1505,10 @@ class Wizard:
         self.resize_val.set(json.dumps(size))
         self.label_num_spin.set(len_label)
 
-    @staticmethod
-    def listbox_delete_item_callback(event, listbox: tk.Listbox):
+    def listbox_delete_item_callback(self, event, listbox: tk.Listbox):
         i = listbox.curselection()[0]
         listbox.delete(i)
+        self.save_conf()
 
     def comb_category_callback(self, event):
         comb_selected = self.comb_category.get()

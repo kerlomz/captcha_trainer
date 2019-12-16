@@ -266,8 +266,8 @@ class ModelConfig:
         self.trains_path[DatasetType.Directory]: list = self.source_path_root.get('Training')
         self.validation_path[DatasetType.Directory]: list = self.source_path_root.get('Validation')
 
-        self.validation_set_num = self.trains_root.get('ValidationSetNum')
-        self.validation_set_num = self.validation_set_num if self.validation_set_num else 500
+        self.validation_set_num: int = self.trains_root.get('ValidationSetNum')
+        # self.validation_set_num = self.validation_set_num if self.validation_set_num else 500
 
         """TRAINS"""
         self.trains_save_steps = self.trains_root.get('SavedSteps')
@@ -493,7 +493,7 @@ class ModelConfig:
     def dataset_increasing_name(self, mode: RunMode):
         dataset_group = os.listdir(self.dataset_root_path)
         if len(dataset_group) < 1:
-            return None
+            return "Trains.0.tfrecords" if mode == RunMode.Trains else "Validation.0.tfrecords"
         name_split = [i.split(".") for i in dataset_group if mode.value in i]
         last_index = max([int(i[1]) for i in name_split])
         current_index = last_index + 1
