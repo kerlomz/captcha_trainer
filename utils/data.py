@@ -116,6 +116,13 @@ class DataIterator:
                     tf.logging.warn("{}, \nInput errors labeled: {}, ignored.".format(input_array, label_array))
                     continue
 
+                if input_array.shape[-1] != self.model_conf.image_channel:
+                    pass
+                    # tf.logging.warn("{}, \nInput shape: {}, ignored.".format(
+                    #     self.model_conf.image_channel, input_array.shape[-1])
+                    # )
+                    continue
+
                 label_len_correct = len(label_array) != self.model_conf.max_label_num
                 using_cross_entropy = self.model_conf.loss_func == LossFunction.CrossEntropy
                 if label_len_correct and using_cross_entropy:

@@ -139,6 +139,13 @@ class DataSets:
                     mode=RunMode.Validation,
                     is_add=is_add
                 )
+            elif self.model.validation_set_num < 0:
+                self.convert_dataset(
+                    self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    trains_dataset,
+                    mode=RunMode.Validation,
+                    is_add=is_add
+                )
             self.convert_dataset(
                 self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
                 trains_dataset,

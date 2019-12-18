@@ -1470,8 +1470,21 @@ class Wizard:
         filename = filedialog.askdirectory()
         if not filename:
             return
-        self.sample_map[dataset_type][mode].insert(tk.END, filename)
-        self.fetch_sample([filename])
+        is_sub = False
+        for i, item in enumerate(os.scandir(filename)):
+            if item.is_dir():
+                path = item.path.replace("\\", "/")
+                self.sample_map[dataset_type][mode].insert(tk.END, path)
+                if i > 0:
+                    continue
+                is_sub = True
+                self.fetch_sample([path])
+            else:
+                break
+        if not is_sub:
+            filename = filename.replace("\\", "/")
+            self.sample_map[dataset_type][mode].insert(tk.END, filename)
+            self.fetch_sample([filename])
 
     @staticmethod
     def closest_category(category):

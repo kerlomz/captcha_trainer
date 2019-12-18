@@ -39,9 +39,10 @@ class Encoder(object):
 
         size = pil_image.size
 
-        if len(rgb) > 3:
-            background = PIL.Image.new('RGB', pil_image.size, (255, 255, 255))
+        if len(rgb) > 3 and self.model_conf.replace_transparent:
+            background = PIL.Image.new('RGBA', pil_image.size, (255, 255, 255))
             background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
+            background.convert('RGB')
             pil_image = background
 
         if self.model_conf.image_channel == 1:
@@ -74,6 +75,7 @@ class Encoder(object):
         else:
             im = cv2.resize(im, (self.model_conf.resize[0], self.model_conf.resize[1]))
         im = im.swapaxes(0, 1)
+
         if self.model_conf.image_channel == 1:
             return np.array((im[:, :, np.newaxis]) / 255.)
         else:
@@ -110,6 +112,8 @@ class Encoder(object):
             else:
                 labels = [_ for _ in found]
             try:
+                if not labels:
+                    return [0]
                 # 根据类别集合找到对应映射编码为dense数组
                 if self.model_conf.loss_func == LossFunction.CTC:
                     label = self.split_continuous_char(
