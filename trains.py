@@ -141,7 +141,7 @@ class Trains:
             while 1:
 
                 start_time = time.time()
-
+                batch_cost = 65535
                 # 批次循环
                 for cur_batch in range(num_batches_per_epoch):
 

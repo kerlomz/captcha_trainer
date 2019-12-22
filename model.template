@@ -56,8 +56,6 @@ FieldParam:
   ImageWidth: {ImageWidth}
   ImageHeight: {ImageHeight}
   MaxLabelNum: {MaxLabelNum}
-  ReplaceTransparent: {ReplaceTransparent}
-  HorizontalStitching: {HorizontalStitching}
   OutputSplit: {OutputSplit}
 
 
@@ -115,14 +113,30 @@ Trains:
 # Rotate: The parameter is a positive integer int type greater than 0, -1 is not enabled.
 # PepperNoise: This parameter is a float type less than 1, -1 is not enabled.
 DataAugmentation:
-  Binaryzation: {Binaryzation}
-  MedianBlur: {MedianBlur}
-  GaussianBlur: {GaussianBlur}
-  EqualizeHist: {EqualizeHist}
-  Laplace: {Laplace}
-  WarpPerspective: {WarpPerspective}
-  Rotate: {Rotate}
-  PepperNoise: {PepperNoise}
+  Binaryzation: {DA_Binaryzation}
+  MedianBlur: {DA_MedianBlur}
+  GaussianBlur: {DA_GaussianBlur}
+  EqualizeHist: {DA_EqualizeHist}
+  Laplace: {DA_Laplace}
+  WarpPerspective: {DA_WarpPerspective}
+  Rotate: {DA_Rotate}
+  PepperNoise: {DA_PepperNoise}
+  Brightness: {DA_Brightness}
+  Saturation: {DA_Saturation}
+  Hue: {DA_Hue}
+  Gamma: {DA_Gamma}
+  ChannelSwap: {DA_ChannelSwap}
+  RandomBlank: {DA_RandomBlank}
+  RandomTransition: {DA_RandomTransition}
+
+Pretreatment:
+  Binaryzation: {Pre_Binaryzation}
+  ReplaceTransparent: {Pre_ReplaceTransparent}
+  HorizontalStitching: {Pre_HorizontalStitching}
+  ConcatFrames: {Pre_ConcatFrames}
+  BlendFrames: {Pre_BlendFrames}
+
+
 
 
 

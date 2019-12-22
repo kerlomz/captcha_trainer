@@ -13,6 +13,7 @@ from constants import RunMode
 from config import ModelConfig, LabelFrom, LossFunction
 from category import encode_maps
 from pretreatment import preprocessing
+from tools.gif_frames import concat_frames, blend_frame
 
 
 class Encoder(object):
@@ -31,6 +32,7 @@ class Encoder(object):
         # if im is None:
         path_or_stream = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, bytes) else path_or_bytes
         pil_image = PIL.Image.open(path_or_stream)
+
         rgb = pil_image.split()
         if len(rgb) == 1 and self.model_conf.image_channel == 3:
             return "The number of image channels {} is inconsistent with the number of configured channels {}.".format(
@@ -39,28 +41,47 @@ class Encoder(object):
 
         size = pil_image.size
 
-        if len(rgb) > 3 and self.model_conf.replace_transparent:
+        gif_handle = self.model_conf.pre_concat_frames != -1 or self.model_conf.pre_blend_frames != -1
+
+        if len(rgb) > 3 and self.model_conf.pre_replace_transparent and gif_handle:
             background = PIL.Image.new('RGBA', pil_image.size, (255, 255, 255))
             background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
             background.convert('RGB')
             pil_image = background
 
-        if self.model_conf.image_channel == 1:
-            pil_image = pil_image.convert('L')
+        if self.model_conf.pre_concat_frames != -1:
+            im = concat_frames(pil_image, need_frame=self.model_conf.pre_concat_frames)
+        elif self.model_conf.pre_blend_frames != -1:
+            im = blend_frame(pil_image, need_frame=self.model_conf.pre_blend_frames)
+        else:
+            im = np.array(pil_image)
 
-        im = np.array(pil_image)
+        if self.model_conf.image_channel == 1 and len(im.shape) == 3:
+            im = im.mean(axis=2).astype(np.float32)
+
+        im = preprocessing(
+            image=im,
+            binaryzation=self.model_conf.pre_binaryzation,
+        )
 
         if self.mode == RunMode.Trains and bool(random.getrandbits(1)):
             im = preprocessing(
                 image=im,
-                binaryzation=self.model_conf.binaryzation,
-                median_blur=self.model_conf.median_blur,
-                gaussian_blur=self.model_conf.gaussian_blur,
-                equalize_hist=self.model_conf.equalize_hist,
-                laplacian=self.model_conf.laplace,
-                rotate=self.model_conf.rotate,
-                warp_perspective=self.model_conf.warp_perspective,
-                sp_noise=self.model_conf.sp_noise,
+                binaryzation=self.model_conf.da_binaryzation,
+                median_blur=self.model_conf.da_median_blur,
+                gaussian_blur=self.model_conf.da_gaussian_blur,
+                equalize_hist=self.model_conf.da_equalize_hist,
+                laplacian=self.model_conf.da_laplace,
+                rotate=self.model_conf.da_rotate,
+                warp_perspective=self.model_conf.da_warp_perspective,
+                sp_noise=self.model_conf.da_sp_noise,
+                random_brightness=self.model_conf.da_brightness,
+                random_saturation=self.model_conf.da_saturation,
+                random_hue=self.model_conf.da_hue,
+                random_gamma=self.model_conf.da_gamma,
+                random_channel_swap=self.model_conf.da_channel_swap,
+                random_blank=self.model_conf.da_random_blank,
+                random_transition=self.model_conf.da_random_transition,
             ).astype(np.float32)
 
         else:

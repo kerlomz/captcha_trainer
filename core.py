@@ -15,8 +15,6 @@ from encoder import *
 from decoder import *
 from fc import *
 
-# slim = tf.contrib.slim
-
 
 class NeuralNetwork(object):
     """
@@ -29,6 +27,7 @@ class NeuralNetwork(object):
         self.utils = NetworkUtils(mode)
         self.network = cnn
         self.recurrent = recurrent
+        print(self.input_shape)
         self.inputs = tf.keras.Input(dtype=tf.float32, shape=self.input_shape, name='input')
         self.labels = tf.keras.Input(dtype=tf.int32, shape=[None], sparse=True, name='labels')
         self.merged_summary = None

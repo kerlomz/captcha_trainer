@@ -5,7 +5,6 @@ import sys
 import shutil
 import json
 import traceback
-import numpy.core._dtype_ctypes
 import PIL.Image as PilImage
 import threading
 import tkinter as tk
@@ -13,10 +12,13 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from constants import *
-from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP
+from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP, DataAugmentationEntity, PretreatmentEntity
 from make_dataset import DataSets
 from trains import Trains
 from category import category_extract, SIMPLE_CATEGORY_MODEL
+from gui.utils import LayoutGUI
+from gui.data_augmentation import DataAugmentationDialog
+from gui.pretreatment import PretreatmentDialog
 
 
 class Wizard:
@@ -24,8 +26,10 @@ class Wizard:
     job: threading.Thread
     current_task: Trains
     is_task_running: bool = False
+    data_augmentation_entity = DataAugmentationEntity()
+    pretreatment_entity = PretreatmentEntity()
 
-    def __init__(self, parent):
+    def __init__(self, parent: tk.Tk):
         self.layout = {
             'global': {
                 'start': {'x': 15, 'y': 20},
@@ -42,7 +46,8 @@ class Wizard:
         self.parent.title('Image Classification Wizard Tool based on Deep Learning')
         self.parent.resizable(width=False, height=False)
         self.window_width = 815
-        self.window_height = 780
+        self.window_height = 700
+        self.layout_utils = LayoutGUI(self.layout, self.window_width)
         screenwidth = self.parent.winfo_screenwidth()
         screenheight = self.parent.winfo_screenheight()
         size = '%dx%d+%d+%d' % (
@@ -51,9 +56,35 @@ class Wizard:
             (screenwidth - self.window_width) / 2,
             (screenheight - self.window_height) / 2
         )
-        self.parent.geometry(size)
 
         self.parent.bind('<Button-1>', lambda x: self.blank_click(x))
+
+        # ============================= Menu 1 =====================================
+        self.menubar = tk.Menu(self.parent)
+        self.data_menu = tk.Menu(self.menubar, tearoff=False)
+        self.help_menu = tk.Menu(self.menubar, tearoff=False)
+        self.system_menu = tk.Menu(self.menubar, tearoff=False)
+        self.edit_var = tk.DoubleVar()
+        self.memory_usage_menu = tk.Menu(self.menubar, tearoff=False)
+        self.memory_usage_menu.add_radiobutton(label="50%", variable=self.edit_var, value=0.5)
+        self.memory_usage_menu.add_radiobutton(label="60%", variable=self.edit_var, value=0.6)
+        self.memory_usage_menu.add_radiobutton(label="70%", variable=self.edit_var, value=0.7)
+        self.memory_usage_menu.add_radiobutton(label="80%", variable=self.edit_var, value=0.8)
+
+        self.menubar.add_cascade(label="System", menu=self.system_menu)
+        self.system_menu.add_cascade(label="Memory Usage", menu=self.memory_usage_menu)
+
+        self.data_menu.add_command(label="Data Augmentation", command=lambda: self.popup_data_augmentation())
+        self.data_menu.add_command(label="Pretreatment", command=lambda: self.popup_pretreatment())
+        self.data_menu.add_separator()
+        self.data_menu.add_command(label="Clear Dataset", command=lambda: self.clear_dataset())
+        self.menubar.add_cascade(label="Data", menu=self.data_menu)
+
+        self.help_menu.add_command(label="About", command=lambda: self.popup_about())
+        self.menubar.add_cascade(label="Help", menu=self.help_menu)
+
+        self.parent.config(menu=self.menubar)
+
         # ============================= Group 1 =====================================
         self.label_frame_source = ttk.Labelframe(self.parent, text='Sample Source')
         self.label_frame_source.place(
@@ -65,7 +96,7 @@ class Wizard:
 
         # 训练集源路径 - 标签
         self.dataset_train_path_text = ttk.Label(self.parent, text='Training Path', anchor=tk.W)
-        self.inside_widget(
+        self.layout_utils.inside_widget(
             src=self.dataset_train_path_text,
             target=self.label_frame_source,
             width=90,
@@ -74,7 +105,7 @@ class Wizard:
 
         # 训练集源路径 - 输入控件
         self.source_train_path_listbox = tk.Listbox(self.parent, font=('微软雅黑', 9))
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.source_train_path_listbox,
             target=self.dataset_train_path_text,
             width=600,
@@ -91,7 +122,7 @@ class Wizard:
         self.btn_browse_train = ttk.Button(
             self.parent, text='Browse', command=lambda: self.browse_dataset(DatasetType.Directory, RunMode.Trains)
         )
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.btn_browse_train,
             target=self.source_train_path_listbox,
             width=60,
@@ -100,8 +131,8 @@ class Wizard:
         )
 
         # 验证集源路径 - 标签
-        label_edge = self.object_edge_info(self.dataset_train_path_text)
-        widget_edge = self.object_edge_info(self.source_train_path_listbox)
+        label_edge = self.layout_utils.object_edge_info(self.dataset_train_path_text)
+        widget_edge = self.layout_utils.object_edge_info(self.source_train_path_listbox)
         self.dataset_validation_path_text = ttk.Label(self.parent, text='Validation Path', anchor=tk.W)
         self.dataset_validation_path_text.place(
             x=label_edge['x'],
@@ -112,7 +143,7 @@ class Wizard:
 
         # 验证集源路径 - 输入控件
         self.source_validation_path_listbox = tk.Listbox(self.parent, font=('微软雅黑', 9))
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.source_validation_path_listbox,
             target=self.dataset_validation_path_text,
             width=600,
@@ -129,7 +160,7 @@ class Wizard:
         self.btn_browse_validation = ttk.Button(
             self.parent, text='Browse', command=lambda: self.browse_dataset(DatasetType.Directory, RunMode.Validation)
         )
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.btn_browse_validation,
             target=self.source_validation_path_listbox,
             width=60,
@@ -139,7 +170,7 @@ class Wizard:
 
         # ============================= Group 2 =====================================
         self.label_frame_neu = ttk.Labelframe(self.parent, text='Neural network')
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.label_frame_neu,
             target=self.label_frame_source,
             width=790,
@@ -149,7 +180,7 @@ class Wizard:
 
         # 最大标签数目 - 标签
         self.label_num_text = ttk.Label(self.parent, text='Label Num', anchor=tk.W)
-        self.inside_widget(
+        self.layout_utils.inside_widget(
             src=self.label_num_text,
             target=self.label_frame_neu,
             width=65,
@@ -159,7 +190,7 @@ class Wizard:
         # 最大标签数目 - 滚动框
         self.label_num_spin = ttk.Spinbox(self.parent, from_=1, to=12)
         self.label_num_spin.set(1)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.label_num_spin,
             target=self.label_num_text,
             width=50,
@@ -169,7 +200,7 @@ class Wizard:
 
         # 图像通道 - 标签
         self.channel_text = ttk.Label(self.parent, text='Channel', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.channel_text,
             target=self.label_num_spin,
             width=50,
@@ -180,7 +211,7 @@ class Wizard:
         # 图像通道 - 下拉框
         self.comb_channel = ttk.Combobox(self.parent, values=(3, 1), state='readonly')
         self.comb_channel.current(0)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_channel,
             target=self.channel_text,
             width=38,
@@ -190,7 +221,7 @@ class Wizard:
 
         # 卷积层 - 标签
         self.neu_cnn_text = ttk.Label(self.parent, text='CNN Layer', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.neu_cnn_text,
             target=self.comb_channel,
             width=65,
@@ -201,7 +232,7 @@ class Wizard:
         # 卷积层 - 下拉框
         self.comb_neu_cnn = ttk.Combobox(self.parent, values=[_.name for _ in CNNNetwork], state='readonly')
         self.comb_neu_cnn.current(0)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_neu_cnn,
             target=self.neu_cnn_text,
             width=80,
@@ -211,7 +242,7 @@ class Wizard:
 
         # 循环层 - 标签
         self.neu_recurrent_text = ttk.Label(self.parent, text='Recurrent Layer', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.neu_recurrent_text,
             target=self.comb_neu_cnn,
             width=95,
@@ -222,7 +253,7 @@ class Wizard:
         # 循环层 - 下拉框
         self.comb_recurrent = ttk.Combobox(self.parent, values=[_.name for _ in RecurrentNetwork], state='readonly')
         self.comb_recurrent.current(0)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_recurrent,
             target=self.neu_recurrent_text,
             width=112,
@@ -233,7 +264,7 @@ class Wizard:
 
         # 循环层单元数 - 标签
         self.units_num_text = ttk.Label(self.parent, text='UnitsNum', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.units_num_text,
             target=self.comb_recurrent,
             width=60,
@@ -244,7 +275,7 @@ class Wizard:
         # 循环层单元数 - 下拉框
         self.units_num_spin = ttk.Spinbox(self.parent, from_=16, to=512, increment=16, wrap=True)
         self.units_num_spin.set(64)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.units_num_spin,
             target=self.units_num_text,
             width=55,
@@ -254,7 +285,7 @@ class Wizard:
 
         # 损失函数 - 标签
         self.loss_func_text = ttk.Label(self.parent, text='Loss Function', anchor=tk.W)
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.loss_func_text,
             target=self.label_num_text,
             width=85,
@@ -265,7 +296,7 @@ class Wizard:
         # 损失函数 - 下拉框
         self.comb_loss = ttk.Combobox(self.parent, values=[_.name for _ in LossFunction], state='readonly')
         self.comb_loss.current(0)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_loss,
             target=self.loss_func_text,
             width=101,
@@ -275,7 +306,7 @@ class Wizard:
 
         # 优化器 - 标签
         self.optimizer_text = ttk.Label(self.parent, text='Optimizer', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.optimizer_text,
             target=self.comb_loss,
             width=60,
@@ -286,7 +317,7 @@ class Wizard:
         # 优化器 - 下拉框
         self.comb_optimizer = ttk.Combobox(self.parent, values=[_.name for _ in Optimizer], state='readonly')
         self.comb_optimizer.current(0)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_optimizer,
             target=self.optimizer_text,
             width=88,
@@ -296,7 +327,7 @@ class Wizard:
 
         # 学习率 - 标签
         self.learning_rate_text = ttk.Label(self.parent, text='Learning Rate', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.learning_rate_text,
             target=self.comb_optimizer,
             width=85,
@@ -307,7 +338,7 @@ class Wizard:
         # 学习率 - 滚动框
         self.learning_rate_spin = ttk.Spinbox(self.parent, from_=0.00001, to=0.1, increment='0.0001')
         self.learning_rate_spin.set(0.001)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.learning_rate_spin,
             target=self.learning_rate_text,
             width=67,
@@ -317,7 +348,7 @@ class Wizard:
 
         # Resize - 标签
         self.resize_text = ttk.Label(self.parent, text='Resize', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.resize_text,
             target=self.learning_rate_spin,
             width=36,
@@ -329,7 +360,7 @@ class Wizard:
         self.resize_val = tk.StringVar()
         self.resize_val.set('[150, 50]')
         self.resize_entry = ttk.Entry(self.parent, textvariable=self.resize_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.resize_entry,
             target=self.resize_text,
             width=60,
@@ -339,7 +370,7 @@ class Wizard:
 
         # Size - 标签
         self.size_text = ttk.Label(self.parent, text='Size', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.size_text,
             target=self.resize_entry,
             width=30,
@@ -351,7 +382,7 @@ class Wizard:
         self.size_val = tk.StringVar()
         self.size_val.set('[-1, -1]')
         self.size_entry = ttk.Entry(self.parent, textvariable=self.size_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.size_entry,
             target=self.size_text,
             width=60,
@@ -361,7 +392,7 @@ class Wizard:
 
         # 类别 - 标签
         self.category_text = ttk.Label(self.parent, text='Category', anchor=tk.W)
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.category_text,
             target=self.loss_func_text,
             width=72,
@@ -386,7 +417,7 @@ class Wizard:
         ), state='readonly')
         self.comb_category.current(1)
         self.comb_category.bind("<<ComboboxSelected>>", lambda x: self.comb_category_callback(x))
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_category,
             target=self.category_text,
             width=225,
@@ -398,7 +429,7 @@ class Wizard:
         self.category_val = tk.StringVar()
         self.category_val.set('')
         self.category_entry = ttk.Entry(self.parent, textvariable=self.category_val, justify=tk.LEFT, state=tk.DISABLED)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.category_entry,
             target=self.comb_category,
             width=440,
@@ -408,7 +439,7 @@ class Wizard:
 
         # ============================= Group 3 =====================================
         self.label_frame_train = ttk.Labelframe(self.parent, text='Training Configuration')
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.label_frame_train,
             target=self.label_frame_neu,
             width=790,
@@ -418,7 +449,7 @@ class Wizard:
 
         # 任务完成标准 - 准确率 - 标签
         self.end_acc_text = ttk.Label(self.parent, text='End Accuracy', anchor=tk.W)
-        self.inside_widget(
+        self.layout_utils.inside_widget(
             src=self.end_acc_text,
             target=self.label_frame_train,
             width=85,
@@ -429,7 +460,7 @@ class Wizard:
         self.end_acc_val = tk.DoubleVar()
         self.end_acc_val.set(0.95)
         self.end_acc_entry = ttk.Entry(self.parent, textvariable=self.end_acc_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.end_acc_entry,
             target=self.end_acc_text,
             width=56,
@@ -439,7 +470,7 @@ class Wizard:
 
         # 任务完成标准 - 平均损失 - 标签
         self.end_cost_text = ttk.Label(self.parent, text='End Cost', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.end_cost_text,
             target=self.end_acc_entry,
             width=60,
@@ -451,7 +482,7 @@ class Wizard:
         self.end_cost_val = tk.DoubleVar()
         self.end_cost_val.set(0.5)
         self.end_cost_entry = ttk.Entry(self.parent, textvariable=self.end_cost_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.end_cost_entry,
             target=self.end_cost_text,
             width=58,
@@ -461,7 +492,7 @@ class Wizard:
 
         # 任务完成标准 - 循环轮次 - 标签
         self.end_epochs_text = ttk.Label(self.parent, text='End Epochs', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.end_epochs_text,
             target=self.end_cost_entry,
             width=72,
@@ -472,7 +503,7 @@ class Wizard:
         # 任务完成标准 - 循环轮次 - 输入框
         self.end_epochs_spin = ttk.Spinbox(self.parent, from_=0, to=10000)
         self.end_epochs_spin.set(2)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.end_epochs_spin,
             target=self.end_epochs_text,
             width=50,
@@ -482,7 +513,7 @@ class Wizard:
 
         # 训练批次大小 - 标签
         self.batch_size_text = ttk.Label(self.parent, text='Train BatchSize', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.batch_size_text,
             target=self.end_epochs_spin,
             width=90,
@@ -494,7 +525,7 @@ class Wizard:
         self.batch_size_val = tk.IntVar()
         self.batch_size_val.set(64)
         self.batch_size_entry = ttk.Entry(self.parent, textvariable=self.batch_size_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.batch_size_entry,
             target=self.batch_size_text,
             width=40,
@@ -504,7 +535,7 @@ class Wizard:
 
         # 验证批次大小 - 标签
         self.validation_batch_size_text = ttk.Label(self.parent, text='Validation BatchSize', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.validation_batch_size_text,
             target=self.batch_size_entry,
             width=120,
@@ -516,7 +547,7 @@ class Wizard:
         self.validation_batch_size_val = tk.IntVar()
         self.validation_batch_size_val.set(300)
         self.validation_batch_size_entry = ttk.Entry(self.parent, textvariable=self.validation_batch_size_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.validation_batch_size_entry,
             target=self.validation_batch_size_text,
             width=40,
@@ -524,172 +555,13 @@ class Wizard:
             tiny_space=True
         )
 
-        # ============================= Group 4 =====================================
-        self.label_frame_augmentation = ttk.Labelframe(self.parent, text='Data Augmentation')
-        self.below_widget(
-            src=self.label_frame_augmentation,
-            target=self.label_frame_train,
-            width=790,
-            height=90,
-            tiny_space=True
-        )
 
-        # 二值化 - 标签
-        self.binaryzation_text = ttk.Label(self.parent, text='Binaryzation', anchor=tk.W)
-        self.inside_widget(
-            src=self.binaryzation_text,
-            target=self.label_frame_augmentation,
-            width=72,
-            height=20,
-        )
-
-        # 二值化 - 输入框
-        self.binaryzation_val = tk.IntVar()
-        self.binaryzation_val.set(-1)
-        self.binaryzation_entry = ttk.Entry(self.parent, textvariable=self.binaryzation_val, justify=tk.LEFT)
-        self.next_to_widget(
-            src=self.binaryzation_entry,
-            target=self.binaryzation_text,
-            width=55,
-            height=20,
-            tiny_space=True
-        )
-
-        # 滤波 - 标签
-        self.median_blur_text = ttk.Label(self.parent, text='Median Blur', anchor=tk.W)
-        self.next_to_widget(
-            src=self.median_blur_text,
-            target=self.binaryzation_entry,
-            width=80,
-            height=20,
-            tiny_space=False
-        )
-
-        # 滤波 - 输入框
-        self.median_blur_val = tk.IntVar()
-        self.median_blur_val.set(-1)
-        self.median_blur_entry = ttk.Entry(self.parent, textvariable=self.median_blur_val, justify=tk.LEFT)
-        self.next_to_widget(
-            src=self.median_blur_entry,
-            target=self.median_blur_text,
-            width=52,
-            height=20,
-            tiny_space=True
-        )
-
-        # 高斯模糊 - 标签
-        self.gaussian_blur_text = ttk.Label(self.parent, text='Gaussian Blur', anchor=tk.W)
-        self.next_to_widget(
-            src=self.gaussian_blur_text,
-            target=self.median_blur_entry,
-            width=85,
-            height=20,
-            tiny_space=False
-        )
-
-        # 高斯模糊 - 输入框
-        self.gaussian_blur_val = tk.IntVar()
-        self.gaussian_blur_val.set(-1)
-        self.gaussian_blur_entry = ttk.Entry(self.parent, textvariable=self.gaussian_blur_val, justify=tk.LEFT)
-        self.next_to_widget(
-            src=self.gaussian_blur_entry,
-            target=self.gaussian_blur_text,
-            width=62,
-            height=20,
-            tiny_space=True
-        )
-
-        # 直方图均衡化 - 多选框
-        self.equalize_hist_val = tk.IntVar()
-        self.equalize_hist_val.set(0)
-        self.equalize_hist = ttk.Checkbutton(
-            self.parent, text='EqualizeHist', variable=self.equalize_hist_val, offvalue=0
-        )
-        self.next_to_widget(
-            src=self.equalize_hist,
-            target=self.gaussian_blur_entry,
-            width=100,
-            height=20,
-            tiny_space=False
-        )
-
-        # 拉普拉斯 - 多选框
-        self.laplace_val = tk.IntVar()
-        self.laplace_val.set(0)
-        self.laplace = ttk.Checkbutton(
-            self.parent, text='Laplace', variable=self.laplace_val, onvalue=1, offvalue=0
-        )
-        self.next_to_widget(
-            src=self.laplace,
-            target=self.equalize_hist,
-            width=64,
-            height=20,
-            tiny_space=False
-        )
-
-        # 旋转 - 标签
-        self.rotate_text = ttk.Label(self.parent, text='Rotate (0-90)', anchor=tk.W)
-        self.below_widget(
-            src=self.rotate_text,
-            target=self.binaryzation_text,
-            width=72,
-            height=20,
-            tiny_space=True
-        )
-
-        # 旋转 - 输入框
-        self.rotate_val = tk.IntVar()
-        self.rotate_val.set(-1)
-        self.rotate_entry = ttk.Entry(self.parent, textvariable=self.rotate_val, justify=tk.LEFT)
-        self.next_to_widget(
-            src=self.rotate_entry,
-            target=self.rotate_text,
-            width=55,
-            height=20,
-            tiny_space=True
-        )
-
-        # 椒盐噪声 - 标签
-        self.sp_noise_text = ttk.Label(self.parent, text='Pepper Noise (0-1)', anchor=tk.W)
-        self.next_to_widget(
-            src=self.sp_noise_text,
-            target=self.rotate_entry,
-            width=110,
-            height=20,
-            tiny_space=False
-        )
-
-        # 椒盐噪声 - 输入框
-        self.sp_noise_val = tk.DoubleVar()
-        self.sp_noise_val.set(-1)
-        self.sp_noise_entry = ttk.Entry(self.parent, textvariable=self.sp_noise_val, justify=tk.LEFT)
-        self.next_to_widget(
-            src=self.sp_noise_entry,
-            target=self.sp_noise_text,
-            width=71,
-            height=20,
-            tiny_space=True
-        )
-
-        # 透视变换 - 多选框
-        self.warp_perspective_val = tk.IntVar()
-        self.warp_perspective_val.set(0)
-        self.warp_perspective = ttk.Checkbutton(
-            self.parent, text='Warp Perspective', variable=self.warp_perspective_val, onvalue=1, offvalue=0
-        )
-        self.next_to_widget(
-            src=self.warp_perspective,
-            target=self.sp_noise_entry,
-            width=130,
-            height=20,
-            tiny_space=False
-        )
 
         # ============================= Group 5 =====================================
         self.label_frame_project = ttk.Labelframe(self.parent, text='Project Configuration')
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.label_frame_project,
-            target=self.label_frame_augmentation,
+            target=self.label_frame_train,
             width=790,
             height=60,
             tiny_space=True
@@ -697,7 +569,7 @@ class Wizard:
 
         # 项目名 - 标签
         self.project_name_text = ttk.Label(self.parent, text='Project Name', anchor=tk.W)
-        self.inside_widget(
+        self.layout_utils.inside_widget(
             src=self.project_name_text,
             target=self.label_frame_project,
             width=90,
@@ -706,7 +578,7 @@ class Wizard:
 
         # 项目名 - 下拉输入框
         self.comb_project_name = ttk.Combobox(self.parent)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.comb_project_name,
             target=self.project_name_text,
             width=430,
@@ -727,7 +599,7 @@ class Wizard:
         self.btn_save_conf = ttk.Button(
             self.parent, text='Save Configuration', command=lambda: self.save_conf()
         )
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.btn_save_conf,
             target=self.comb_project_name,
             width=130,
@@ -740,7 +612,7 @@ class Wizard:
         self.btn_delete = ttk.Button(
             self.parent, text='Delete', command=lambda: self.delete_project()
         )
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.btn_delete,
             target=self.btn_save_conf,
             width=80,
@@ -752,7 +624,7 @@ class Wizard:
         self.label_frame_dataset = ttk.Labelframe(
             self.parent, text='Sample Dataset'
         )
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.label_frame_dataset,
             target=self.label_frame_project,
             width=790,
@@ -766,7 +638,7 @@ class Wizard:
             text='Attach Dataset',
             command=lambda: self.attach_dataset()
         )
-        self.inside_widget(
+        self.layout_utils.inside_widget(
             src=self.btn_attach_dataset,
             target=self.label_frame_dataset,
             width=120,
@@ -779,7 +651,7 @@ class Wizard:
         self.attach_dataset_entry = ttk.Entry(
             self.parent, textvariable=self.attach_dataset_val, justify=tk.LEFT, state=tk.DISABLED
         )
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.attach_dataset_entry,
             target=self.btn_attach_dataset,
             width=420,
@@ -789,7 +661,7 @@ class Wizard:
 
         # 验证集数目 - 标签
         self.validation_num_text = ttk.Label(self.parent, text='Validation Set Num', anchor=tk.W)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.validation_num_text,
             target=self.attach_dataset_entry,
             width=120,
@@ -802,7 +674,7 @@ class Wizard:
         self.validation_num_val = tk.IntVar()
         self.validation_num_val.set(300)
         self.validation_num_entry = ttk.Entry(self.parent, textvariable=self.validation_num_val, justify=tk.LEFT)
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.validation_num_entry,
             target=self.validation_num_text,
             width=71,
@@ -812,7 +684,7 @@ class Wizard:
 
         # 训练集路径 - 标签
         self.dataset_train_path_text = ttk.Label(self.parent, text='Training Dataset', anchor=tk.W)
-        self.below_widget(
+        self.layout_utils.below_widget(
             src=self.dataset_train_path_text,
             target=self.btn_attach_dataset,
             width=100,
@@ -822,7 +694,7 @@ class Wizard:
 
         # 训练集路径 - 列表框
         self.dataset_train_listbox = tk.Listbox(self.parent, font=('微软雅黑', 9))
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.dataset_train_listbox,
             target=self.dataset_train_path_text,
             width=640,
@@ -836,8 +708,8 @@ class Wizard:
         self.listbox_scrollbar(self.dataset_train_listbox)
 
         # 验证集路径 - 标签
-        label_edge = self.object_edge_info(self.dataset_train_path_text)
-        widget_edge = self.object_edge_info(self.dataset_train_listbox)
+        label_edge = self.layout_utils.object_edge_info(self.dataset_train_path_text)
+        widget_edge = self.layout_utils.object_edge_info(self.dataset_train_listbox)
         self.dataset_validation_path_text = ttk.Label(self.parent, text='Validation Dataset', anchor=tk.W)
         self.dataset_validation_path_text.place(
             x=label_edge['x'],
@@ -848,7 +720,7 @@ class Wizard:
 
         # 验证集路径 - 下拉输入框
         self.dataset_validation_listbox = tk.Listbox(self.parent, font=('微软雅黑', 9))
-        self.next_to_widget(
+        self.layout_utils.next_to_widget(
             src=self.dataset_validation_listbox,
             target=self.dataset_validation_path_text,
             width=640,
@@ -874,7 +746,7 @@ class Wizard:
 
         # 开始训练 - 按钮
         self.btn_training = ttk.Button(self.parent, text='Start Training', command=lambda: self.start_training())
-        self.widget_from_right(
+        self.layout_utils.widget_from_right(
             src=self.btn_training,
             target=self.label_frame_dataset,
             width=120,
@@ -885,7 +757,7 @@ class Wizard:
         # 终止训练 - 按钮
         self.btn_stop = ttk.Button(self.parent, text='Stop', command=lambda: self.stop_training())
         self.button_state(self.btn_stop, tk.DISABLED)
-        self.before_widget(
+        self.layout_utils.before_widget(
             src=self.btn_stop,
             target=self.btn_training,
             width=60,
@@ -895,7 +767,7 @@ class Wizard:
 
         # 编译模型 - 按钮
         self.btn_compile = ttk.Button(self.parent, text='Compile', command=lambda: self.compile())
-        self.before_widget(
+        self.layout_utils.before_widget(
             src=self.btn_compile,
             target=self.btn_stop,
             width=80,
@@ -905,7 +777,7 @@ class Wizard:
 
         # 打包训练集 - 按钮
         self.btn_make_dataset = ttk.Button(self.parent, text='Make Dataset', command=lambda: self.make_dataset())
-        self.before_widget(
+        self.layout_utils.before_widget(
             src=self.btn_make_dataset,
             target=self.btn_compile,
             width=120,
@@ -917,7 +789,7 @@ class Wizard:
         self.btn_reset_history = ttk.Button(
             self.parent, text='Reset History', command=lambda: self.reset_history()
         )
-        self.before_widget(
+        self.layout_utils.before_widget(
             src=self.btn_reset_history,
             target=self.btn_make_dataset,
             width=120,
@@ -925,50 +797,7 @@ class Wizard:
             tiny_space=True
         )
 
-    def widget_from_right(self, src, target, width, height, tiny_space=False):
-        target_edge = self.object_edge_info(target)
-        src.place(
-            x=self.window_width - width - self.layout['global']['space']['x'],
-            y=target_edge['edge_y'] + self.layout['global']['tiny_space' if tiny_space else 'space']['y'],
-            width=width,
-            height=height
-        )
-
-    def before_widget(self, src, target, width, height, tiny_space=False):
-        target_edge = self.object_edge_info(target)
-        src.place(
-            x=target_edge['x'] - width - self.layout['global']['tiny_space' if tiny_space else 'space']['x'],
-            y=target_edge['y'],
-            width=width,
-            height=height
-        )
-
-    def inside_widget(self, src, target, width, height):
-        target_edge = self.object_edge_info(target)
-        src.place(
-            x=target_edge['x'] + self.layout['global']['space']['x'],
-            y=target_edge['y'] + self.layout['global']['space']['y'],
-            width=width,
-            height=height
-        )
-
-    def below_widget(self, src, target, width, height, tiny_space=False):
-        target_edge = self.object_edge_info(target)
-        src.place(
-            x=target_edge['x'],
-            y=target_edge['edge_y'] + self.layout['global']['tiny_space' if tiny_space else 'space']['y'],
-            width=width,
-            height=height
-        )
-
-    def next_to_widget(self, src, target, width, height, tiny_space=False, offset_y=0):
-        target_edge = self.object_edge_info(target)
-        src.place(
-            x=target_edge['edge_x'] + self.layout['global']['tiny_space' if tiny_space else 'space']['x'],
-            y=target_edge['y'] + offset_y,
-            width=width,
-            height=height
-        )
+        self.parent.geometry(size)
 
     @staticmethod
     def threading_exec(func, *args) -> threading.Thread:
@@ -977,14 +806,23 @@ class Wizard:
         th.start()
         return th
 
-    @staticmethod
-    def object_edge_info(obj):
-        info = obj.place_info()
-        x = int(info['x'])
-        y = int(info['y'])
-        edge_x = int(info['x']) + int(info['width'])
-        edge_y = int(info['y']) + int(info['height'])
-        return {'x': x, 'y': y, 'edge_x': edge_x, 'edge_y': edge_y}
+    def popup_data_augmentation(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
+        data_augmentation = DataAugmentationDialog()
+        data_augmentation.read_conf(self.data_augmentation_entity)
+
+    def popup_pretreatment(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please set the project name first."
+            )
+            return
+        pretreatment = PretreatmentDialog()
+        pretreatment.read_conf(self.pretreatment_entity)
 
     @staticmethod
     def listbox_scrollbar(listbox: tk.Listbox):
@@ -1124,6 +962,34 @@ class Wizard:
             "Error!", "Delete history successful!"
         )
 
+    def clear_dataset(self):
+        if not self.current_project:
+            messagebox.showerror(
+                "Error!", "Please select a project first."
+            )
+            return
+        if self.is_task_running:
+            messagebox.showerror(
+                "Error!", "Please terminate the current training first or wait for the training to end."
+            )
+            return
+        project_history_path = "./projects/{}/dataset".format(self.current_project)
+        try:
+            shutil.rmtree(project_history_path)
+            self.dataset_train_listbox.delete(1, tk.END)
+            self.dataset_validation_listbox.delete(1, tk.END)
+        except Exception as e:
+            messagebox.showerror(
+                "Error!", json.dumps(e.args)
+            )
+        messagebox.showinfo(
+            "Error!", "Clear dataset successful!"
+        )
+
+    @staticmethod
+    def popup_about():
+        messagebox.showinfo("About", "Image Classification Wizard Tool based on Deep Learning 1.0\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419")
+
     def auto_loss(self, event):
         if self.comb_recurrent.get() == 'NoRecurrent':
             self.comb_loss.set("CrossEntropy")
@@ -1137,7 +1003,7 @@ class Wizard:
         selected = self.comb_project_name.get()
         self.current_project = selected
         model_conf = ModelConfig(selected)
-
+        self.edit_var.set(model_conf.memory_usage)
         self.size_val.set("[{}, {}]".format(model_conf.image_width, model_conf.image_height))
         self.resize_val.set(json.dumps(model_conf.resize))
         self.source_train_path_listbox.delete(0, tk.END)
@@ -1171,17 +1037,27 @@ class Wizard:
         self.batch_size_val.set(model_conf.batch_size)
         self.validation_batch_size_val.set(model_conf.validation_batch_size)
         self.validation_num_val.set(model_conf.validation_set_num)
-        self.binaryzation_val.set(model_conf.binaryzation)
-        self.median_blur_val.set(model_conf.median_blur)
-        self.gaussian_blur_val.set(model_conf.gaussian_blur)
-        if model_conf.equalize_hist:
-            self.equalize_hist_val.set(1)
-        if model_conf.laplace:
-            self.laplace_val.set(1)
-        if model_conf.warp_perspective:
-            self.warp_perspective_val.set(1)
-        self.rotate_val.set(model_conf.rotate)
-        self.sp_noise_val.set(model_conf.sp_noise)
+
+        self.data_augmentation_entity.binaryzation = model_conf.da_binaryzation
+        self.data_augmentation_entity.median_blur = model_conf.da_median_blur
+        self.data_augmentation_entity.gaussian_blur = model_conf.da_gaussian_blur
+        self.data_augmentation_entity.equalize_hist = model_conf.da_equalize_hist
+        self.data_augmentation_entity.laplace = model_conf.da_laplace
+        self.data_augmentation_entity.warp_perspective = model_conf.da_warp_perspective
+        self.data_augmentation_entity.rotate = model_conf.da_rotate
+        self.data_augmentation_entity.sp_noise = model_conf.da_sp_noise
+        self.data_augmentation_entity.brightness = model_conf.da_brightness
+        self.data_augmentation_entity.hue = model_conf.da_hue
+        self.data_augmentation_entity.channel_swap = model_conf.da_channel_swap
+        self.data_augmentation_entity.random_blank = model_conf.da_random_blank
+        self.data_augmentation_entity.random_transition = model_conf.da_random_transition
+
+        self.pretreatment_entity.binaryzation = model_conf.pre_binaryzation
+        self.pretreatment_entity.replace_transparent = model_conf.pre_replace_transparent
+        self.pretreatment_entity.horizontal_stitching = model_conf.pre_horizontal_stitching
+        self.pretreatment_entity.concat_frames = model_conf.pre_concat_frames
+        self.pretreatment_entity.blend_frames = model_conf.pre_blend_frames
+
         for dataset_validation in self.get_param(model_conf.validation_path, DatasetType.TFRecords, default=[]):
             self.dataset_validation_listbox.insert(tk.END, dataset_validation)
         for dataset_train in self.get_param(model_conf.trains_path, DatasetType.TFRecords, default=[]):
@@ -1195,6 +1071,10 @@ class Wizard:
         else:
             return min(self.validation_batch_size_val.get(), self.validation_num_val.get())
 
+    @property
+    def device_usage(self):
+        return self.edit_var.get()
+
     def save_conf(self):
         if not self.current_project:
             messagebox.showerror(
@@ -1203,7 +1083,7 @@ class Wizard:
             return
         model_conf = ModelConfig(
             project_name=self.current_project,
-            MemoryUsage=0.7,
+            MemoryUsage=self.device_usage,
             CNNNetwork=self.neu_cnn,
             RecurrentNetwork=self.neu_recurrent,
             UnitsNum=self.units_num_spin.get(),
@@ -1219,7 +1099,7 @@ class Wizard:
             ImageWidth=self.image_width,
             ImageHeight=self.image_height,
             MaxLabelNum=self.label_num_spin.get(),
-            ReplaceTransparent=True,
+            ReplaceTransparent=False,
             HorizontalStitching=False,
             OutputSplit='',
             LabelFrom=LabelFrom.FileName.value,
@@ -1246,14 +1126,26 @@ class Wizard:
             BatchSize=self.batch_size_val.get(),
             ValidationBatchSize=self.validation_batch_size,
             LearningRate=self.learning_rate_spin.get(),
-            Binaryzation=self.binaryzation_val.get(),
-            MedianBlur=self.median_blur_val.get(),
-            GaussianBlur=self.gaussian_blur_val.get(),
-            EqualizeHist=self.equalize_hist_val.get(),
-            Laplace=self.laplace_val.get(),
-            WarpPerspective=self.warp_perspective_val.get(),
-            Rotate=self.rotate_val.get(),
-            PepperNoise=self.sp_noise_val.get(),
+            DA_Binaryzation=self.data_augmentation_entity.binaryzation,
+            DA_MedianBlur=self.data_augmentation_entity.median_blur,
+            DA_GaussianBlur=self.data_augmentation_entity.gaussian_blur,
+            DA_EqualizeHist=self.data_augmentation_entity.equalize_hist,
+            DA_Laplace=self.data_augmentation_entity.laplace,
+            DA_WarpPerspective=self.data_augmentation_entity.warp_perspective,
+            DA_Rotate=self.data_augmentation_entity.rotate,
+            DA_PepperNoise=self.data_augmentation_entity.sp_noise,
+            DA_Brightness=self.data_augmentation_entity.brightness,
+            DA_Saturation=self.data_augmentation_entity.saturation,
+            DA_Hue=self.data_augmentation_entity.hue,
+            DA_Gamma=self.data_augmentation_entity.gamma,
+            DA_ChannelSwap=self.data_augmentation_entity.channel_swap,
+            DA_RandomBlank=self.data_augmentation_entity.random_blank,
+            DA_RandomTransition=self.data_augmentation_entity.random_transition,
+            Pre_Binaryzation=self.pretreatment_entity.binaryzation,
+            Pre_ReplaceTransparent=self.pretreatment_entity.replace_transparent,
+            Pre_HorizontalStitching=self.pretreatment_entity.horizontal_stitching,
+            Pre_ConcatFrames=self.pretreatment_entity.concat_frames,
+            Pre_BlendFrames=self.pretreatment_entity.blend_frames,
         )
         model_conf.update()
         return model_conf
@@ -1349,6 +1241,7 @@ class Wizard:
             return None
         if comb_selected == 'CUSTOMIZED':
             category_value = self.category_entry.get()
+            category_value = category_value.replace("'", '"') if "'" in category_value else category_value
             category_value = self.json_filter(category_value, str)
         else:
             category_value = comb_selected
@@ -1474,17 +1367,19 @@ class Wizard:
         for i, item in enumerate(os.scandir(filename)):
             if item.is_dir():
                 path = item.path.replace("\\", "/")
+                if self.sample_map[dataset_type][mode].size() == 0:
+                    self.fetch_sample([path])
                 self.sample_map[dataset_type][mode].insert(tk.END, path)
                 if i > 0:
                     continue
                 is_sub = True
-                self.fetch_sample([path])
             else:
                 break
         if not is_sub:
             filename = filename.replace("\\", "/")
+            if self.sample_map[dataset_type][mode].size() == 0:
+                self.fetch_sample([filename])
             self.sample_map[dataset_type][mode].insert(tk.END, filename)
-            self.fetch_sample([filename])
 
     @staticmethod
     def closest_category(category):
@@ -1543,7 +1438,6 @@ class Wizard:
             )
             return False
         return True
-
 
     @staticmethod
     def resource_path(relative_path):

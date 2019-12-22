@@ -100,6 +100,34 @@ OUTPUT_SHAPE1_MAP = {
 }
 
 
+class DataAugmentationEntity:
+
+    binaryzation: object = -1
+    median_blur: int = -1
+    gaussian_blur: int = -1
+    equalize_hist: bool = False
+    laplace: bool = False
+    warp_perspective: bool = False
+    rotate: int = -1
+    sp_noise: float = -1.0
+    brightness: bool = True
+    saturation: bool = True
+    hue: bool = True
+    gamma: bool = True
+    channel_swap: bool = True
+    random_blank: int = 3
+    random_transition: int = 5
+
+
+class PretreatmentEntity:
+
+    binaryzation: object = -1
+    concat_frames: object = -1
+    blend_frames: object = -1
+    replace_transparent: bool = False
+    horizontal_stitching: bool = False
+
+
 class ModelConfig:
 
     """MODEL"""
@@ -123,8 +151,6 @@ class ModelConfig:
     image_height: int
     resize: list
     max_label_num: int
-    replace_transparent: bool
-    horizontal_stitching: bool
     output_split: str
 
     """NEURAL NETWORK"""
@@ -167,14 +193,29 @@ class ModelConfig:
 
     """DATA AUGMENTATION"""
     data_augmentation_root: dict
-    binaryzation: int
-    median_blur: int
-    gaussian_blur: int
-    equalize_hist: bool
-    laplace: bool
-    rotate: int
-    warp_perspective: bool
-    sp_noise: float
+    da_binaryzation: int
+    da_median_blur: int
+    da_gaussian_blur: int
+    da_equalize_hist: bool
+    da_laplace: bool
+    da_rotate: int
+    da_warp_perspective: bool
+    da_sp_noise: float
+    da_brightness: bool
+    da_saturation: bool
+    da_hue: bool
+    da_gamma: bool
+    da_channel_swap: bool
+    da_random_blank: int
+    da_random_transition: int
+
+    """PRETREATMENT"""
+    pretreatment_root: dict
+    pre_binaryzation: int
+    pre_replace_transparent: bool
+    pre_horizontal_stitching: bool
+    pre_concat_frames: object
+    pre_blend_frames: object
 
     """COMPILE_MODEL"""
     compile_model_path: str
@@ -228,8 +269,6 @@ class ModelConfig:
         self.image_height = self.field_root.get('ImageHeight')
         self.resize = self.field_root.get('Resize')
         self.max_label_num = self.field_root.get('MaxLabelNum')
-        self.replace_transparent = self.field_root.get("ReplaceTransparent")
-        self.horizontal_stitching = self.field_root.get("HorizontalStitching")
         self.output_split = self.field_root.get('OutputSplit')
 
         """NEURAL NETWORK"""
@@ -285,14 +324,29 @@ class ModelConfig:
 
         """DATA AUGMENTATION"""
         self.data_augmentation_root = self.conf['DataAugmentation']
-        self.binaryzation = self.data_augmentation_root.get('Binaryzation')
-        self.median_blur = self.data_augmentation_root.get('MedianBlur')
-        self.gaussian_blur = self.data_augmentation_root.get('GaussianBlur')
-        self.equalize_hist = self.data_augmentation_root.get('EqualizeHist')
-        self.laplace = self.data_augmentation_root.get('Laplace')
-        self.rotate = self.data_augmentation_root.get('Rotate')
-        self.warp_perspective = self.data_augmentation_root.get('WarpPerspective')
-        self.sp_noise = self.data_augmentation_root.get('PepperNoise')
+        self.da_binaryzation = self.data_augmentation_root.get('Binaryzation')
+        self.da_median_blur = self.data_augmentation_root.get('MedianBlur')
+        self.da_gaussian_blur = self.data_augmentation_root.get('GaussianBlur')
+        self.da_equalize_hist = self.data_augmentation_root.get('EqualizeHist')
+        self.da_laplace = self.data_augmentation_root.get('Laplace')
+        self.da_rotate = self.data_augmentation_root.get('Rotate')
+        self.da_warp_perspective = self.data_augmentation_root.get('WarpPerspective')
+        self.da_sp_noise = self.data_augmentation_root.get('PepperNoise')
+        self.da_brightness = self.data_augmentation_root.get('Brightness')
+        self.da_saturation = self.data_augmentation_root.get('Saturation')
+        self.da_hue = self.data_augmentation_root.get('Hue')
+        self.da_gamma = self.data_augmentation_root.get('Gamma')
+        self.da_channel_swap = self.data_augmentation_root.get('ChannelSwap')
+        self.da_random_blank = self.data_augmentation_root.get('RandomBlank')
+        self.da_random_transition = self.data_augmentation_root.get('RandomTransition')
+
+        """PRETREATMENT"""
+        self.pretreatment_root = self.conf['Pretreatment']
+        self.pre_binaryzation = self.pretreatment_root.get('Binaryzation')
+        self.pre_replace_transparent = self.pretreatment_root.get("ReplaceTransparent")
+        self.pre_horizontal_stitching = self.pretreatment_root.get("HorizontalStitching")
+        self.pre_concat_frames = self.pretreatment_root.get('ConcatFrames')
+        self.pre_blend_frames = self.pretreatment_root.get('BlendFrames')
 
         """COMPILE_MODEL"""
         self.compile_model_path = os.path.join(self.output_path, 'graph')
@@ -452,8 +506,6 @@ class ModelConfig:
                 ImageWidth=self.image_width,
                 ImageHeight=self.image_height,
                 MaxLabelNum=self.max_label_num,
-                ReplaceTransparent=self.replace_transparent,
-                HorizontalStitching=self.horizontal_stitching,
                 OutputSplit=self.val_filter(self.output_split),
                 LabelFrom=self.label_from.value,
                 ExtractRegex=self.val_filter(self.extract_regex),
@@ -471,14 +523,26 @@ class ModelConfig:
                 BatchSize=self.batch_size,
                 ValidationBatchSize=self.validation_batch_size,
                 LearningRate=self.trains_learning_rate,
-                Binaryzation=self.binaryzation,
-                MedianBlur=self.median_blur,
-                GaussianBlur=self.gaussian_blur,
-                EqualizeHist=self.equalize_hist,
-                Laplace=self.laplace,
-                WarpPerspective=self.warp_perspective,
-                Rotate=self.rotate,
-                PepperNoise=self.sp_noise,
+                DA_Binaryzation=self.da_binaryzation,
+                DA_MedianBlur=self.da_median_blur,
+                DA_GaussianBlur=self.da_gaussian_blur,
+                DA_EqualizeHist=self.da_equalize_hist,
+                DA_Laplace=self.da_laplace,
+                DA_WarpPerspective=self.da_warp_perspective,
+                DA_Rotate=self.da_rotate,
+                DA_PepperNoise=self.da_sp_noise,
+                DA_Brightness=self.da_brightness,
+                DA_Saturation=self.da_saturation,
+                DA_Hue=self.da_hue,
+                DA_Gamma=self.da_gamma,
+                DA_ChannelSwap=self.da_channel_swap,
+                DA_RandomBlank=self.da_random_blank,
+                DA_RandomTransition=self.da_random_transition,
+                Pre_Binaryzation=self.pre_binaryzation,
+                Pre_ReplaceTransparent=self.pre_replace_transparent,
+                Pre_HorizontalStitching=self.pre_horizontal_stitching,
+                Pre_ConcatFrames=self.pre_concat_frames,
+                Pre_BlendFrames=self.pre_blend_frames,
             )
         with open(model_conf_path if model_conf_path else self.model_conf_path, "w", encoding="utf8") as f:
             f.write(model)
@@ -523,8 +587,6 @@ class ModelConfig:
         self.image_width = argv.get('ImageWidth')
         self.image_height = argv.get('ImageHeight')
         self.max_label_num = argv.get('MaxLabelNum')
-        self.replace_transparent = argv.get('ReplaceTransparent')
-        self.horizontal_stitching = argv.get('HorizontalStitching')
         self.output_split = argv.get('OutputSplit')
         self.label_from_param = argv.get('LabelFrom')
         self.extract_regex = argv.get('ExtractRegex')
@@ -542,14 +604,26 @@ class ModelConfig:
         self.batch_size = argv.get('BatchSize')
         self.validation_batch_size = argv.get('ValidationBatchSize')
         self.trains_learning_rate = argv.get('LearningRate')
-        self.binaryzation = argv.get('Binaryzation')
-        self.median_blur = argv.get('MedianBlur')
-        self.gaussian_blur = argv.get('GaussianBlur')
-        self.equalize_hist = argv.get('EqualizeHist')
-        self.laplace = argv.get('Laplace')
-        self.warp_perspective = argv.get('WarpPerspective')
-        self.rotate = argv.get('Rotate')
-        self.sp_noise = argv.get('PepperNoise')
+        self.da_binaryzation = argv.get('DA_Binaryzation')
+        self.da_median_blur = argv.get('DA_MedianBlur')
+        self.da_gaussian_blur = argv.get('DA_GaussianBlur')
+        self.da_equalize_hist = argv.get('DA_EqualizeHist')
+        self.da_laplace = argv.get('DA_Laplace')
+        self.da_warp_perspective = argv.get('DA_WarpPerspective')
+        self.da_rotate = argv.get('DA_Rotate')
+        self.da_sp_noise = argv.get('DA_PepperNoise')
+        self.da_brightness = argv.get('DA_Brightness')
+        self.da_saturation = argv.get('DA_Saturation')
+        self.da_hue = argv.get('DA_Hue')
+        self.da_gamma = argv.get('DA_Gamma')
+        self.da_channel_swap = argv.get('DA_ChannelSwap')
+        self.da_random_blank = argv.get('DA_RandomBlank')
+        self.da_random_transition = argv.get('DA_RandomTransition')
+        self.pre_binaryzation = argv.get('Pre_Binaryzation')
+        self.pre_replace_transparent = argv.get('Pre_ReplaceTransparent')
+        self.pre_horizontal_stitching = argv.get('Pre_HorizontalStitching')
+        self.pre_concat_frames = argv.get('Pre_ConcatFrames')
+        self.pre_blend_frames = argv.get('Pre_BlendFrames')
 
     def println(self):
         print('Loading Configuration...')

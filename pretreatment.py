@@ -10,15 +10,20 @@ class Pretreatment(object):
     """
     预处理功能函数集合（目前仅用于训练过程中随机启动）
     """
+
     def __init__(self, origin):
         self.origin = origin
 
     def get(self):
         return self.origin
 
-    def binarization(self, value, modify=False) -> np.ndarray:
+    def binarization(self, value: object, modify=False) -> np.ndarray:
         if isinstance(value, list) and len(value) == 2:
             value = random.randint(value[0], value[1])
+        elif isinstance(value, int):
+            value = value if 0 < value < 255 else -1
+        if value == -1:
+            return self.origin
         ret, _binarization = cv2.threshold(self.origin, value, 255, cv2.THRESH_BINARY)
         if modify:
             self.origin = _binarization
@@ -113,11 +118,86 @@ class Pretreatment(object):
             self.origin = output
         return output
 
-    def light(self, modify=False):
-        alpha = 0.3
-        beta = random.randint(0, 80)
-        alpha = alpha * 0.01
-        output = np.uint8(np.clip((alpha * self.origin + beta), 0, 255))
+    def random_brightness(self, modify=False):
+        beta = np.random.uniform(-84, 84)
+        output = np.uint8(np.clip((self.origin + beta), 0, 255))
+        if modify:
+            self.origin = output
+        return output
+
+    def random_saturation(self, modify=False):
+        if len(self.origin.shape) < 3:
+            return self.origin
+        factor = np.random.uniform(0.3, 2.0)
+        output = self.origin
+        output[:, :, 1] = np.clip(output[:, :, 1] * factor, 0, 255)
+        if modify:
+            self.origin = output
+        return output
+
+    def random_hue(self, max_delta=18, modify=False):
+        if len(self.origin.shape) < 3:
+            return self.origin
+        delta = np.random.uniform(-max_delta, max_delta)
+        output = self.origin
+        output[:, :, 0] = (output[:, :, 0] + delta) % 180.0
+        if modify:
+            self.origin = output
+        return output
+
+    def random_gamma(self, modify=False):
+        if len(self.origin.shape) < 3:
+            return self.origin
+        gamma = np.random.uniform(0.25, 2.0)
+        gamma_inv = 1.0 / gamma
+        table = np.array([((i / 255.0) ** gamma_inv) * 255 for i in np.arange(0, 256)]).astype("uint8")
+        output = cv2.LUT(self.origin, table)
+        if modify:
+            self.origin = output
+        return output
+
+    def random_channel_swap(self, modify=False):
+        if len(self.origin.shape) < 3:
+            return self.origin
+        permutations = ((0, 2, 1),
+                        (1, 0, 2), (1, 2, 0),
+                        (2, 0, 1), (2, 1, 0))
+        i = np.random.randint(5)
+        order = permutations[i]
+        output = self.origin[:, :, order]
+        if modify:
+            self.origin = output
+        return output
+
+    def random_blank(self, max_int, modify=False):
+        if len(self.origin.shape) < 2:
+            return self.origin
+        corp_range_w = random.randint(0, max_int)
+        corp_range_h = random.randint(0, max_int)
+        output = self.origin
+        random_p_h = -corp_range_h if bool(random.getrandbits(1)) else corp_range_h
+        random_v_h = 255 if bool(random.getrandbits(1)) else 0
+        random_p_w = -corp_range_w if bool(random.getrandbits(1)) else corp_range_w
+        random_v_w = 255 if bool(random.getrandbits(1)) else 0
+        if len(self.origin.shape) < 3:
+            output[random_p_h, :] = 255 if bool(random.getrandbits(1)) else random_v_h
+            output[:, random_p_w] = 255 if bool(random.getrandbits(1)) else random_v_w
+        else:
+            output[random_p_h, :, :] = 255 if bool(random.getrandbits(1)) else random_v_h
+            output[:, random_p_w, :] = 255 if bool(random.getrandbits(1)) else random_v_w
+        if modify:
+            self.origin = output
+        return output
+
+    def random_transition(self, max_int, modify=False):
+        size = self.origin.shape
+        height, width = size[0], size[1]
+        corp_range_w = random.randint(0, max_int)
+        corp_range_h = random.randint(0, max_int)
+        m = np.float32([[1, 0, corp_range_w], [0, 1, corp_range_h]])
+        random_color = random.randint(240, 255)
+        random_color = (random_color, random_color, random_color) if bool(random.getrandbits(1)) else (0, 0, 0)
+        output = cv2.warpAffine(self.origin, m, (width, height), borderValue=random_color)
         if modify:
             self.origin = output
         return output
@@ -131,22 +211,30 @@ def preprocessing(
         equalize_hist=False,
         laplacian=False,
         warp_perspective=False,
-        sp_noise=-1,
+        sp_noise=-1.0,
         rotate=-1,
-        light=False
+        random_blank=True,
+        random_transition=True,
+        random_brightness=True,
+        random_gamma=False,
+        random_channel_swap=False,
+        random_saturation=True,
+        random_hue=True,
 ):
     """
     各种预处理函数是否启用及参数配置
-    :param light: bool
-    :param image: numpy图片数组
-    :param binaryzation: list-int数字范围
-    :param median_blur: int数字
-    :param gaussian_blur: int数字
-    :param equalize_hist: bool
-    :param laplacian: bool
-    :param warp_perspective: bool
-    :param sp_noise: 浮点
-    :param rotate: 数字
+    :param random_transition: bool, 随机位移
+    :param random_blank: bool, 随机填充空白
+    :param random_brightness: bool, 随机亮度
+    :param image: numpy图片数组,
+    :param binaryzation: list-int数字范围, 二值化
+    :param median_blur: int数字,
+    :param gaussian_blur: int数字,
+    :param equalize_hist: bool,
+    :param laplacian: bool, 拉普拉斯
+    :param warp_perspective: bool, 透视变形
+    :param sp_noise: 浮点, 椒盐噪声
+    :param rotate: 数字, 旋转
     :return:
     """
     pretreatment = Pretreatment(image)
@@ -166,10 +254,46 @@ def preprocessing(
         pretreatment.warp_perspective(True)
     if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
         pretreatment.sp_noise(sp_noise, True)
-    if light and bool(random.getrandbits(1)):
-        pretreatment.light(True)
+    if random_brightness and bool(random.getrandbits(1)):
+        pretreatment.random_brightness(True)
+    if random_blank and bool(random.getrandbits(1)):
+        pretreatment.random_blank(2, True)
+    if random_transition and bool(random.getrandbits(1)):
+        pretreatment.random_transition(5, True)
+    if random_gamma and bool(random.getrandbits(1)):
+        pretreatment.random_gamma(True)
+    if random_channel_swap and bool(random.getrandbits(1)):
+        pretreatment.random_channel_swap(True)
+    if random_saturation and bool(random.getrandbits(1)):
+        pretreatment.random_saturation(True)
+    if random_hue and bool(random.getrandbits(1)):
+        pretreatment.random_hue(18, True)
     return pretreatment.get()
 
 
 if __name__ == '__main__':
-    pass
+    import io
+    import PIL.Image
+
+    with open(r"H:\TrainSet\baidu-du_Trains\aaaj_b4eaf7d3ed434e1a627b69ba82f8ce9b.jpg", "rb") as f:
+        path_or_bytes = f.read()
+    path_or_stream = io.BytesIO(path_or_bytes)
+    pil_image = PIL.Image.open(path_or_stream)
+    im = np.array(pil_image)
+    im = preprocessing(
+        image=im,
+        binaryzation=-1,
+        median_blur=-1,
+        gaussian_blur=-1,
+        equalize_hist=False,
+        laplacian=False,
+        rotate=15,
+        warp_perspective=True,
+        sp_noise=0.1,
+    ).astype(np.float32)
+    # im = im.swapaxes(0, 1)
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    cv_img = cv2.imencode('.png', im)[1]
+    img_bytes = bytes(bytearray(cv_img))
+    with open(r"C:\Users\kerlomz\Desktop\New folder (6)\1.jpg", "wb") as f:
+        f.write(img_bytes)
