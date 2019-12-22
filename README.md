@@ -399,14 +399,14 @@ for file in all_files:
 |-- logs									// Tensor Board 日志
 |-- network									// 神经网络实现
 |   |   |-- CNN.py								// CNN5/CNNX
-|   |   |-- DenseNet.py							    // DenseNet
+|   |   |-- DenseNet.py								// DenseNet
 |   |   |-- GRU.py								// GRU/BiBRU/GRUcuDNN
 |   |   |-- LSTM.py								// LSTM/BiLSTM/LSTMcuDNN
-|   |   |-- ResNet.py							    // ResNet50
-|   |   `-- utils.py							    // 各种网络 block 的实现
-|-- optimizer								    // 优化器
-|   |   `-- AdaBound.py							    // AdaBound 优化算法实现
-|-- projects								    // 项目存放路径
+|   |   |-- ResNet.py								// ResNet50
+|   |   `-- utils.py								// 各种网络 block 的实现
+|-- optimizer									// 优化器
+|   |   `-- AdaBound.py								// AdaBound 优化算法实现
+|-- projects									// 项目存放路径
 |   `-- demo									// 项目名
 |       |-- dataset 								// 数据集存放
 |       |-- model								// 训练过程记录存放
