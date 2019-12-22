@@ -169,7 +169,7 @@ class Wizard:
         )
 
         # ============================= Group 2 =====================================
-        self.label_frame_neu = ttk.Labelframe(self.parent, text='Neural network')
+        self.label_frame_neu = ttk.Labelframe(self.parent, text='Neural Network')
         self.layout_utils.below_widget(
             src=self.label_frame_neu,
             target=self.label_frame_source,

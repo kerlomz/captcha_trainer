@@ -331,19 +331,29 @@ Reshape([label_num, int(outputs_shape[1] / label_num)])
 
 
 $$
-mod(\frac{输入宽度\times n}{池化步长^{池化层数}\times标签数})= 0
+mod(\frac{输入宽度\times输入高度\times输出层参数}{池化步长^{池化层数}\times标签数})= 0
 $$
 
+所以有时候需要Resize网络输入的Shape
 
-所以有时候需要Resize网络输入的Shape。
+| 网络     | 池化步长^池化层数 | 输出层参数 |
+| -------- | ----------------- | ---------- |
+| CNN5     | 16                | 64         |
+| CNNX     | 8                 | 64         |
+| ResNet50 | 16                | 1024       |
+| DenseNet | 32                | 2048       |
 
+例如使用CNN5+CrossEntropy组合，则输入宽度与输入高度需要满足：
+$$
+mod(\frac{输入宽度\times输入高度\times64}{16\times标签数})= 0
+$$
 同理如果CNN5+RNN+CTC，卷积层之后的输出经过以下变换：
 
 ```python
 Reshape([-1, outputs_shape[2] * outputs_shape[3]])
 ```
 
-原输出(batch_size, outputs_shape[1], outputs_shape[2], outputs_shape[3])，RNN层的输入输出要求为(batch, timesteps, num_classes)，为了接入RNN经过以上操作，那么又引出一个Time Step的概念，所以timesteps的值也是 outputs_shape[1]，而CTC Loss要求的输入为 [batch_size, frames, num_labels]，若是 timesteps 小于标签数则无法计算损失，也就无法找损失函数中找到极小值，梯度何以下降。timesteps 最合理的值一般是标签数的2倍，为了达到目的，也可以通过Resize网络输入的Shape解决。
+原输出(batch_size, outputs_shape[1], outputs_shape[2], outputs_shape[3])，RNN层的输入输出要求为(batch, timesteps, num_classes)，为了接入RNN经过以上操作，那么又引出一个Time Step的概念，所以timesteps的值也是 outputs_shape[1]，而CTC Loss要求的输入为 [batch_size, frames, num_labels]，若是 timesteps 小于标签数则无法计算损失，也就无法找损失函数中找到极小值，梯度何以下降。timesteps 最合理的值一般是标签数的2倍，为了达到目的，也可以通过Resize网络输入的Shape解决，一般情况timesteps直接关联于图片宽度。
 
 #### ExtractRegex 参数：
 
