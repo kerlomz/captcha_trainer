@@ -112,6 +112,13 @@ Trains:
 # WarpPerspective: The parameter is an bool value.
 # Rotate: The parameter is a positive integer int type greater than 0, -1 is not enabled.
 # PepperNoise: This parameter is a float type less than 1, -1 is not enabled.
+# Brightness: The parameter is an bool value.
+# Saturation: The parameter is an bool value.
+# Hue: The parameter is an bool value.
+# Gamma: The parameter is an bool value.
+# ChannelSwap: The parameter is an bool value.
+# RandomBlank: The parameter is a positive integer int type greater than 0, -1 is not enabled.
+# RandomTransition: The parameter is a positive integer int type greater than 0, -1 is not enabled.
 DataAugmentation:
   Binaryzation: {DA_Binaryzation}
   MedianBlur: {DA_MedianBlur}
@@ -129,6 +136,12 @@ DataAugmentation:
   RandomBlank: {DA_RandomBlank}
   RandomTransition: {DA_RandomTransition}
 
+# Binaryzation: The parameter is an integer number between 0 and 255, -1 is not enabled.
+# ReplaceTransparent: Transparent background replacement, bool type.
+# HorizontalStitching: Horizontal stitching, bool type.
+# ConcatFrames: Horizontally merge two frames according to the provided frame index list, -1 is not enabled.
+# BlendFrames: Fusion corresponding frames according to the provided frame index list, -1 is not enabled.
+# - [-1] means all frames
 Pretreatment:
   Binaryzation: {Pre_Binaryzation}
   ReplaceTransparent: {Pre_ReplaceTransparent}

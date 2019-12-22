@@ -123,8 +123,6 @@ FieldParam:
   ImageWidth: {ImageWidth}
   ImageHeight: {ImageHeight}
   MaxLabelNum: {MaxLabelNum}
-  ReplaceTransparent: {ReplaceTransparent}
-  HorizontalStitching: {HorizontalStitching}
   OutputSplit: {OutputSplit}
 
 
@@ -180,16 +178,42 @@ Trains:
 # WarpPerspective: 该参数为 bool 类型。
 # Rotate: 该参数为大于 0 的 int 类型，参数为 -1 表示未启用。
 # PepperNoise: 该参数为小于 1 的 float 类型，参数为 -1 表示未启用。
-type less than 1, -1 is not enabled.
+# Brightness: 该参数为 bool 类型。
+# Saturation: 该参数为 bool 类型。
+# Hue: 该参数为 bool 类型。
+# Gamma: 该参数为 bool 类型。
+# ChannelSwap: 该参数为 bool 类型。
+# RandomBlank: 该参数为大于 0 的 int 类型，参数为 -1 表示未启用。
+# RandomTransition: 该参数为大于 0 的 int 类型，参数为 -1 表示未启用。
 DataAugmentation:
-  Binaryzation: {Binaryzation}
-  MedianBlur: {MedianBlur}
-  GaussianBlur: {GaussianBlur}
-  EqualizeHist: {EqualizeHist}
-  Laplace: {Laplace}
-  WarpPerspective: {WarpPerspective}
-  Rotate: {Rotate}
-  PepperNoise: {PepperNoise}
+  Binaryzation: {DA_Binaryzation}
+  MedianBlur: {DA_MedianBlur}
+  GaussianBlur: {DA_GaussianBlur}
+  EqualizeHist: {DA_EqualizeHist}
+  Laplace: {DA_Laplace}
+  WarpPerspective: {DA_WarpPerspective}
+  Rotate: {DA_Rotate}
+  PepperNoise: {DA_PepperNoise}
+  Brightness: {DA_Brightness}
+  Saturation: {DA_Saturation}
+  Hue: {DA_Hue}
+  Gamma: {DA_Gamma}
+  ChannelSwap: {DA_ChannelSwap}
+  RandomBlank: {DA_RandomBlank}
+  RandomTransition: {DA_RandomTransition}
+  
+# 以下为预处理的配置 
+# Binaryzation: 该参数为 list 类型，包含二值化的上界和下界，值为 int 类型，参数为 -1 表示未启用。
+# ReplaceTransparent: 使用白色替换透明背景
+# HorizontalStitching: 水平拆分拼接，适用于上下分层
+# ConcatFrames: 根据帧索引列表水平合并帧
+# BlendFrames: 根据帧索引列表融合帧内容
+Pretreatment:
+  Binaryzation: {Pre_Binaryzation}
+  ReplaceTransparent: {Pre_ReplaceTransparent}
+  HorizontalStitching: {Pre_HorizontalStitching}
+  ConcatFrames: {Pre_ConcatFrames}
+  BlendFrames: {Pre_BlendFrames}
 
 ```
 
@@ -277,7 +301,7 @@ DatasetPath:
   Validation: {DatasetValidationPath}
 ```
 
-配置好之后，可通过两种方法进行打包
+**项目配置好之后** ，可通过两种方法进行打包
 
 - **make_dataset.py 打包**
 
@@ -285,7 +309,7 @@ DatasetPath:
 
 - **app.py训练：**
 
-  在界面中通过 [Browse] 选择训练集路径后，点击 [Make Dataset] 开始打包，中途若终止进程文件将损坏，需要手动至项目路径中删除其未打包完成的样本集，[Validation Path] 可以不选，如若不选，系统将根据 [Validation Set Num] 配置的参数自动分配该数量的验证集，
+  在界面中选择欲使用的网络结构，输入项目名并[回车]或者点击空白处 **创建一个新项目** 或者 **选择一个已有的项目** ，通过 [Browse]  **选择训练集路径** 后，点击 [Make Dataset]  **开始打包** ，中途若终止进程文件将损坏，需要手动至项目路径中删除其未打包完成的样本集，[Validation Path] 可以不选，如若不选，系统将根据 [Validation Set Num] 配置的参数自动分配该数量的验证集，
 
 *注意：手动配置训练集的时候请保证验证集的随机性以及特征覆盖率，如若不明笔者所语，请勿手动配置*
 
@@ -375,14 +399,14 @@ for file in all_files:
 |-- logs									// Tensor Board 日志
 |-- network									// 神经网络实现
 |   |   |-- CNN.py								// CNN5/CNNX
-|   |   |-- DenseNet.py							// DenseNet
+|   |   |-- DenseNet.py							    // DenseNet
 |   |   |-- GRU.py								// GRU/BiBRU/GRUcuDNN
 |   |   |-- LSTM.py								// LSTM/BiLSTM/LSTMcuDNN
-|   |   |-- ResNet.py							// ResNet50
-|   |   `-- utils.py							// 各种网络 block 的实现
-|-- optimizer								// 优化器
-|   |   `-- AdaBound.py							// AdaBound 优化算法实现
-|-- projects								// 项目存放路径
+|   |   |-- ResNet.py							    // ResNet50
+|   |   `-- utils.py							    // 各种网络 block 的实现
+|-- optimizer								    // 优化器
+|   |   `-- AdaBound.py							    // AdaBound 优化算法实现
+|-- projects								    // 项目存放路径
 |   `-- demo									// 项目名
 |       |-- dataset 								// 数据集存放
 |       |-- model								// 训练过程记录存放
