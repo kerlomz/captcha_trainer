@@ -57,7 +57,7 @@ class Encoder(object):
             im = np.array(pil_image)
 
         if self.model_conf.image_channel == 1 and len(im.shape) == 3:
-            im = im.mean(axis=2).astype(np.float32)
+            im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
 
         im = preprocessing(
             image=im,

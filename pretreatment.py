@@ -213,13 +213,13 @@ def preprocessing(
         warp_perspective=False,
         sp_noise=-1.0,
         rotate=-1,
-        random_blank=True,
-        random_transition=True,
-        random_brightness=True,
+        random_blank=False,
+        random_transition=False,
+        random_brightness=False,
         random_gamma=False,
         random_channel_swap=False,
-        random_saturation=True,
-        random_hue=True,
+        random_saturation=False,
+        random_hue=False,
 ):
     """
     各种预处理函数是否启用及参数配置
