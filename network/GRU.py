@@ -27,7 +27,7 @@ class GRU(object):
         :return: 返回循环层的输出层
         """
         with tf.compat.v1.variable_scope('GRU'):
-            # mask = tf.keras.layers.Masking()(self.inputs)
+            mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
                 units=self.model_conf.units_num * 2,
                 return_sequences=True,
@@ -38,7 +38,7 @@ class GRU(object):
                 # bias_regularizer=l2(0.005),
                 trainable=self.utils.training,
             )
-            outputs = self.layer(self.inputs, training=self.utils.training)
+            outputs = self.layer(mask, training=self.utils.training)
         return outputs
 
 
@@ -48,28 +48,20 @@ class BiGRU(object):
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
+        self.training = self.utils.mode == RunMode.Trains
+        self.layer = None
 
     def build(self):
         with tf.compat.v1.variable_scope('BiGRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
-            forward_layer = tf.keras.layers.GRU(
-                units=self.model_conf.units_num * 2,
-                return_sequences=True,
-                input_shape=mask.shape,
-                reset_after=True,
-                trainable=self.utils.training,
+            self.layer = tf.keras.layers.Bidirectional(
+                layer=tf.keras.layers.GRU(
+                    units=self.model_conf.units_num,
+                    return_sequences=True,
+                ),
+                input_shape=mask.shape
             )
-            backward_layer = tf.keras.layers.GRU(
-                units=self.model_conf.units_num * 2,
-                return_sequences=True,
-                input_shape=mask.shape,
-                reset_after=True,
-                go_backwards=True,
-                trainable=self.utils.training,
-            )
-            forward = forward_layer(mask, training=self.utils.training)
-            backward = backward_layer(mask, training=self.utils.training)
-            outputs = tf.keras.layers.Concatenate(axis=2)([forward, backward])
+            outputs = self.layer(mask, training=self.training)
         return outputs
 
 

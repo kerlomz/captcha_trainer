@@ -119,15 +119,16 @@ class CNNX(object):
             x = self.utils.transition_block(x, 0.5, name='pool2')
             x1 = self.depth_block(x, kernel_size=3, strides=2, depth_multiplier=2)
             x2 = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 2),
+                pool_size=(2, 1),
                 strides=2,
                 padding='same')(x)
             x = tf.keras.layers.Concatenate()([x2, x1])
             x = self.block(x, filters=64, kernel_size=3, strides=1)
             x = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 2),
+                pool_size=(2, 1),
                 strides=1,
                 padding='same')(x)
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
+
             return self.utils.reshape_layer(x, self.loss_func, shape_list)

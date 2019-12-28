@@ -275,25 +275,25 @@ if __name__ == '__main__':
     import io
     import PIL.Image
 
-    with open(r"H:\TrainSet\baidu-du_Trains\aaaj_b4eaf7d3ed434e1a627b69ba82f8ce9b.jpg", "rb") as f:
-        path_or_bytes = f.read()
-    path_or_stream = io.BytesIO(path_or_bytes)
-    pil_image = PIL.Image.open(path_or_stream)
-    im = np.array(pil_image)
-    im = preprocessing(
-        image=im,
-        binaryzation=-1,
-        median_blur=-1,
-        gaussian_blur=-1,
-        equalize_hist=False,
-        laplacian=False,
-        rotate=15,
-        warp_perspective=True,
-        sp_noise=0.1,
-    ).astype(np.float32)
-    # im = im.swapaxes(0, 1)
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-    cv_img = cv2.imencode('.png', im)[1]
-    img_bytes = bytes(bytearray(cv_img))
-    with open(r"C:\Users\kerlomz\Desktop\New folder (6)\1.jpg", "wb") as f:
-        f.write(img_bytes)
+    # with open(r"H:\TrainSet\*.jpg", "rb") as f:
+    #     path_or_bytes = f.read()
+    # path_or_stream = io.BytesIO(path_or_bytes)
+    # pil_image = PIL.Image.open(path_or_stream)
+    # im = np.array(pil_image)
+    # im = preprocessing(
+    #     image=im,
+    #     binaryzation=-1,
+    #     median_blur=-1,
+    #     gaussian_blur=-1,
+    #     equalize_hist=False,
+    #     laplacian=False,
+    #     rotate=15,
+    #     warp_perspective=True,
+    #     sp_noise=0.1,
+    # ).astype(np.float32)
+    # # im = im.swapaxes(0, 1)
+    # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    # cv_img = cv2.imencode('.png', im)[1]
+    # img_bytes = bytes(bytearray(cv_img))
+    # with open(r"C:\Users\kerlomz\Desktop\New folder (6)\1.jpg", "wb") as f:
+    #     f.write(img_bytes)

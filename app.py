@@ -891,6 +891,7 @@ class Wizard:
             return
 
         self.attach_dataset_val.set(filename)
+        self.sample_map[DatasetType.Directory][RunMode.Trains].insert(tk.END, filename)
         self.button_state(self.btn_attach_dataset, tk.DISABLED)
 
         for mode in [RunMode.Trains, RunMode.Validation]:
@@ -1048,6 +1049,8 @@ class Wizard:
         self.data_augmentation_entity.sp_noise = model_conf.da_sp_noise
         self.data_augmentation_entity.brightness = model_conf.da_brightness
         self.data_augmentation_entity.hue = model_conf.da_hue
+        self.data_augmentation_entity.saturation = model_conf.da_saturation
+        self.data_augmentation_entity.gamma = model_conf.da_gamma
         self.data_augmentation_entity.channel_swap = model_conf.da_channel_swap
         self.data_augmentation_entity.random_blank = model_conf.da_random_blank
         self.data_augmentation_entity.random_transition = model_conf.da_random_transition

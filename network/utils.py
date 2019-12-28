@@ -26,10 +26,11 @@ class NetworkUtils(object):
         stddev = math.sqrt(2. / (kl ** 2 * dl))
         return tf.keras.initializers.TruncatedNormal(stddev=stddev)
 
-    @staticmethod
-    def reshape_layer(input_tensor, loss_func, shape_list):
+    def reshape_layer(self, input_tensor, loss_func, shape_list):
         if loss_func == LossFunction.CTC:
-            output_tensor = tf.keras.layers.Reshape([-1, shape_list[2] * shape_list[3]])(input_tensor)
+            output_tensor = tf.keras.layers.TimeDistributed(
+                layer=tf.keras.layers.Flatten(),
+            )(inputs=input_tensor, training=self.training)
         elif loss_func == LossFunction.CrossEntropy:
             output_tensor = tf.keras.layers.Reshape([shape_list[1], shape_list[2] * shape_list[3]])(input_tensor)
         else:
