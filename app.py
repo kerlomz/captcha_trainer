@@ -1430,6 +1430,8 @@ class Wizard:
             self.category_entry['state'] = tk.DISABLED
 
     def check_resize(self):
+        if self.loss_func == 'CTC':
+            return True
         param = OUTPUT_SHAPE1_MAP[NETWORK_MAP[self.neu_cnn]]
         shape1w = math.ceil(1.0*self.resize[0]/param[0])
         shape1h = math.ceil(1.0*self.resize[1]/param[0])
