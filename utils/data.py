@@ -112,6 +112,9 @@ class DataIterator:
                 else:
                     input_array = self.encoder.text(i1)
 
+                if input_array is None:
+                    continue
+
                 if isinstance(input_array, str):
                     tf.logging.warn("{}, \nInput errors labeled: {}, ignored.".format(input_array, label_array))
                     continue
@@ -125,9 +128,13 @@ class DataIterator:
 
                 label_len_correct = len(label_array) != self.model_conf.max_label_num
                 using_cross_entropy = self.model_conf.loss_func == LossFunction.CrossEntropy
-                if label_len_correct and using_cross_entropy:
+                if label_len_correct and using_cross_entropy and not self.model_conf.auto_padding:
                     tf.logging.warn("The number of labels must be fixed when using cross entropy, label: {}, "
                                     "the number of tags is incorrect, ignored.".format(i2))
+                    continue
+
+                if len(label_array) > self.model_conf.max_label_num and using_cross_entropy:
+                    tf.logging.warn("The number of label[{}] exceeds the maximum number of labels, ignored.".format(i2))
                     continue
 
                 input_batch.append(input_array)

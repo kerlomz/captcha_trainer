@@ -934,7 +934,7 @@ class Wizard:
             shutil.rmtree(project_path)
         except Exception as e:
             messagebox.showerror(
-                "Error!", json.dumps(e.args)
+                "Error!", json.dumps(e.args, ensure_ascii=False)
             )
         messagebox.showinfo(
             "Error!", "Delete successful!"
@@ -957,7 +957,7 @@ class Wizard:
             shutil.rmtree(project_history_path)
         except Exception as e:
             messagebox.showerror(
-                "Error!", json.dumps(e.args)
+                "Error!", json.dumps(e.args, ensure_ascii=False)
             )
         messagebox.showinfo(
             "Error!", "Delete history successful!"
@@ -981,7 +981,7 @@ class Wizard:
             self.dataset_validation_listbox.delete(1, tk.END)
         except Exception as e:
             messagebox.showerror(
-                "Error!", json.dumps(e.args)
+                "Error!", json.dumps(e.args, ensure_ascii=False)
             )
         messagebox.showinfo(
             "Error!", "Clear dataset successful!"
@@ -1102,6 +1102,7 @@ class Wizard:
             ImageWidth=self.image_width,
             ImageHeight=self.image_height,
             MaxLabelNum=self.label_num_spin.get(),
+            AutoPadding=True,
             ReplaceTransparent=False,
             HorizontalStitching=False,
             OutputSplit='',
@@ -1278,7 +1279,7 @@ class Wizard:
             status = 'Compile completed'
         except Exception as e:
             messagebox.showerror(
-                e.__class__.__name__, json.dumps(e.args)
+                e.__class__.__name__, json.dumps(e.args, ensure_ascii=False)
             )
             status = 'Compile failure'
         tk.messagebox.showinfo('Compile Status', status)
@@ -1301,7 +1302,7 @@ class Wizard:
         except Exception as e:
             traceback.print_exc()
             messagebox.showerror(
-                e.__class__.__name__, json.dumps(e.args)
+                e.__class__.__name__, json.dumps(e.args, ensure_ascii=False)
             )
             status = 'Training failure'
         self.button_state(self.btn_training, tk.NORMAL)
@@ -1352,7 +1353,7 @@ class Wizard:
 
     @property
     def project_names(self):
-        return os.listdir(self.project_root_path)
+        return [i.name for i in os.scandir(self.project_root_path) if i.is_dir()]
 
     def fetch_projects(self):
         self.comb_project_name['values'] = self.project_names

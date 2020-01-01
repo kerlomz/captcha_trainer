@@ -87,7 +87,7 @@ class CNNX(object):
         x = tf.keras.layers.BatchNormalization(
             epsilon=1e-3,
             momentum=0.999,
-        )(x)
+        )(x, training=self.utils.training)
         return x
 
     def build(self):

@@ -151,6 +151,7 @@ class ModelConfig:
     image_height: int
     resize: list
     max_label_num: int
+    auto_padding: bool
     output_split: str
 
     """NEURAL NETWORK"""
@@ -269,6 +270,7 @@ class ModelConfig:
         self.image_height = self.field_root.get('ImageHeight')
         self.resize = self.field_root.get('Resize')
         self.max_label_num = self.field_root.get('MaxLabelNum')
+        self.auto_padding = self.field_root.get('AutoPadding')
         self.output_split = self.field_root.get('OutputSplit')
 
         """NEURAL NETWORK"""
@@ -506,6 +508,7 @@ class ModelConfig:
                 ImageWidth=self.image_width,
                 ImageHeight=self.image_height,
                 MaxLabelNum=self.max_label_num,
+                AutoPadding=self.auto_padding,
                 OutputSplit=self.val_filter(self.output_split),
                 LabelFrom=self.label_from.value,
                 ExtractRegex=self.val_filter(self.extract_regex),
@@ -587,6 +590,7 @@ class ModelConfig:
         self.image_width = argv.get('ImageWidth')
         self.image_height = argv.get('ImageHeight')
         self.max_label_num = argv.get('MaxLabelNum')
+        self.auto_padding = argv.get('AutoPadding')
         self.output_split = argv.get('OutputSplit')
         self.label_from_param = argv.get('LabelFrom')
         self.extract_regex = argv.get('ExtractRegex')

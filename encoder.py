@@ -11,7 +11,7 @@ import tensorflow as tf
 from exception import *
 from constants import RunMode
 from config import ModelConfig, LabelFrom, LossFunction
-from category import encode_maps
+from category import encode_maps, FULL_ANGLE_MAP
 from pretreatment import preprocessing
 from tools.gif_frames import concat_frames, blend_frame
 
@@ -55,6 +55,9 @@ class Encoder(object):
             im = blend_frame(pil_image, need_frame=self.model_conf.pre_blend_frames)
         else:
             im = np.array(pil_image)
+
+        if isinstance(im, list):
+            return None
 
         if self.model_conf.image_channel == 1 and len(im.shape) == 3:
             im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
@@ -132,6 +135,7 @@ class Encoder(object):
                 labels = [found]
             else:
                 labels = [_ for _ in found]
+            labels = self.filter_full_angle(labels)
             try:
                 if not labels:
                     return [0]
@@ -141,7 +145,9 @@ class Encoder(object):
                         [encode_maps(self.model_conf.category)[i] for i in labels]
                     )
                 else:
-                    label = [encode_maps(self.model_conf.category)[i] for i in labels]
+                    label = self.auto_padding_char(
+                        [encode_maps(self.model_conf.category)[i] for i in labels]
+                    )
                 return label
 
             except KeyError as e:
@@ -154,12 +160,24 @@ class Encoder(object):
     def split_continuous_char(self, content):
         # 为连续的分类插入空白符
         store_list = []
+        # blank_char = [self.model_conf.category_num] if bool(random.getrandbits(1)) else [0]
+        blank_char = [self.model_conf.category_num]
         for i in range(len(content) - 1):
             store_list.append(content[i])
             if content[i] == content[i + 1]:
-                store_list += [self.model_conf.category_num]
+                store_list += blank_char
         store_list.append(content[-1])
         return store_list
+
+    def auto_padding_char(self, content):
+        if len(content) < self.model_conf.max_label_num and self.model_conf.auto_padding:
+            remain_label_num = self.model_conf.max_label_num - len(content)
+            return content + [0] * remain_label_num
+        return content
+
+    @staticmethod
+    def filter_full_angle(content):
+        return [FULL_ANGLE_MAP.get(i) if i in FULL_ANGLE_MAP.keys() else i for i in content if i != ' ']
 
 
 if __name__ == '__main__':

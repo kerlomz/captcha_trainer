@@ -57,6 +57,7 @@ FieldParam:
   ImageHeight: {ImageHeight}
   MaxLabelNum: {MaxLabelNum}
   OutputSplit: {OutputSplit}
+  AutoPadding: {AutoPadding}
 
 
 # The configuration is applied to the label of the data source.
