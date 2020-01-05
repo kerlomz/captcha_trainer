@@ -27,8 +27,14 @@ class Trains:
         self.validation = validation.Validation(self.model_conf)
 
     @staticmethod
-    def compile_onnx(input_path):
-        convert_onnx(input_path=input_path, inputs_op="input:0", outputs_op="dense_decoded:0")
+    def compile_onnx(predict_sess, output_graph_def, input_path):
+        convert_onnx(
+            sess=predict_sess,
+            graph_def=output_graph_def,
+            input_path=input_path,
+            inputs_op="input:0",
+            outputs_op="dense_decoded:0"
+        )
 
     def compile_graph(self, acc):
         """
@@ -68,8 +74,7 @@ class Trains:
 
         with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
             gf.write(output_graph_def.SerializeToString())
-
-        self.compile_onnx(last_compile_model_path)
+            self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path)
         self.model_conf.output_config(target_model_name="{}_{}".format(self.model_conf.model_name, int(acc * 10000)))
 
     def achieve_cond(self, acc, cost, epoch):

@@ -38,7 +38,23 @@ If you run into issues, open an issue here:
 """
 
 
-def convert_onnx(input_path, inputs_op, outputs_op):
+def from_graphdef(sess, graph_def, model_path, input_names, output_names):
+    """Load tensorflow graph from graphdef."""
+    # make sure we start with clean default graph
+    # tf.reset_default_graph()
+    # with tf.Session() as sess:
+    # graph_def = tf.GraphDef()
+    with tf.gfile.GFile(model_path, 'rb') as f:
+        graph_def.ParseFromString(f.read())
+        tf.import_graph_def(graph_def, name='')
+        frozen_graph = loader.freeze_session(sess, output_names=output_names)
+    input_names = loader.remove_redundant_inputs(frozen_graph, input_names)
+    # clean up
+    # tf.reset_default_graph()
+    return frozen_graph, input_names, output_names
+
+
+def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
 
     graphdef = input_path
 
@@ -53,7 +69,7 @@ def convert_onnx(input_path, inputs_op, outputs_op):
 
     logger = logging.getLogger(constants.TF2ONNX_PACKAGE_NAME)
 
-    graph_def, inputs_op, outputs_op = loader.from_graphdef(graphdef, inputs_op, outputs_op)
+    graph_def, inputs_op, outputs_op = from_graphdef(sess, graph_def, graphdef, inputs_op, outputs_op)
     model_path = graphdef
 
     graph_def = tf_optimize(inputs_op, outputs_op, graph_def,  True)
