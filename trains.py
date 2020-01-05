@@ -9,6 +9,7 @@ import validation
 from config import *
 from tf_graph_util import convert_variables_to_constants
 from PIL import ImageFile
+from tf_onnx_util import convert_onnx
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
@@ -24,6 +25,10 @@ class Trains:
         """
         self.model_conf = model_conf
         self.validation = validation.Validation(self.model_conf)
+
+    @staticmethod
+    def compile_onnx(input_path):
+        convert_onnx(input_path=input_path, inputs_op="input:0", outputs_op="dense_decoded:0")
 
     def compile_graph(self, acc):
         """
@@ -64,6 +69,7 @@ class Trains:
         with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
             gf.write(output_graph_def.SerializeToString())
 
+        self.compile_onnx(last_compile_model_path)
         self.model_conf.output_config(target_model_name="{}_{}".format(self.model_conf.model_name, int(acc * 10000)))
 
     def achieve_cond(self, acc, cost, epoch):
