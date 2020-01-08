@@ -14,6 +14,7 @@ from tkinter import filedialog
 from constants import *
 from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP, DataAugmentationEntity, PretreatmentEntity
 from make_dataset import DataSets
+from predict_testing import Predict
 from trains import Trains
 from category import category_extract, SIMPLE_CATEGORY_MODEL
 from gui.utils import LayoutGUI
@@ -555,8 +556,6 @@ class Wizard:
             tiny_space=True
         )
 
-
-
         # ============================= Group 5 =====================================
         self.label_frame_project = ttk.Labelframe(self.parent, text='Project Configuration')
         self.layout_utils.below_widget(
@@ -785,7 +784,7 @@ class Wizard:
             tiny_space=True
         )
 
-        # 打包训练集 - 按钮
+        # 清除训练记录 - 按钮
         self.btn_reset_history = ttk.Button(
             self.parent, text='Reset History', command=lambda: self.reset_history()
         )
@@ -793,6 +792,18 @@ class Wizard:
             src=self.btn_reset_history,
             target=self.btn_make_dataset,
             width=120,
+            height=24,
+            tiny_space=True
+        )
+
+        # 预测 - 按钮
+        self.btn_testing = ttk.Button(
+            self.parent, text='Testing', command=lambda: self.testing_model()
+        )
+        self.layout_utils.before_widget(
+            src=self.btn_testing,
+            target=self.btn_reset_history,
+            width=80,
             height=24,
             tiny_space=True
         )
@@ -962,6 +973,14 @@ class Wizard:
         messagebox.showinfo(
             "Error!", "Delete history successful!"
         )
+
+    def testing_model(self):
+        filename = filedialog.askdirectory()
+        if not filename:
+            return
+        filename = filename.replace("\\", "/")
+        predict = Predict(project_name=self.current_project)
+        predict.testing(image_dir=filename, limit=200)
 
     def clear_dataset(self):
         if not self.current_project:

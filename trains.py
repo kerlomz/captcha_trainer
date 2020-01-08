@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
+
 import tensorflow as tf
 import core
 import utils
@@ -72,10 +73,12 @@ class Trains:
             os.path.join(self.model_conf.compile_model_path, "{}.pb".format(self.model_conf.model_name))
         ).replace('.pb', '_{}.pb'.format(int(acc * 10000)))
 
+        self.model_conf.output_config(target_model_name="{}_{}".format(self.model_conf.model_name, int(acc * 10000)))
         with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
             gf.write(output_graph_def.SerializeToString())
+
+        if self.model_conf.loss_func == LossFunction.CrossEntropy:
             self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path)
-        self.model_conf.output_config(target_model_name="{}_{}".format(self.model_conf.model_name, int(acc * 10000)))
 
     def achieve_cond(self, acc, cost, epoch):
         achieve_accuracy = acc >= self.model_conf.trains_end_acc

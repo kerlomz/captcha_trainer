@@ -41,16 +41,12 @@ If you run into issues, open an issue here:
 def from_graphdef(sess, graph_def, model_path, input_names, output_names):
     """Load tensorflow graph from graphdef."""
     # make sure we start with clean default graph
-    # tf.reset_default_graph()
-    # with tf.Session() as sess:
-    # graph_def = tf.GraphDef()
     with tf.gfile.GFile(model_path, 'rb') as f:
         graph_def.ParseFromString(f.read())
         tf.import_graph_def(graph_def, name='')
         frozen_graph = loader.freeze_session(sess, output_names=output_names)
     input_names = loader.remove_redundant_inputs(frozen_graph, input_names)
     # clean up
-    # tf.reset_default_graph()
     return frozen_graph, input_names, output_names
 
 
@@ -98,13 +94,7 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
     output_path = input_path.replace(".pb", ".onnx")
     utils.save_protobuf(output_path, model_proto)
     logger.info("ONNX model is saved at %s", output_path)
-    # else:
-    #     logger.info("To export ONNX model to file, please run with `--output` option")
 
 
 if __name__ == "__main__":
-    convert_onnx(
-        input_path="graph.pb",
-        inputs_op="input:0",
-        outputs_op="dense_decoded:0"
-    )
+    pass
