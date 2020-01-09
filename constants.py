@@ -5,6 +5,13 @@ from enum import Enum, unique
 
 
 @unique
+class ModelType(Enum):
+    """模型类别枚举"""
+    PB = 'PB'
+    ONNX = 'ONNX'
+
+
+@unique
 class DatasetType(Enum):
     """数据集类别枚举"""
     Directory = 'Directory'

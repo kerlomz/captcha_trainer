@@ -980,7 +980,7 @@ class Wizard:
             return
         filename = filename.replace("\\", "/")
         predict = Predict(project_name=self.current_project)
-        predict.testing(image_dir=filename, limit=200)
+        predict.testing(image_dir=filename, limit=self.validation_batch_size)
 
     def clear_dataset(self):
         if not self.current_project:
@@ -1088,10 +1088,10 @@ class Wizard:
 
     @property
     def validation_batch_size(self):
-        if self.dataset_validation_listbox.size() > 1:
-            return self.validation_batch_size_val.get()
-        else:
-            return min(self.validation_batch_size_val.get(), self.validation_num_val.get())
+        # if self.dataset_validation_listbox.size() > 1:
+        return self.validation_batch_size_val.get()
+        # else:
+        #     return min(self.validation_batch_size_val.get(), self.validation_num_val.get())
 
     @property
     def device_usage(self):

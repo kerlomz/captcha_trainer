@@ -119,12 +119,14 @@ class Trains:
             exception("The number of training sets cannot be less than the test set.", )
 
         num_train_samples = train_feeder.size
-        num_test_samples = validation_feeder.size
-        if num_test_samples < self.model_conf.validation_batch_size:
-            exception(
-                "The number of test sets cannot be less than the test batch size.",
-                ConfigException.INSUFFICIENT_SAMPLE
-            )
+        num_validation_samples = validation_feeder.size
+
+        if num_validation_samples < self.model_conf.validation_batch_size:
+            self.model_conf.validation_batch_size = num_validation_samples
+            tf.logging.warn(
+                'The number of validation sets is less than the validation batch size, '
+                'will use validation set size as validation batch size.'.format(validation_feeder.size))
+
         num_batches_per_epoch = int(num_train_samples / self.model_conf.batch_size)
         # 会话配置
         sess_config = tf.compat.v1.ConfigProto(

@@ -60,7 +60,10 @@ class Encoder(object):
             return None
 
         if self.model_conf.image_channel == 1 and len(im.shape) == 3:
-            im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+            if self.mode == RunMode.Trains:
+                im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY if bool(random.getrandbits(1)) else cv2.COLOR_BGR2GRAY)
+            else:
+                im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
 
         im = preprocessing(
             image=im,

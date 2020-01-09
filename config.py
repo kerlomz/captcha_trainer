@@ -70,6 +70,11 @@ LOSS_FUNC_MAP = {
     'CrossEntropy': LossFunction.CrossEntropy
 }
 
+COMPILE_MODEL_MAP = {
+    ModelType.PB: ".pb",
+    ModelType.ONNX: ".onnx"
+}
+
 RESIZE_MAP = {
     LossFunction.CTC: lambda x, y: [None, y],
     LossFunction.CrossEntropy: lambda x, y: [x, y]
@@ -221,11 +226,14 @@ class ModelConfig:
     """COMPILE_MODEL"""
     compile_model_path: str
 
-    def __init__(self, project_name, project_path=None, **argv):
+    def __init__(self, project_name, project_path=None, is_dev=True, **argv):
+        self.is_dev = is_dev
         self.project_path = project_path if project_path else "./projects/{}".format(project_name)
+        self.output_path = os.path.join(self.project_path, 'out')
+        self.compile_conf_path = os.path.join(self.output_path, 'model')
+        self.compile_conf_path = os.path.join(self.compile_conf_path, "{}_model.yaml".format(project_name))
         self.model_root_path = os.path.join(self.project_path, 'model')
         self.model_conf_path = os.path.join(self.project_path, MODEL_CONFIG_NAME)
-        self.output_path = os.path.join(self.project_path, 'out')
         self.dataset_root_path = os.path.join(self.project_path, 'dataset')
         self.checkpoint_tag = 'checkpoint'
 
@@ -258,6 +266,7 @@ class ModelConfig:
         """SYSTEM"""
         self.system_root = self.conf['System']
         self.memory_usage = self.system_root.get('MemoryUsage')
+        self.model_version = self.system_root.get("Version")
         self.save_model = os.path.join(self.model_root_path, self.model_tag)
         self.save_checkpoint = os.path.join(self.model_root_path, self.checkpoint_tag)
 
@@ -467,7 +476,7 @@ class ModelConfig:
 
     @property
     def conf(self) -> dict:
-        with open(self.model_conf_path, 'r', encoding="utf-8") as sys_fp:
+        with open(self.model_conf_path if self.is_dev else self.compile_conf_path, 'r', encoding="utf-8") as sys_fp:
             sys_stream = sys_fp.read()
             return yaml.load(sys_stream, Loader=yaml.SafeLoader)
 
