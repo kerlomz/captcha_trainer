@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-
+import json
 import tkinter as tk
 import tkinter.ttk as ttk
 from gui.utils import LayoutGUI
@@ -52,7 +52,7 @@ class DataAugmentationDialog(tk.Toplevel):
         )
 
         # 二值化 - 输入框
-        self.binaryzation_val = tk.IntVar()
+        self.binaryzation_val = tk.StringVar()
         self.binaryzation_val.set(-1)
         self.binaryzation_entry = ttk.Entry(self, textvariable=self.binaryzation_val, justify=tk.LEFT)
         self.layout_utils.next_to_widget(
@@ -319,7 +319,7 @@ class DataAugmentationDialog(tk.Toplevel):
 
     def read_conf(self, entity):
         self.data_augmentation_entity = entity
-        self.binaryzation_val.set(entity.binaryzation)
+        self.binaryzation_val.set(json.dumps(entity.binaryzation))
         self.median_blur_val.set(entity.median_blur)
         self.gaussian_blur_val.set(entity.gaussian_blur)
         self.equalize_hist_val.set(entity.equalize_hist)
@@ -334,7 +334,7 @@ class DataAugmentationDialog(tk.Toplevel):
         self.channel_swap_val.set(entity.channel_swap)
 
     def save_conf(self):
-        self.data_augmentation_entity.binaryzation = self.binaryzation_val.get()
+        self.data_augmentation_entity.binaryzation = json.loads(self.binaryzation_val.get()) if self.binaryzation_val else []
         self.data_augmentation_entity.median_blur = self.median_blur_val.get()
         self.data_augmentation_entity.gaussian_blur = self.gaussian_blur_val.get()
         self.data_augmentation_entity.rotate = self.rotate_val.get()

@@ -199,7 +199,7 @@ class ModelConfig:
 
     """DATA AUGMENTATION"""
     data_augmentation_root: dict
-    da_binaryzation: int
+    da_binaryzation: list
     da_median_blur: int
     da_gaussian_blur: int
     da_equalize_hist: bool

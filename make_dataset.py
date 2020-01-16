@@ -15,6 +15,7 @@ class DataSets:
 
     """此类用于打包数据集为TFRecords格式"""
     def __init__(self, model: ModelConfig):
+        self.ignore_list = ["Thumbs.db", ".DS_Store"]
         self.model = model
         if not os.path.exists(self.model.dataset_root_path):
             os.makedirs(self.model.dataset_root_path)
@@ -56,6 +57,8 @@ class DataSets:
             pbar = tqdm(file_list)
             for i, file_name in enumerate(pbar):
                 try:
+                    if file_name.split("/")[-1] in self.ignore_list:
+                        continue
                     image_data = self.read_image(file_name)
                     labels = re.search(self.model.extract_regex, file_name.split(PATH_SPLIT)[-1])
                     if labels:

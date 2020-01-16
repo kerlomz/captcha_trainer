@@ -3,7 +3,7 @@
 # block_cipher = pyi_crypto.PyiBlockCipher(key='')
 block_cipher = None
 
-added_files = [('resource/icon.ico', 'resource'), ('model.template', '.')]
+added_files = [('resource/icon.ico', 'resource'), ('model.template', '.'), ('resource/VERSION', 'astor')]
 
 a = Analysis(['app.py'],
              pathex=['.'],

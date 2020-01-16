@@ -21,7 +21,7 @@ class Pretreatment(object):
         if isinstance(value, list) and len(value) == 2:
             value = random.randint(value[0], value[1])
         elif isinstance(value, int):
-            value = value if 0 < value < 255 else -1
+            value = value if (0 < value < 255) else -1
         if value == -1:
             return self.origin
         ret, _binarization = cv2.threshold(self.origin, value, 255, cv2.THRESH_BINARY)
@@ -273,27 +273,26 @@ def preprocessing(
 
 if __name__ == '__main__':
     import io
+    import os
     import PIL.Image
-
-    # with open(r"H:\TrainSet\*.jpg", "rb") as f:
-    #     path_or_bytes = f.read()
-    # path_or_stream = io.BytesIO(path_or_bytes)
-    # pil_image = PIL.Image.open(path_or_stream)
-    # im = np.array(pil_image)
-    # im = preprocessing(
-    #     image=im,
-    #     binaryzation=-1,
-    #     median_blur=-1,
-    #     gaussian_blur=-1,
-    #     equalize_hist=False,
-    #     laplacian=False,
-    #     rotate=15,
-    #     warp_perspective=True,
-    #     sp_noise=0.1,
-    # ).astype(np.float32)
-    # # im = im.swapaxes(0, 1)
+    import random
+    root_dir = r"H:\img"
+    name = random.choice(os.listdir(root_dir))
+    # name = "3956_b8cee4da-3530-11ea-9778-c2f9192435fa.png"
+    path = os.path.join(root_dir, name)
+    with open(path, "rb") as f:
+        path_or_bytes = f.read()
+    path_or_stream = io.BytesIO(path_or_bytes)
+    pil_image = PIL.Image.open(path_or_stream).convert("L")
+    im = np.array(pil_image)
+    im = preprocessing(
+        image=im,
+        binaryzation=150,
+        sp_noise=0.05,
+    ).astype(np.float32)
+    # im = im.swapaxes(0, 1)
     # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-    # cv_img = cv2.imencode('.png', im)[1]
-    # img_bytes = bytes(bytearray(cv_img))
-    # with open(r"C:\Users\kerlomz\Desktop\New folder (6)\1.jpg", "wb") as f:
-    #     f.write(img_bytes)
+    cv_img = cv2.imencode('.png', im)[1]
+    img_bytes = bytes(bytearray(cv_img))
+    with open(r"1.jpg", "wb") as f:
+        f.write(img_bytes)
