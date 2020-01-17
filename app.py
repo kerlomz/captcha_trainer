@@ -1412,6 +1412,8 @@ class Wizard:
             category_set = set(category_extract(key))
             if category <= category_set:
                 category_group[key] = len(category_set) - len(category)
+        if not category_group:
+            return None
         min_index = min(category_group.values())
         for k, v in category_group.items():
             if v == min_index:
@@ -1430,6 +1432,8 @@ class Wizard:
                 category.extend(label)
 
         category_pram = self.closest_category(category)
+        if not category_pram:
+            return 
         self.comb_category.set(category_pram)
         size = PilImage.open(os.path.join(dataset_path[0], file_names[0])).size
         self.size_val.set(json.dumps(size))

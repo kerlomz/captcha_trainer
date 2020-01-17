@@ -115,13 +115,13 @@ class DataAugmentationEntity:
     warp_perspective: bool = False
     rotate: int = -1
     sp_noise: float = -1.0
-    brightness: bool = True
-    saturation: bool = True
-    hue: bool = True
-    gamma: bool = True
-    channel_swap: bool = True
-    random_blank: int = 3
-    random_transition: int = 5
+    brightness: bool = False
+    saturation: bool = False
+    hue: bool = False
+    gamma: bool = False
+    channel_swap: bool = False
+    random_blank: int = -1
+    random_transition: int = -1
 
 
 class PretreatmentEntity:

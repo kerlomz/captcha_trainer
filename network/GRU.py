@@ -32,11 +32,7 @@ class GRU(object):
                 units=self.model_conf.units_num * 2,
                 return_sequences=True,
                 input_shape=self.inputs.shape,
-                reset_after=True,
-                recurrent_regularizer=l2(0.01),
-                kernel_regularizer=l2(0.01),
-                # bias_regularizer=l2(0.005),
-                trainable=self.utils.training,
+                # reset_after=True,
             )
             outputs = self.layer(mask, training=self.utils.training)
         return outputs

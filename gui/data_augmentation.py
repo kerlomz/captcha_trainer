@@ -332,6 +332,8 @@ class DataAugmentationDialog(tk.Toplevel):
         self.hue_val.set(entity.hue)
         self.gamma_val.set(entity.gamma)
         self.channel_swap_val.set(entity.channel_swap)
+        self.random_blank_val.set(entity.random_blank)
+        self.random_transition_val.set(entity.random_transition)
 
     def save_conf(self):
         self.data_augmentation_entity.binaryzation = json.loads(self.binaryzation_val.get()) if self.binaryzation_val else []
