@@ -72,7 +72,8 @@ LOSS_FUNC_MAP = {
 
 COMPILE_MODEL_MAP = {
     ModelType.PB: ".pb",
-    ModelType.ONNX: ".onnx"
+    ModelType.ONNX: ".onnx",
+    ModelType.TFLITE: ".tflite"
 }
 
 RESIZE_MAP = {
@@ -106,7 +107,6 @@ OUTPUT_SHAPE1_MAP = {
 
 
 class DataAugmentationEntity:
-
     binaryzation: object = -1
     median_blur: int = -1
     gaussian_blur: int = -1
@@ -125,7 +125,6 @@ class DataAugmentationEntity:
 
 
 class PretreatmentEntity:
-
     binaryzation: object = -1
     concat_frames: object = -1
     blend_frames: object = -1
@@ -134,7 +133,6 @@ class PretreatmentEntity:
 
 
 class ModelConfig:
-
     """MODEL"""
     model_root: dict
     model_name: str

@@ -9,6 +9,7 @@ class ModelType(Enum):
     """模型类别枚举"""
     PB = 'PB'
     ONNX = 'ONNX'
+    TFLITE = 'TFLITE'
 
 
 @unique

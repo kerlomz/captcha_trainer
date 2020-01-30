@@ -78,7 +78,7 @@ def output_model(project_name: str, model_type: ModelType, key=None):
     with open(graph_path, "rb") as f:
         graph_bytes = f.read()
 
-    output_path = graph_path.replace(".pb", ".pl").replace(".onnx", ".pl")
+    output_path = graph_path.replace(".pb", ".pl").replace(".onnx", ".pl").replace(".tflite", ".pl")
     concat_model(output_path, model_bytes, graph_bytes, key)
 
 

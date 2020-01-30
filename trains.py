@@ -17,9 +17,9 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
 class Trains:
-
     stop_flag: bool = False
     """训练任务的类"""
+
     def __init__(self, model_conf: ModelConfig):
         """
         :param model_conf: 读取工程配置文件
@@ -36,6 +36,22 @@ class Trains:
             inputs_op="input:0",
             outputs_op="dense_decoded:0"
         )
+
+    @staticmethod
+    def compile_tflite(input_path):
+        input_tensor_name = ["input"]
+        classes_tensor_name = ["dense_decoded"]
+
+        converter = tf.lite.TFLiteConverter.from_frozen_graph(
+            input_path,
+            input_tensor_name,
+            classes_tensor_name,
+        )
+        # converter.post_training_quantize = True
+        tflite_model = converter.convert()
+        output_path = input_path.replace(".pb", ".tflite")
+        with open(output_path, "wb") as f:
+            f.write(tflite_model)
 
     def compile_graph(self, acc):
         """
@@ -79,6 +95,7 @@ class Trains:
 
         if self.model_conf.loss_func == LossFunction.CrossEntropy:
             self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path)
+        self.compile_tflite(last_compile_model_path)
 
     def achieve_cond(self, acc, cost, epoch):
         achieve_accuracy = acc >= self.model_conf.trains_end_acc
@@ -250,7 +267,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
     tf.compat.v1.app.run()
-
