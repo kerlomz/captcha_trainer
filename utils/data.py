@@ -113,6 +113,7 @@ class DataIterator:
                     input_array = self.encoder.text(i1)
 
                 if input_array is None:
+                    tf.logging.warn("{}, \nCannot identify image file labeled: {}, ignored.".format(input_array, label_array))
                     continue
 
                 if isinstance(input_array, str):

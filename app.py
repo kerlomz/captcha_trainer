@@ -1433,7 +1433,7 @@ class Wizard:
 
         category_pram = self.closest_category(category)
         if not category_pram:
-            return 
+            return
         self.comb_category.set(category_pram)
         size = PilImage.open(os.path.join(dataset_path[0], file_names[0])).size
         self.size_val.set(json.dumps(size))

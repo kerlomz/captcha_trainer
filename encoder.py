@@ -30,8 +30,17 @@ class Encoder(object):
         # im = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # The OpenCV cannot handle gif format images, it will return None.
         # if im is None:
+
         path_or_stream = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, bytes) else path_or_bytes
-        pil_image = PIL.Image.open(path_or_stream)
+        if not path_or_stream:
+            return "Picture is corrupted: {}".format( path_or_bytes)
+        try:
+            pil_image = PIL.Image.open(path_or_stream)
+        except OSError as e:
+            return "{} - {}".format(e, path_or_bytes)
+
+        if pil_image.mode == 'P':
+            pil_image = pil_image.convert('RGB')
 
         rgb = pil_image.split()
         if len(rgb) == 1 and self.model_conf.image_channel == 3:

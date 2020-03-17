@@ -69,17 +69,30 @@ class Pretreatment(object):
         if not value:
             return self.origin
         size = self.origin.shape
+        scale = 1.0
         height, width = size[0], size[1]
-        angle = -random.randint(-value, value)
-        if abs(angle) > 15:
-            _img = cv2.resize(self.origin, (width, int(height / 2)))
-            center = (width / 4, height / 4)
+        center = (width // 2, height // 2)
+
+        if bool(random.getrandbits(1)):
+            angle = random.choice([
+                    -10, -20, -30, -45, -50, -60, -75, -90, -95, -100,
+                    10, 20, 30, 45, 50, 60, 75, 90, 95, 100
+                ])
         else:
-            _img = cv2.resize(self.origin, (width, height))
-            center = (width / 2, height / 2)
-        _img = cv2.resize(self.origin, (width, height))
-        m = cv2.getRotationMatrix2D(center, angle, 1.0)
-        _rotate = cv2.warpAffine(_img, m, (width, height), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+            angle = -random.randint(-value, value)
+
+        m = cv2.getRotationMatrix2D(center, angle, scale)
+        _rotate = cv2.warpAffine(self.origin, m, (width, height))
+        # angle = -random.randint(-value, value)
+        # if abs(angle) > 15:
+        #     _img = cv2.resize(self.origin, (width, int(height / 2)))
+        #     center = (width / 4, height / 4)
+        # else:
+        #     _img = cv2.resize(self.origin, (width, height))
+        #     center = (width / 2, height / 2)
+        # _img = cv2.resize(self.origin, (width, height))
+        # m = cv2.getRotationMatrix2D(center, angle, 1.0)
+        # _rotate = cv2.warpAffine(_img, m, (width, height), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
         if modify:
             self.origin = _rotate
         return _rotate
@@ -238,6 +251,12 @@ def preprocessing(
     :return:
     """
     pretreatment = Pretreatment(image)
+    if rotate > 0 and bool(random.getrandbits(1)):
+        pretreatment.rotate(rotate, True)
+    if random_transition and bool(random.getrandbits(1)):
+        pretreatment.random_transition(5, True)
+    if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
+        pretreatment.sp_noise(sp_noise, True)
     if binaryzation != -1 and bool(random.getrandbits(1)):
         pretreatment.binarization(binaryzation, True)
     if median_blur != -1 and bool(random.getrandbits(1)):
@@ -248,18 +267,12 @@ def preprocessing(
         pretreatment.equalize_hist(True, True)
     if laplacian and bool(random.getrandbits(1)):
         pretreatment.laplacian(True, True)
-    if rotate > 0 and bool(random.getrandbits(1)):
-        pretreatment.rotate(rotate, True)
     if warp_perspective and bool(random.getrandbits(1)):
         pretreatment.warp_perspective(True)
-    if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
-        pretreatment.sp_noise(sp_noise, True)
     if random_brightness and bool(random.getrandbits(1)):
         pretreatment.random_brightness(True)
     if random_blank and bool(random.getrandbits(1)):
         pretreatment.random_blank(2, True)
-    if random_transition and bool(random.getrandbits(1)):
-        pretreatment.random_transition(5, True)
     if random_gamma and bool(random.getrandbits(1)):
         pretreatment.random_gamma(True)
     if random_channel_swap and bool(random.getrandbits(1)):

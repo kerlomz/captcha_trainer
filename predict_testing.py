@@ -19,6 +19,8 @@ class Predict:
         self.encoder = Encoder(model_conf=self.model_conf, mode=RunMode.Predict)
 
     def get_image_batch(self, img_bytes):
+        if not img_bytes:
+            return []
         return [self.encoder.image(index) for index in [img_bytes]]
 
     @staticmethod
@@ -104,6 +106,8 @@ class Predict:
                 b = f.read()
 
             batch = self.get_image_batch(b)
+            if not batch:
+                continue
             st = time.time()
             predict_text = self.predict_func(
                 batch,
