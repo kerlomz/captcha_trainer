@@ -52,7 +52,7 @@ class Encoder(object):
 
         gif_handle = self.model_conf.pre_concat_frames != -1 or self.model_conf.pre_blend_frames != -1
 
-        if len(rgb) > 3 and self.model_conf.pre_replace_transparent and gif_handle:
+        if len(rgb) > 3 and self.model_conf.pre_replace_transparent and not gif_handle:
             background = PIL.Image.new('RGBA', pil_image.size, (255, 255, 255))
             background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
             background.convert('RGB')

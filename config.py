@@ -128,7 +128,7 @@ class PretreatmentEntity:
     binaryzation: object = -1
     concat_frames: object = -1
     blend_frames: object = -1
-    replace_transparent: bool = False
+    replace_transparent: bool = True
     horizontal_stitching: bool = False
 
 

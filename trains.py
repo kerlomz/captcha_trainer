@@ -156,6 +156,16 @@ class Trains:
         )
         accuracy = 0
         epoch_count = 1
+
+        if num_train_samples < 500:
+            save_step = 10
+            trains_validation_steps = 50
+
+        else:
+            save_step = 100
+            trains_validation_steps = self.model_conf.trains_validation_steps
+
+
         with tf.compat.v1.Session(config=sess_config) as sess:
             tf.keras.backend.set_session(session=sess)
             init_op = tf.global_variables_initializer()
@@ -198,7 +208,7 @@ class Trains:
                     )
                     train_writer.add_summary(summary_str, step)
 
-                    if step % 100 == 0 and step != 0:
+                    if step % save_step == 0 and step != 0:
                         tf.logging.info(
                             'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, Shape[1]: {}'.format(
                                 step,
@@ -210,11 +220,11 @@ class Trains:
                         )
 
                     # 达到保存步数对模型过程进行存储
-                    if step % self.model_conf.trains_save_steps == 0 and step != 0:
+                    if step % trains_validation_steps == 0 and step != 0:
                         saver.save(sess, self.model_conf.save_model, global_step=step)
 
                     # 进入验证集验证环节
-                    if step % self.model_conf.trains_validation_steps == 0 and step != 0:
+                    if step % trains_validation_steps == 0 and step != 0:
 
                         batch_time = time.time()
                         validation_batch = validation_feeder.generate_batch_by_tfrecords(sess)
