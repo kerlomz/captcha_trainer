@@ -226,8 +226,8 @@ def preprocessing(
         warp_perspective=False,
         sp_noise=-1.0,
         rotate=-1,
-        random_blank=False,
-        random_transition=False,
+        random_blank=-1,
+        random_transition=-1,
         random_brightness=False,
         random_gamma=False,
         random_channel_swap=False,
@@ -253,7 +253,7 @@ def preprocessing(
     pretreatment = Pretreatment(image)
     if rotate > 0 and bool(random.getrandbits(1)):
         pretreatment.rotate(rotate, True)
-    if random_transition and bool(random.getrandbits(1)):
+    if random_transition != -1 and bool(random.getrandbits(1)):
         pretreatment.random_transition(5, True)
     if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
         pretreatment.sp_noise(sp_noise, True)
@@ -271,7 +271,7 @@ def preprocessing(
         pretreatment.warp_perspective(True)
     if random_brightness and bool(random.getrandbits(1)):
         pretreatment.random_brightness(True)
-    if random_blank and bool(random.getrandbits(1)):
+    if random_blank != -1 and bool(random.getrandbits(1)):
         pretreatment.random_blank(2, True)
     if random_gamma and bool(random.getrandbits(1)):
         pretreatment.random_gamma(True)
