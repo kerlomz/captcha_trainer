@@ -80,16 +80,16 @@ class ResNetTiny(object):
     def build(self):
 
         x = ResNetUtils(self.utils).first_layer(self.inputs)
-        x = self.utils.residual_building_block(x, 3, [64, 64, 128], stage=2, block='a', strides=(1, 1))
+        x = self.utils.residual_building_block(x, 3, [64, 64, 128], stage=2, block='a', strides=(1, 1), s2=False)
         x = self.utils.identity_block(x, 3, [64, 64, 128], stage=2, block='b')
 
-        x = self.utils.residual_building_block(x, 3, [128, 128, 256], stage=3, block='a')
+        x = self.utils.residual_building_block(x, 3, [128, 128, 256], stage=3, block='a', s1=False, s2=False)
         x = self.utils.identity_block(x, 3, [128, 128, 256], stage=3, block='b')
 
-        x = self.utils.residual_building_block(x, 3, [256, 256, 512], stage=4, block='a')
+        x = self.utils.residual_building_block(x, 3, [256, 256, 512], stage=4, block='a', s1=False, s2=False)
         x = self.utils.identity_block(x, 3, [256, 256, 512], stage=4, block='b')
 
-        x = self.utils.residual_building_block(x, 3, [512, 512, 1024], stage=5, block='a', strides=(1, 1))
+        x = self.utils.residual_building_block(x, 3, [512, 512, 1024], stage=5, block='a', strides=(1, 1), s1=False)
         x = self.utils.identity_block(x, 3, [512, 512, 1024], stage=5, block='b')
 
         print("x.get_shape()", x.get_shape())

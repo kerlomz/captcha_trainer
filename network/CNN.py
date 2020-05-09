@@ -4,7 +4,7 @@
 import tensorflow as tf
 from network.utils import NetworkUtils
 from config import *
-from tensorflow.python.keras.regularizers import l1, l2, l1_l2
+from tensorflow.python.keras.regularizers import l1
 
 
 class CNN5(object):
@@ -65,37 +65,11 @@ class CNNX(object):
         inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
         return inputs
 
-    def depth_block(self, input_tensor, kernel_size=1, depth_multiplier=2, strides=1):
-        x = tf.keras.layers.DepthwiseConv2D(
-            depthwise_regularizer=l2(0.1),
-            strides=strides,
-            padding='SAME',
-            kernel_size=kernel_size,
-            depth_multiplier=depth_multiplier
-        )(input_tensor)
-        x = tf.layers.BatchNormalization(
-            fused=True,
-            epsilon=1e-3,
-            momentum=0.999,
-        )(x, training=self.utils.training)
-        x = tf.keras.layers.LeakyReLU(0.01)(x)
-        x = tf.keras.layers.Conv2D(
-            filters=16,
-            kernel_size=1,
-            padding='SAME',
-        )(x)
-        x = tf.keras.layers.BatchNormalization(
-            epsilon=1e-3,
-            momentum=0.999,
-        )(x, training=self.utils.training)
-        return x
-
     def build(self):
         with tf.compat.v1.variable_scope('CNNX'):
             x = self.inputs
 
-            x = self.block(x, filters=32, kernel_size=7, strides=1)
-            x = self.block(x, filters=64, kernel_size=5, strides=1)
+            x = self.block(x, filters=16, kernel_size=7, strides=1)
 
             max_pool0 = tf.keras.layers.MaxPooling2D(
                 pool_size=(1, 2),
@@ -115,19 +89,25 @@ class CNNX(object):
                 padding='same')(x)
 
             multi_scale_pool = tf.keras.layers.Add()([max_pool0, max_pool1, max_pool2, max_pool3])
-            x = self.utils.dense_block(multi_scale_pool, 1, name='conv2')
-            x = self.utils.transition_block(x, 0.5, name='pool2')
-            x1 = self.depth_block(x, kernel_size=3, strides=2, depth_multiplier=2)
+
+            x = self.block(multi_scale_pool, filters=32, kernel_size=5, strides=1)
+
+            x1 = self.utils.inverted_res_block(x, filters=16, stride=2, expansion=6, block_id=3)
+            x1 = self.utils.inverted_res_block(x1, filters=16, stride=1, expansion=6, block_id=4)
+
             x2 = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 1),
+                pool_size=(2, 2),
                 strides=2,
                 padding='same')(x)
             x = tf.keras.layers.Concatenate()([x2, x1])
-            x = self.block(x, filters=64, kernel_size=3, strides=1)
-            x = tf.keras.layers.MaxPooling2D(
-                pool_size=(2, 1),
-                strides=1,
-                padding='same')(x)
+
+            x = self.utils.inverted_res_block(x, filters=32, stride=2, expansion=6, block_id=3)
+            x = self.utils.inverted_res_block(x, filters=32, stride=1, expansion=6, block_id=4)
+
+            x = self.utils.dense_block(x, 2, name='dense_block')
+
+            x = self.utils.inverted_res_block(x, filters=64, stride=1, expansion=6, block_id=3)
+
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)
 

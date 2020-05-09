@@ -184,7 +184,8 @@ class Encoder(object):
     def auto_padding_char(self, content):
         if len(content) < self.model_conf.max_label_num and self.model_conf.auto_padding:
             remain_label_num = self.model_conf.max_label_num - len(content)
-            return content + [0] * remain_label_num
+            return [0] * remain_label_num + content
+            # return content + [0] * remain_label_num
         return content
 
     @staticmethod

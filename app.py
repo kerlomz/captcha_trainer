@@ -211,7 +211,7 @@ class Wizard:
 
         # 图像通道 - 下拉框
         self.comb_channel = ttk.Combobox(self.parent, values=(3, 1), state='readonly')
-        self.comb_channel.current(0)
+        self.comb_channel.current(1)
         self.layout_utils.next_to_widget(
             src=self.comb_channel,
             target=self.channel_text,
@@ -253,7 +253,7 @@ class Wizard:
 
         # 循环层 - 下拉框
         self.comb_recurrent = ttk.Combobox(self.parent, values=[_.name for _ in RecurrentNetwork], state='readonly')
-        self.comb_recurrent.current(0)
+        self.comb_recurrent.current(1)
         self.layout_utils.next_to_widget(
             src=self.comb_recurrent,
             target=self.neu_recurrent_text,
@@ -296,7 +296,7 @@ class Wizard:
 
         # 损失函数 - 下拉框
         self.comb_loss = ttk.Combobox(self.parent, values=[_.name for _ in LossFunction], state='readonly')
-        self.comb_loss.current(0)
+        self.comb_loss.current(1)
         self.layout_utils.next_to_widget(
             src=self.comb_loss,
             target=self.loss_func_text,
@@ -1293,7 +1293,9 @@ class Wizard:
             )
             return
         try:
-            self.current_task = Trains(model_conf)
+            if not self.current_task:
+                self.current_task = Trains(model_conf)
+
             self.current_task.compile_graph(0)
             status = 'Compile completed'
         except Exception as e:

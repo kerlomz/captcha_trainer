@@ -63,6 +63,7 @@ class CNNNetwork(Enum):
     ResNetTiny = 'ResNetTiny'
     ResNet50 = 'ResNet50'
     DenseNet = 'DenseNet'
+    MobileNetV2 = 'MobileNetV2'
 
 
 @unique
@@ -81,6 +82,7 @@ class RecurrentNetwork(Enum):
 @unique
 class Optimizer(Enum):
     """优化器枚举"""
+    RAdam = 'RAdam'
     Adam = 'Adam'
     Momentum = 'Momentum'
     AdaBound = 'AdaBound'

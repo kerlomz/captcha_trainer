@@ -18,8 +18,9 @@ import sys
 import tensorflow as tf
 
 from tf2onnx.tfonnx import process_tf_graph, tf_optimize
-from tf2onnx import constants, loader, logging, utils, optimizer
-
+from tf2onnx import constants, logging, utils, optimizer
+from tf_graph_util import convert_variables_to_constants
+# from tensorflow.python.framework.graph_util import convert_variables_to_constants
 
 # pylint: disable=unused-argument
 
@@ -37,6 +38,38 @@ If you run into issues, open an issue here:
     https://github.com/onnx/tensorflow-onnx/issues
 """
 
+logger = logging.getLogger(constants.TF2ONNX_PACKAGE_NAME)
+
+
+def freeze_session(sess, keep_var_names=None, output_names=None, clear_devices=True):
+    """Freezes the state of a session into a pruned computation graph."""
+    output_names = [i.split(':')[:-1][0] for i in output_names]
+    graph = sess.graph
+    with graph.as_default():
+        freeze_var_names = list(set(v.op.name for v in tf.global_variables()).difference(keep_var_names or []))
+        output_names = output_names or []
+        output_names += [v.op.name for v in tf.global_variables()]
+        input_graph_def = graph.as_graph_def(add_shapes=True)
+        if clear_devices:
+            for node in input_graph_def.node:
+                node.device = ""
+        frozen_graph = convert_variables_to_constants(sess, input_graph_def, output_names, freeze_var_names)
+        return frozen_graph
+
+
+def remove_redundant_inputs(frozen_graph, input_names):
+    """Remove redundant inputs not in frozen graph."""
+    frozen_inputs = []
+    # get inputs in frozen graph
+    for n in frozen_graph.node:
+        for inp in input_names:
+            if utils.node_name(inp) == n.name:
+                frozen_inputs.append(inp)
+    deleted_inputs = list(set(input_names) - set(frozen_inputs))
+    if deleted_inputs:
+        logger.warning("inputs [%s] is not in frozen graph, delete them", ",".join(deleted_inputs))
+    return frozen_inputs
+
 
 def from_graphdef(sess, graph_def, model_path, input_names, output_names):
     """Load tensorflow graph from graphdef."""
@@ -44,8 +77,8 @@ def from_graphdef(sess, graph_def, model_path, input_names, output_names):
     with tf.gfile.GFile(model_path, 'rb') as f:
         graph_def.ParseFromString(f.read())
         tf.import_graph_def(graph_def, name='')
-        frozen_graph = loader.freeze_session(sess, output_names=output_names)
-    input_names = loader.remove_redundant_inputs(frozen_graph, input_names)
+        frozen_graph = freeze_session(sess, output_names=output_names)
+    input_names = remove_redundant_inputs(frozen_graph, input_names)
     # clean up
     return frozen_graph, input_names, output_names
 
@@ -62,8 +95,6 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
     logging.basicConfig(level=logging.get_verbosity_level(True))
 
     utils.set_debug_mode(True)
-
-    logger = logging.getLogger(constants.TF2ONNX_PACKAGE_NAME)
 
     graph_def, inputs_op, outputs_op = from_graphdef(sess, graph_def, graphdef, inputs_op, outputs_op)
     model_path = graphdef

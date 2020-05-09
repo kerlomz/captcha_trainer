@@ -3,7 +3,6 @@
 # Author: kerlomz <kerlomz@gmail.com>
 
 import tensorflow as tf
-from tensorflow.keras.regularizers import l2, l1, l1_l2
 from config import RunMode, ModelConfig
 from network.utils import NetworkUtils
 
@@ -31,7 +30,7 @@ class GRU(object):
             self.layer = tf.keras.layers.GRU(
                 units=self.model_conf.units_num * 2,
                 return_sequences=True,
-                input_shape=self.inputs.shape,
+                input_shape=mask.shape,
                 # reset_after=True,
             )
             outputs = self.layer(mask, training=self.utils.training)

@@ -28,6 +28,7 @@ NETWORK_MAP = {
     'ResNetTiny': CNNNetwork.ResNetTiny,
     'ResNet50': CNNNetwork.ResNet50,
     'DenseNet': CNNNetwork.DenseNet,
+    'MobileNetV2': CNNNetwork.MobileNetV2,
     'LSTM': RecurrentNetwork.LSTM,
     'BiLSTM': RecurrentNetwork.BiLSTM,
     'GRU': RecurrentNetwork.GRU,
@@ -53,8 +54,9 @@ BUILT_IN_CATEGORY_MAP = {
 }
 
 OPTIMIZER_MAP = {
-    'AdaBound': Optimizer.AdaBound,
+    'RAdam': Optimizer.RAdam,
     'Adam': Optimizer.Adam,
+    'AdaBound': Optimizer.AdaBound,
     'Momentum': Optimizer.Momentum,
     'SGD': Optimizer.SGD,
     'AdaGrad': Optimizer.AdaGrad,
@@ -102,7 +104,8 @@ OUTPUT_SHAPE1_MAP = {
     CNNNetwork.CNNX: [8, 64],
     CNNNetwork.ResNetTiny: [16, 1024],
     CNNNetwork.ResNet50: [16, 2048],
-    CNNNetwork.DenseNet: [32, 2048]
+    CNNNetwork.DenseNet: [32, 2048],
+    CNNNetwork.MobileNetV2: [32, 1200]
 }
 
 
@@ -289,7 +292,7 @@ class ModelConfig:
 
         self.units_num = self.neu_network_root.get('UnitsNum')
         self.neu_optimizer_param = self.neu_network_root.get('Optimizer')
-        self.neu_optimizer_param = self.neu_optimizer_param if self.neu_optimizer_param else 'AdaBound'
+        self.neu_optimizer_param = self.neu_optimizer_param if self.neu_optimizer_param else 'RAdam'
 
         self.output_layer = self.neu_network_root.get('OutputLayer')
         self.loss_func_param = self.output_layer.get('LossFunction')

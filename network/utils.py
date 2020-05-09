@@ -144,7 +144,7 @@ class NetworkUtils(object):
         x = tf.keras.layers.AveragePooling2D(2, strides=2, name=name + '_pool', padding='same')(x)
         return x
 
-    def residual_building_block(self, input_tensor, kernel_size, filters, stage, block, strides=(2, 2)):
+    def residual_building_block(self, input_tensor, kernel_size, filters, stage, block, strides=(2, 2), s1=True, s2=True):
         """A block that has a conv layer at shortcut.
 
         # Arguments
@@ -166,6 +166,7 @@ class NetworkUtils(object):
         filters1, filters2, filters3 = filters
         conv_name_base = 'res' + str(stage) + block + '_branch'
         bn_name_base = 'bn' + str(stage) + block + '_branch'
+
         x = tf.keras.layers.Conv2D(
             filters=filters1,
             kernel_size=(1, 1),
@@ -192,7 +193,6 @@ class NetworkUtils(object):
             padding='same',
             name=conv_name_base + '2c')(x)
         x = tf.layers.BatchNormalization(name=bn_name_base + '2c')(x, training=self.training)
-
         shortcut = tf.keras.layers.Conv2D(
             filters=filters3,
             kernel_size=(1, 1),
@@ -258,4 +258,77 @@ class NetworkUtils(object):
         x = tf.layers.BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x, training=self.training)
         x = tf.keras.layers.add([x, input_tensor])
         x = tf.keras.layers.LeakyReLU(0.01)(x)
+        return x
+
+    @staticmethod
+    def _make_divisible(v, divisor, min_value=None):
+        if min_value is None:
+            min_value = divisor
+        new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+        # Make sure that round down does not go down by more than 10%.
+        if new_v < 0.9 * v:
+            new_v += divisor
+        return new_v
+
+    def inverted_res_block(self, input_tensor, expansion, stride, filters, block_id):
+        channel_axis = 1 if tf.keras.backend.image_data_format() == 'channels_first' else -1
+
+        in_channels = tf.keras.backend.int_shape(input_tensor)[channel_axis]
+        pointwise_filters = int(filters)
+        x = input_tensor
+        prefix = 'block_{}_'.format(block_id)
+
+        if block_id:
+            # Expand
+            x = tf.keras.layers.Conv2D(
+                expansion * in_channels,
+                kernel_size=1,
+                padding='same',
+                use_bias=False,
+                activation=None,
+                name=prefix + 'expand'
+            )(x)
+            x = tf.layers.BatchNormalization(
+                epsilon=1e-3,
+                momentum=0.999,
+                name=prefix + 'expand_BN'
+            )(x, training=self.training)
+            x = tf.keras.layers.LeakyReLU(0.01)(x)
+        else:
+            prefix = 'expanded_conv_'
+
+        # Depthwise
+        x = tf.keras.layers.DepthwiseConv2D(
+            kernel_size=3,
+            strides=stride,
+            activation=None,
+            use_bias=False,
+            padding='same',
+            name=prefix + 'depthwise'
+        )(x)
+        x = tf.layers.BatchNormalization(
+            epsilon=1e-3,
+            momentum=0.999,
+            name=prefix + 'depthwise_BN'
+        )(x, training=self.training)
+
+        x = tf.keras.layers.LeakyReLU(0.01)(x)
+
+        # Project
+        x = tf.keras.layers.Conv2D(
+            pointwise_filters,
+            kernel_size=1,
+            padding='same',
+            use_bias=False,
+            activation=None,
+            name=prefix + 'project'
+        )(x)
+        x = tf.layers.BatchNormalization(
+            epsilon=1e-3,
+            momentum=0.999,
+            name=prefix + 'project_BN'
+        )(x, training=self.training)
+
+        if in_channels == pointwise_filters and stride == 1:
+            return tf.keras.layers.Add(name=prefix + 'add')([input_tensor, x])
         return x

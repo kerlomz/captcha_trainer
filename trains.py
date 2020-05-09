@@ -95,7 +95,7 @@ class Trains:
 
         if self.model_conf.loss_func == LossFunction.CrossEntropy:
             self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path)
-        self.compile_tflite(last_compile_model_path)
+        # self.compile_tflite(last_compile_model_path)
 
     def achieve_cond(self, acc, cost, epoch):
         achieve_accuracy = acc >= self.model_conf.trains_end_acc
@@ -164,7 +164,6 @@ class Trains:
         else:
             save_step = 100
             trains_validation_steps = self.model_conf.trains_validation_steps
-
 
         with tf.compat.v1.Session(config=sess_config) as sess:
             tf.keras.backend.set_session(session=sess)
