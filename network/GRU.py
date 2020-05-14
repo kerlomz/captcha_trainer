@@ -54,7 +54,8 @@ class BiGRU(object):
                     units=self.model_conf.units_num,
                     return_sequences=True,
                 ),
-                input_shape=mask.shape
+                input_shape=mask.shape,
+                trainable=self.utils.training
             )
             outputs = self.layer(mask, training=self.training)
         return outputs

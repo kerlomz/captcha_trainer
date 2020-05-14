@@ -53,14 +53,14 @@ class CNNX(object):
             kernel_initializer=self.utils.msra_initializer(kernel_size, filters),
             padding='SAME',
         )(inputs)
-        inputs = tf.layers.BatchNormalization(
-            fused=True,
+        inputs = self.utils.BatchNormalization(
             renorm_clipping={
                 'rmax': 3,
                 'rmin': 0.3333,
                 'dmax': 5
             },
             epsilon=1.001e-5,
+            trainable=self.utils.training
         )(inputs, training=self.utils.training)
         inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
         return inputs
@@ -92,8 +92,8 @@ class CNNX(object):
 
             x = self.block(multi_scale_pool, filters=32, kernel_size=5, strides=1)
 
-            x1 = self.utils.inverted_res_block(x, filters=16, stride=2, expansion=6, block_id=3)
-            x1 = self.utils.inverted_res_block(x1, filters=16, stride=1, expansion=6, block_id=4)
+            x1 = self.utils.inverted_res_block(x, filters=16, stride=2, expansion=6, block_id=1)
+            x1 = self.utils.inverted_res_block(x1, filters=16, stride=1, expansion=6, block_id=2)
 
             x2 = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
@@ -106,7 +106,7 @@ class CNNX(object):
 
             x = self.utils.dense_block(x, 2, name='dense_block')
 
-            x = self.utils.inverted_res_block(x, filters=64, stride=1, expansion=6, block_id=3)
+            x = self.utils.inverted_res_block(x, filters=64, stride=1, expansion=6, block_id=5)
 
             shape_list = x.get_shape().as_list()
             print("x.get_shape()", shape_list)

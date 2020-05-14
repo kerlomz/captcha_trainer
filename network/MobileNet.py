@@ -30,7 +30,7 @@ class MobileNetV2(object):
             kernel_initializer='he_normal',
             name='conv1')(inputs)
 
-        x = tf.layers.BatchNormalization(name='bn_conv1', momentum=0.999)(x, training=self.utils.training)
+        x = self.utils.BatchNormalization(name='bn_conv1', momentum=0.999)(x, training=self.utils.training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         return x
@@ -41,10 +41,11 @@ class MobileNetV2(object):
             kernel_size=1,
             use_bias=False,
             name='Conv_1')(inputs)
-        x = tf.layers.BatchNormalization(
+        x = self.utils.BatchNormalization(
             epsilon=1e-3,
             momentum=0.999,
-            name='Conv_1_bn'
+            name='Conv_1_bn',
+            trainable=self.utils.training
         )(x, training=self.utils.training)
         x = tf.keras.layers.ReLU(6., name='out_relu')(x)
         return x
