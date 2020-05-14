@@ -120,25 +120,27 @@ class Predict:
             # csv_output = "{},{}".format(p.split(".")[0], predict_text)
             # lines.append(csv_output)
             # print(csv_output)
-            is_mark = '_' in p
-            if is_mark:
-                if 'LOWER' in self.model_conf.category_param:
-                    label = p.split("_")[0].lower()
-                    t = label == predict_text.lower()
-                elif 'UPPER' in self.model_conf.category_param:
-                    label = p.split("_")[0].upper()
-                    t = label == predict_text.upper()
-                else:
-                    label = p.split("_")[0]
-                    t = label == predict_text
-            # Used to verify test sets
-                if t:
-                    true_count += 1
-                else:
-                    false_count += 1
-                print(i, p, label, predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
+            # is_mark = '_' in p
+            # p = p.replace("\\", "/")
+            label = re.search(self.model_conf.extract_regex, p.split(PATH_SPLIT)[-1])
+            label = label.group() if label else p.split(".")[0]
+            # if is_mark:
+            if 'LOWER' in self.model_conf.category_param:
+                label = label.lower()
+                t = label == predict_text.lower()
+            elif 'UPPER' in self.model_conf.category_param:
+                label = label.upper()
+                t = label == predict_text.upper()
             else:
-                print(i, p, predict_text, true_count / (true_count + false_count), (et - st) * 1000)
+                t = label == predict_text
+            # Used to verify test sets
+            if t:
+                true_count += 1
+            else:
+                false_count += 1
+            print(i, p, label, predict_text, t, true_count / (true_count + false_count), (et-st) * 1000)
+            # else:
+            #     print(i, p, predict_text, true_count / (true_count + false_count), (et - st) * 1000)
             # with open("competition_format.csv", "w", encoding="utf8") as f:
             #     f.write("\n".join(lines))
 
