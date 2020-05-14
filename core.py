@@ -29,6 +29,10 @@ class NeuralNetwork(object):
         self.mode = mode
         self.decoder = Decoder(self.model_conf)
         self.utils = NetworkUtils(mode)
+        if self.utils.training:
+            tf.keras.backend.set_learning_phase(1)
+        else:
+            tf.keras.backend.set_learning_phase(0)
         self.network = cnn
         self.recurrent = recurrent
         print(self.input_shape)
@@ -145,6 +149,8 @@ class NeuralNetwork(object):
         # 训练参数更新
         update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
 
+        train_op = tf.compat.v1.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+
         # Storing adjusted smoothed mean and smoothed variance operations
         with tf.control_dependencies(update_ops):
 
@@ -158,14 +164,16 @@ class NeuralNetwork(object):
                     amsbound=True
                 ).minimize(
                     loss=self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
             elif self.model_conf.neu_optimizer == Optimizer.Adam:
                 self.train_op = tf.train.AdamOptimizer(
                     learning_rate=self.lrn_rate
                 ).minimize(
                     self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
             elif self.model_conf.neu_optimizer == Optimizer.RAdam:
                 self.train_op = RAdamOptimizer(
@@ -174,7 +182,8 @@ class NeuralNetwork(object):
                     min_lr=1e-6
                 ).minimize(
                     self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
             elif self.model_conf.neu_optimizer == Optimizer.Momentum:
                 self.train_op = tf.train.MomentumOptimizer(
@@ -183,28 +192,32 @@ class NeuralNetwork(object):
                     momentum=0.9,
                 ).minimize(
                     self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
             elif self.model_conf.neu_optimizer == Optimizer.SGD:
                 self.train_op = tf.train.GradientDescentOptimizer(
                     learning_rate=self.lrn_rate,
                 ).minimize(
                     self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
             elif self.model_conf.neu_optimizer == Optimizer.AdaGrad:
                 self.train_op = tf.train.AdagradOptimizer(
                     learning_rate=self.lrn_rate,
                 ).minimize(
                     self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
             elif self.model_conf.neu_optimizer == Optimizer.RMSProp:
                 self.train_op = tf.train.RMSPropOptimizer(
                     learning_rate=self.lrn_rate,
                 ).minimize(
                     self.cost,
-                    global_step=self.global_step
+                    global_step=self.global_step,
+                    var_list=train_op
                 )
 
         # 转录层-Loss函数
