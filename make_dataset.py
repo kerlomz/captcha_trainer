@@ -60,7 +60,11 @@ class DataSets:
                     if file_name.split("/")[-1] in self.ignore_list:
                         continue
                     image_data = self.read_image(file_name)
-                    labels = re.search(self.model.extract_regex, file_name.split(PATH_SPLIT)[-1])
+                    try:
+                        labels = re.search(self.model.extract_regex, file_name.split(PATH_SPLIT)[-1])
+                    except re.error as e:
+                        print('error:', e)
+                        return
                     if labels:
                         labels = labels.group()
                     else:

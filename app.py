@@ -29,6 +29,7 @@ class Wizard:
     is_task_running: bool = False
     data_augmentation_entity = DataAugmentationEntity()
     pretreatment_entity = PretreatmentEntity()
+    extract_regex = ".*?(?=_)"
 
     def __init__(self, parent: tk.Tk):
         self.layout = {
@@ -1041,6 +1042,8 @@ class Wizard:
         self.units_num_spin.set(model_conf.units_num)
         self.comb_loss.set(model_conf.loss_func_param)
 
+        self.extract_regex = model_conf.extract_regex
+
         if isinstance(model_conf.category_param, list):
             self.category_entry['state'] = tk.NORMAL
             self.comb_category.set('CUSTOMIZED')
@@ -1126,7 +1129,7 @@ class Wizard:
             HorizontalStitching=False,
             OutputSplit='',
             LabelFrom=LabelFrom.FileName.value,
-            ExtractRegex='.*?(?=_)',
+            ExtractRegex=self.extract_regex,
             LabelSplit='',
             DatasetTrainsPath=self.dataset_value(
                 dataset_type=DatasetType.TFRecords, mode=RunMode.Trains
