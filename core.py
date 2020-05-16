@@ -24,16 +24,17 @@ class NeuralNetwork(object):
     """
     神经网络构建类
     """
-    def __init__(self, model_conf: ModelConfig, is_training: tf.Tensor, cnn: CNNNetwork, recurrent: RecurrentNetwork):
+    def __init__(self, model_conf: ModelConfig, cnn: CNNNetwork, recurrent: RecurrentNetwork):
         self.model_conf = model_conf
         self.decoder = Decoder(self.model_conf)
-        self.utils = NetworkUtils(is_training)
+
         self.network = cnn
         self.recurrent = recurrent
         print(self.input_shape)
         self.inputs = tf.keras.Input(dtype=tf.float32, shape=self.input_shape, name='input')
         self.labels = tf.keras.Input(dtype=tf.int32, shape=[None], sparse=True, name='labels')
         self.is_training = tf.keras.Input(dtype=tf.bool, name='is_training')
+        self.utils = NetworkUtils(self.is_training)
         self.merged_summary = None
         self.optimizer = None
 
