@@ -199,6 +199,7 @@ class Trains:
                     feed = {
                         model.inputs: batch_inputs,
                         model.labels: batch_labels,
+                        model.is_training: True
                     }
 
                     summary_str, batch_cost, step, _, seq_len = sess.run(
@@ -231,7 +232,8 @@ class Trains:
                         test_inputs, test_labels = validation_batch
                         val_feed = {
                             model.inputs: test_inputs,
-                            model.labels: test_labels
+                            model.labels: test_labels,
+                            model.is_training: False
                         }
                         dense_decoded, lr = sess.run(
                             [model.dense_decoded, model.lrn_rate],

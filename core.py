@@ -24,21 +24,18 @@ class NeuralNetwork(object):
     """
     神经网络构建类
     """
-    def __init__(self, model_conf: ModelConfig, mode: RunMode, cnn: CNNNetwork, recurrent: RecurrentNetwork):
+    def __init__(self, model_conf: ModelConfig, is_training: tf.Tensor, cnn: CNNNetwork, recurrent: RecurrentNetwork):
         self.model_conf = model_conf
-        self.mode = mode
         self.decoder = Decoder(self.model_conf)
-        self.utils = NetworkUtils(mode)
-        if self.utils.training:
-            tf.keras.backend.set_learning_phase(1)
-        else:
-            tf.keras.backend.set_learning_phase(0)
+        self.utils = NetworkUtils(is_training)
         self.network = cnn
         self.recurrent = recurrent
         print(self.input_shape)
         self.inputs = tf.keras.Input(dtype=tf.float32, shape=self.input_shape, name='input')
         self.labels = tf.keras.Input(dtype=tf.int32, shape=[None], sparse=True, name='labels')
+        self.is_training = tf.keras.Input(dtype=tf.bool, name='is_training')
         self.merged_summary = None
+        self.optimizer = None
 
     @property
     def input_shape(self):
@@ -110,9 +107,9 @@ class NeuralNetwork(object):
         """输出层，根据Loss函数区分"""
         with tf.keras.backend.name_scope('output'):
             if self.model_conf.loss_func == LossFunction.CTC:
-                self.outputs = FullConnectedRNN(model_conf=self.model_conf, mode=self.mode, outputs=logits).build()
+                self.outputs = FullConnectedRNN(model_conf=self.model_conf, outputs=logits).build()
             elif self.model_conf.loss_func == LossFunction.CrossEntropy:
-                self.outputs = FullConnectedCNN(model_conf=self.model_conf, mode=self.mode, outputs=logits).build()
+                self.outputs = FullConnectedCNN(model_conf=self.model_conf, outputs=logits).build()
             return self.outputs
 
     def _build_train_op(self):
@@ -146,79 +143,52 @@ class NeuralNetwork(object):
         )
         tf.compat.v1.summary.scalar('learning_rate', self.lrn_rate)
 
+        if self.model_conf.neu_optimizer == Optimizer.AdaBound:
+            self.optimizer = AdaBoundOptimizer(
+                learning_rate=self.lrn_rate,
+                final_lr=0.001,
+                beta1=0.9,
+                beta2=0.999,
+                amsbound=True
+            )
+        elif self.model_conf.neu_optimizer == Optimizer.Adam:
+            self.optimizer = tf.train.AdamOptimizer(
+                learning_rate=self.lrn_rate
+            )
+        elif self.model_conf.neu_optimizer == Optimizer.RAdam:
+            self.optimizer = RAdamOptimizer(
+                learning_rate=self.lrn_rate,
+                warmup_proportion=0.1,
+                min_lr=1e-6
+            )
+        elif self.model_conf.neu_optimizer == Optimizer.Momentum:
+            self.optimizer = tf.train.MomentumOptimizer(
+                learning_rate=self.lrn_rate,
+                use_nesterov=True,
+                momentum=0.9,
+            )
+        elif self.model_conf.neu_optimizer == Optimizer.SGD:
+            self.optimizer = tf.train.GradientDescentOptimizer(
+                learning_rate=self.lrn_rate,
+            )
+        elif self.model_conf.neu_optimizer == Optimizer.AdaGrad:
+            self.optimizer = tf.train.AdagradOptimizer(
+                learning_rate=self.lrn_rate,
+            )
+        elif self.model_conf.neu_optimizer == Optimizer.RMSProp:
+            self.optimizer = tf.train.RMSPropOptimizer(
+                learning_rate=self.lrn_rate,
+            )
+
         # 训练参数更新
         update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
+        print(update_ops)
 
-        train_op = tf.compat.v1.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-
-        # Storing adjusted smoothed mean and smoothed variance operations
         with tf.control_dependencies(update_ops):
-
-            # TODO 这种if-else结构感觉很蠢，优化器选择器
-            if self.model_conf.neu_optimizer == Optimizer.AdaBound:
-                self.train_op = AdaBoundOptimizer(
-                    learning_rate=self.lrn_rate,
-                    final_lr=0.001,
-                    beta1=0.9,
-                    beta2=0.999,
-                    amsbound=True
-                ).minimize(
+            self.train_op = self.optimizer.minimize(
                     loss=self.cost,
                     global_step=self.global_step,
-                    var_list=train_op
-                )
-            elif self.model_conf.neu_optimizer == Optimizer.Adam:
-                self.train_op = tf.train.AdamOptimizer(
-                    learning_rate=self.lrn_rate
-                ).minimize(
-                    self.cost,
-                    global_step=self.global_step,
-                    var_list=train_op
-                )
-            elif self.model_conf.neu_optimizer == Optimizer.RAdam:
-                self.train_op = RAdamOptimizer(
-                    learning_rate=self.lrn_rate,
-                    warmup_proportion=0.1,
-                    min_lr=1e-6
-                ).minimize(
-                    self.cost,
-                    global_step=self.global_step,
-                    var_list=train_op
-                )
-            elif self.model_conf.neu_optimizer == Optimizer.Momentum:
-                self.train_op = tf.train.MomentumOptimizer(
-                    learning_rate=self.lrn_rate,
-                    use_nesterov=True,
-                    momentum=0.9,
-                ).minimize(
-                    self.cost,
-                    global_step=self.global_step,
-                    var_list=train_op
-                )
-            elif self.model_conf.neu_optimizer == Optimizer.SGD:
-                self.train_op = tf.train.GradientDescentOptimizer(
-                    learning_rate=self.lrn_rate,
-                ).minimize(
-                    self.cost,
-                    global_step=self.global_step,
-                    var_list=train_op
-                )
-            elif self.model_conf.neu_optimizer == Optimizer.AdaGrad:
-                self.train_op = tf.train.AdagradOptimizer(
-                    learning_rate=self.lrn_rate,
-                ).minimize(
-                    self.cost,
-                    global_step=self.global_step,
-                    var_list=train_op
-                )
-            elif self.model_conf.neu_optimizer == Optimizer.RMSProp:
-                self.train_op = tf.train.RMSPropOptimizer(
-                    learning_rate=self.lrn_rate,
-                ).minimize(
-                    self.cost,
-                    global_step=self.global_step,
-                    var_list=train_op
-                )
+            )
 
         # 转录层-Loss函数
         if self.model_conf.loss_func == LossFunction.CTC:

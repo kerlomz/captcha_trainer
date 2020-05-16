@@ -60,8 +60,7 @@ class CNNX(object):
                 'dmax': 5
             },
             epsilon=1.001e-5,
-            trainable=self.utils.training
-        )(inputs, training=self.utils.training)
+        )(inputs, training=self.utils.is_training)
         inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
         return inputs
 
