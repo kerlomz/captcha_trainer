@@ -116,7 +116,6 @@ class Trains:
         # 定义网络结构
         model = core.NeuralNetwork(
             model_conf=self.model_conf,
-            mode=RunMode.Trains,
             cnn=self.model_conf.neu_cnn,
             recurrent=self.model_conf.neu_recurrent
         )
