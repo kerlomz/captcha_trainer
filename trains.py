@@ -74,7 +74,7 @@ class Trains:
             saver = tf.train.Saver(var_list=tf.global_variables())
             tf.logging.info(tf.train.latest_checkpoint(self.model_conf.model_root_path))
             saver.restore(predict_sess, tf.train.latest_checkpoint(self.model_conf.model_root_path))
-            tf.keras.backend.set_session(session=predict_sess)
+            # tf.keras.backend.set_session(session=predict_sess)
 
             output_graph_def = convert_variables_to_constants(
                 predict_sess,
@@ -115,6 +115,7 @@ class Trains:
         self.model_conf.println()
         # 定义网络结构
         model = core.NeuralNetwork(
+            mode=RunMode.Trains,
             model_conf=self.model_conf,
             cnn=self.model_conf.neu_cnn,
             recurrent=self.model_conf.neu_recurrent
@@ -165,7 +166,6 @@ class Trains:
             trains_validation_steps = self.model_conf.trains_validation_steps
 
         with tf.compat.v1.Session(config=sess_config) as sess:
-            tf.keras.backend.set_session(session=sess)
             init_op = tf.global_variables_initializer()
             sess.run(init_op)
             saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=2)
@@ -198,7 +198,6 @@ class Trains:
                     feed = {
                         model.inputs: batch_inputs,
                         model.labels: batch_labels,
-                        model.is_training: True
                     }
 
                     summary_str, batch_cost, step, _, seq_len = sess.run(
@@ -232,7 +231,6 @@ class Trains:
                         val_feed = {
                             model.inputs: test_inputs,
                             model.labels: test_labels,
-                            model.is_training: False
                         }
                         dense_decoded, lr = sess.run(
                             [model.dense_decoded, model.lrn_rate],

@@ -74,7 +74,7 @@ def remove_redundant_inputs(frozen_graph, input_names):
 def from_graphdef(sess, graph_def, model_path, input_names, output_names):
     """Load tensorflow graph from graphdef."""
     # make sure we start with clean default graph
-    with tf.gfile.GFile(model_path, 'rb') as f:
+    with tf.io.gfile.GFile(model_path, 'rb') as f:
         graph_def.ParseFromString(f.read())
         tf.import_graph_def(graph_def, name='')
         frozen_graph = freeze_session(sess, output_names=output_names)
@@ -99,7 +99,7 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
     graph_def, inputs_op, outputs_op = from_graphdef(sess, graph_def, graphdef, inputs_op, outputs_op)
     model_path = graphdef
 
-    graph_def = tf_optimize(inputs_op, outputs_op, graph_def,  True)
+    graph_def = tf_optimize(inputs_op, outputs_op, graph_def, True)
 
     with tf.Graph().as_default() as tf_graph:
         tf.import_graph_def(graph_def, name='')

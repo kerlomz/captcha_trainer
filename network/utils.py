@@ -9,104 +9,22 @@ from config import *
 
 
 class NetworkUtils(object):
+    """
+    :param: is_training: 设置为 True 的原因请见 core.py
+    """
 
-    def __init__(self, is_training: tf.Tensor):
-        self.extra_train_ops = []
-        self.is_training = is_training
+    def __init__(self, mode: RunMode):
+        self.mode = mode
+        self.is_training = True
 
-    class BatchNormalization:
+    class BatchNormalization(tf.layers.BatchNormalization):
         """Fixed default name of BatchNormalization"""
 
-        def __init__(self, scope, epsilon=0.001, momentum=0.99, reuse=None):
-            self.scope = scope
-            self.epsilon = epsilon
-            self.momentum = momentum
-            self.reuse = reuse
-
-        @staticmethod
-        def bn_layer(inputs, scope, is_training, epsilon=0.001, momentum=0.99, reuse=None):
-            """
-            Performs a batch normalization layer
-            Args:
-                inputs: input tensor
-                scope: scope name
-                is_training: python boolean value
-                epsilon: the variance epsilon - a small float number to avoid dividing by 0
-                momentum: the moving average decay
-
-            Returns:
-                The ops of a batch normalization layer
-            """
-
-            with tf.variable_scope(scope, reuse=reuse):
-
-                shape = inputs.get_shape().as_list()
-                # gamma: a trainable scale factor
-                gamma = tf.get_variable(
-                    scope + "_gamma", shape[-1], initializer=tf.constant_initializer(1.0), trainable=True
-                )
-                # beta: a trainable shift value
-                beta = tf.get_variable(
-                    scope + "_beta", shape[-1], initializer=tf.constant_initializer(0.0), trainable=True
-                )
-                moving_avg = tf.get_variable(
-                    scope + "_moving_mean", shape[-1], initializer=tf.constant_initializer(0.0), trainable=False
-                )
-                moving_var = tf.get_variable(
-                    scope + "_moving_variance", shape[-1], initializer=tf.constant_initializer(1.0), trainable=False
-                )
-
-                if is_training:
-                    # tf.nn.moments == Calculate the mean and the variance of the tensor inputs
-                    avg, var = tf.nn.moments(inputs, np.arange(len(shape) - 1), keep_dims=True)
-                    avg = tf.reshape(avg, [avg.shape.as_list()[-1]])
-                    var = tf.reshape(var, [var.shape.as_list()[-1]])
-                    # update_moving_avg = moving_averages.assign_moving_average(moving_avg, avg, decay)
-                    update_moving_avg = tf.assign(moving_avg, moving_avg * momentum + avg * (1 - momentum))
-                    # update_moving_var = moving_averages.assign_moving_average(moving_var, var, decay)
-                    update_moving_var = tf.assign(moving_var, moving_var * momentum + var * (1 - momentum))
-                    control_inputs = [update_moving_avg, update_moving_var]
-                else:
-                    avg = moving_avg
-                    var = moving_var
-                    control_inputs = []
-                with tf.control_dependencies(control_inputs):
-                    output = tf.nn.batch_normalization(
-                        inputs, avg, var, offset=beta, scale=gamma, variance_epsilon=epsilon
-                    )
-            return output
-
-        def bn_layer_top(self, inputs, scope, is_training, epsilon=0.001, momentum=0.99):
-            """
-            Returns a batch normalization layer that automatically switch between train and test phases based on the
-            tensor is_training
-            Args:
-                inputs: input tensor
-                scope: scope name
-                is_training: boolean tensor or variable
-                epsilon: epsilon parameter - see batch_norm_layer
-                momentum: epsilon parameter - see batch_norm_layer
-
-            Returns:
-                The correct batch normalization layer based on the value of is_training
-            """
-            # assert isinstance(is_training, (ops.Tensor, variables.Variable)) and is_training.dtype == tf.bool
-
-            return tf.cond(
-                is_training,
-                lambda: self.bn_layer(inputs=inputs, scope=scope, epsilon=epsilon, momentum=momentum, is_training=True, reuse=None),
-                lambda: self.bn_layer(inputs=inputs, scope=scope, epsilon=epsilon, momentum=momentum, is_training=False, reuse=True),
-            )
-
-        def __call__(self, inputs, is_training):
-            outputs = self.bn_layer(
-                inputs=inputs,
-                is_training=is_training,
-                scope=self.scope,
-                epsilon=self.epsilon,
-                momentum=self.momentum,
-                reuse=self.reuse
-            )
+        def call(self, *args, **kwargs):
+            outputs = super(NetworkUtils.BatchNormalization, self).call(*args, **kwargs)
+            # A temporary compatibility with keras batch norm.
+            for u in self.updates:
+                tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, u)
             return outputs
 
     @staticmethod
@@ -145,15 +63,16 @@ class NetworkUtils(object):
                 padding='same',
                 name='cnn-{}'.format(index + 1),
             )(inputs)
+
             x = self.BatchNormalization(
-                # fused=True,
-                # renorm_clipping={
-                #     'rmax': 3,
-                #     'rmin': 0.3333,
-                #     'dmax': 5
-                # } if index == 0 else None,
+                fused=True,
+                renorm_clipping={
+                    'rmax': 3,
+                    'rmin': 0.3333,
+                    'dmax': 5
+                } if index == 0 else None,
                 epsilon=1.001e-5,
-                scope='bn{}'.format(index + 1))(x, is_training=self.is_training)
+                name='bn{}'.format(index + 1))(x, training=self.is_training)
             x = tf.keras.layers.LeakyReLU(0.01)(x)
             x = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
@@ -175,8 +94,8 @@ class NetworkUtils(object):
         """
         # 1x1 Convolution (Bottleneck layer)
         x = self.BatchNormalization(
-            epsilon=1.001e-5, scope=name + '_0_bn'
-        )(input_tensor, is_training=self.is_training)
+            epsilon=1.001e-5, name=name + '_0_bn'
+        )(input_tensor, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01, name=name + '_0_relu')(x)
         x = tf.keras.layers.Conv2D(
             filters=4 * growth_rate,
@@ -190,8 +109,8 @@ class NetworkUtils(object):
 
         # 3x3 Convolution
         x = self.BatchNormalization(
-            epsilon=1.001e-5, scope=name + '_1_bn'
-        )(input_tensor, is_training=self.is_training)
+            epsilon=1.001e-5, name=name + '_1_bn'
+        )(input_tensor, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01, name=name + '_1_relu')(x)
         x = tf.keras.layers.Conv2D(
             filters=growth_rate,
@@ -233,8 +152,8 @@ class NetworkUtils(object):
             output tensor for the block.
         """
         x = self.BatchNormalization(
-            epsilon=1.001e-5, scope=name + '_bn'
-        )(input_tensor, is_training=self.is_training)
+            epsilon=1.001e-5, name=name + '_bn'
+        )(input_tensor, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
         x = tf.keras.layers.Conv2D(
             filters=int(tf.keras.backend.int_shape(x)[3] * reduction),
@@ -276,7 +195,7 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '2a')(input_tensor)
-        x = self.BatchNormalization(scope=bn_name_base + '2a')(x, is_training=self.is_training)
+        x = self.BatchNormalization(name=bn_name_base + '2a')(x, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -285,7 +204,7 @@ class NetworkUtils(object):
             padding='same',
             kernel_initializer='he_normal',
             name=conv_name_base + '2b')(x)
-        x = self.BatchNormalization(scope=bn_name_base + '2b')(x, is_training=self.is_training)
+        x = self.BatchNormalization(name=bn_name_base + '2b')(x, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -294,7 +213,7 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '2c')(x)
-        x = self.BatchNormalization(scope=bn_name_base + '2c')(x, is_training=self.is_training)
+        x = self.BatchNormalization(name=bn_name_base + '2c')(x, training=self.is_training)
         shortcut = tf.keras.layers.Conv2D(
             filters=filters3,
             kernel_size=(1, 1),
@@ -303,8 +222,8 @@ class NetworkUtils(object):
             padding='same',
             name=conv_name_base + '1')(input_tensor)
         shortcut = self.BatchNormalization(
-            scope=bn_name_base + '1'
-        )(shortcut, is_training=self.is_training)
+            name=bn_name_base + '1'
+        )(shortcut, training=self.is_training)
 
         x = tf.keras.layers.add([x, shortcut])
         x = tf.keras.layers.LeakyReLU(0.01)(x)
@@ -337,8 +256,8 @@ class NetworkUtils(object):
         )(input_tensor)
         x = self.BatchNormalization(
             # axis=bn_axis,
-            scope=bn_name_base + '2a',
-        )(x, is_training=self.is_training)
+            name=bn_name_base + '2a',
+        )(x, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -350,8 +269,8 @@ class NetworkUtils(object):
         )(x)
         x = self.BatchNormalization(
             # axis=bn_axis,
-            scope=bn_name_base + '2b',
-        )(x, is_training=self.is_training)
+            name=bn_name_base + '2b',
+        )(x, training=self.is_training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -362,8 +281,8 @@ class NetworkUtils(object):
             name=conv_name_base + '2c')(x)
         x = self.BatchNormalization(
             # axis=bn_axis,
-            scope=bn_name_base + '2c',
-        )(x, is_training=self.is_training)
+            name=bn_name_base + '2c',
+        )(x, training=self.is_training)
         x = tf.keras.layers.add([x, input_tensor])
         x = tf.keras.layers.LeakyReLU(0.01)(x)
         return x
@@ -398,9 +317,9 @@ class NetworkUtils(object):
             )(x)
             x = self.BatchNormalization(
                 epsilon=1e-3,
-                # momentum=0.999,
-                scope=prefix + 'expand_BN',
-            )(x, is_training=self.is_training)
+                momentum=0.999,
+                name=prefix + 'expand_BN',
+            )(x, training=self.is_training)
             x = tf.keras.layers.LeakyReLU(0.01)(x)
         else:
             prefix = 'expanded_conv_'
@@ -417,8 +336,8 @@ class NetworkUtils(object):
         x = self.BatchNormalization(
             epsilon=1e-3,
             momentum=0.999,
-            scope=prefix + 'expand_BN',
-        )(x, is_training=self.is_training)
+            name=prefix + 'expand_BN',
+        )(x, training=self.is_training)
 
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
@@ -434,8 +353,8 @@ class NetworkUtils(object):
         x = self.BatchNormalization(
             epsilon=1e-3,
             momentum=0.999,
-            scope=prefix + 'expand_BN',
-        )(x, is_training=self.is_training)
+            name=prefix + 'expand_BN',
+        )(x, training=self.is_training)
 
         if in_channels == pointwise_filters and stride == 1:
             return tf.keras.layers.Add(name=prefix + 'add')([input_tensor, x])

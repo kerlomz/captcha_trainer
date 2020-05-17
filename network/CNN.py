@@ -36,6 +36,7 @@ class CNN5(object):
 
 
 class CNNX(object):
+
     """暂时不用管，设计到一半的一个网络结构"""
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
         self.model_conf = model_conf

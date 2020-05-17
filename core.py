@@ -21,32 +21,41 @@ import tensorflow as tf
 
 
 class NeuralNetwork(object):
+
+
     """
     神经网络构建类
+    大家需要注意，这里有一个极为不专业的操作，
+    :param: mode 参数它没有被真正使用，我可太菜了，整了半天BN的is_training还是被打到了。
+    说明：在 mode[Validation] 场景下，training=False 验证集的准确率波动很厉害，在 training=True 下准确率却很稳定上升
+    training=True 在mode[Predict] 场景下预测 BatchSize=1 的数据也能得到较为接近训练准确率的成绩。
+    按我原本的理解，mode[Validation/Predict] 场景下 training 都应该设为 False。
+    之前的版本 mode[Validation] 模式其实也是使用 True 值，我尝试过的方法是定义一个 tf.placeholder 来动态传入 is_training 值
+    因为是静态图，处理方法感觉还是不够优雅，其实直接用 tf.keras.Model 挺香的，但是由于 tf2 测试过还不是很稳定暂时不打算引入。
     """
-    def __init__(self, model_conf: ModelConfig, cnn: CNNNetwork, recurrent: RecurrentNetwork):
+    def __init__(self, model_conf: ModelConfig, mode: RunMode, cnn: CNNNetwork, recurrent: RecurrentNetwork):
         self.model_conf = model_conf
         self.decoder = Decoder(self.model_conf)
-
+        self.mode = mode
         self.network = cnn
         self.recurrent = recurrent
-        print(self.input_shape)
         self.inputs = tf.keras.Input(dtype=tf.float32, shape=self.input_shape, name='input')
         self.labels = tf.keras.Input(dtype=tf.int32, shape=[None], sparse=True, name='labels')
-        self.is_training = tf.keras.Input(dtype=tf.bool, name='is_training')
-        self.utils = NetworkUtils(self.is_training)
+        self.utils = NetworkUtils(mode)
         self.merged_summary = None
         self.optimizer = None
 
     @property
     def input_shape(self):
         """
-        :return: tuple/list 类型，输入的Shape
+        :return: tuple/list 类型，输入的 Shape
         """
         return RESIZE_MAP[self.model_conf.loss_func](*self.model_conf.resize) + [self.model_conf.image_channel]
 
     def build_graph(self):
-        """在当前Session中构建网络计算图，无返回"""
+        """
+        在当前Session中构建网络计算图
+        """
         self._build_model()
         self._build_train_op()
         self.merged_summary = tf.compat.v1.summary.merge_all()
@@ -81,7 +90,7 @@ class NeuralNetwork(object):
         tf.compat.v1.logging.info("CNN Output: {}".format(x.get_shape()))
 
         self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
-        # self.labels_len = tf.fill([BATCH_SIZE], 12, name="labels_len")
+
         if self.recurrent == RecurrentNetwork.NoRecurrent:
             self.recurrent_network_builder = None
         elif self.recurrent == RecurrentNetwork.LSTM:
@@ -114,9 +123,11 @@ class NeuralNetwork(object):
             return self.outputs
 
     def _build_train_op(self):
-        """操作符生成器"""
+        """构建训练操作符"""
+
         # 步数
         self.global_step = tf.train.get_or_create_global_step()
+
         # Loss函数
         if self.model_conf.loss_func == LossFunction.CTC:
             self.loss = Loss.ctc(
@@ -134,7 +145,7 @@ class NeuralNetwork(object):
 
         tf.compat.v1.summary.scalar('cost', self.cost)
 
-        # 学习率
+        # 学习率 指数衰减法
         self.lrn_rate = tf.compat.v1.train.exponential_decay(
             self.model_conf.trains_learning_rate,
             self.global_step,
@@ -181,10 +192,10 @@ class NeuralNetwork(object):
                 learning_rate=self.lrn_rate,
             )
 
-        # 训练参数更新
+        # BN 操作符更新(moving_mean, moving_variance)
         update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
-        print(update_ops)
 
+        # 将 train_op 和 update_ops 融合
         with tf.control_dependencies(update_ops):
             self.train_op = self.optimizer.minimize(
                     loss=self.cost,

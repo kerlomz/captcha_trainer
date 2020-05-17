@@ -66,7 +66,7 @@ class Predict:
         with sess.graph.as_default():
 
             sess.run(tf.global_variables_initializer())
-            tf.keras.backend.set_session(session=sess)
+            # tf.keras.backend.set_session(session=sess)
 
             model = NeuralNetwork(
                 self.model_conf,
@@ -80,7 +80,7 @@ class Predict:
 
             """从项目中加载最后一次训练的网络参数"""
             saver.restore(sess, tf.train.latest_checkpoint(self.model_conf.model_root_path))
-
+            # model.build_graph()
             # _ = tf.import_graph_def(graph_def, name="")
 
         """定义操作符"""
@@ -143,6 +143,7 @@ class Predict:
             #     print(i, p, predict_text, true_count / (true_count + false_count), (et - st) * 1000)
             # with open("competition_format.csv", "w", encoding="utf8") as f:
             #     f.write("\n".join(lines))
+        sess.close()
 
 
 if __name__ == '__main__':
