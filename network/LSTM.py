@@ -46,7 +46,6 @@ class BiLSTM(object):
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
-        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -71,7 +70,6 @@ class LSTMcuDNN(object):
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
-        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -81,7 +79,7 @@ class LSTMcuDNN(object):
                 units=self.model_conf.units_num * 2,
                 return_sequences=True,
             )
-            outputs = self.layer(self.inputs, training=self.training)
+            outputs = self.layer(self.inputs, training=self.utils.is_training)
         return outputs
 
 
@@ -92,7 +90,6 @@ class BiLSTMcuDNN(object):
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
-        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -104,5 +101,5 @@ class BiLSTMcuDNN(object):
                     return_sequences=True
                 )
             )
-            outputs = self.layer(self.inputs, training=self.training)
+            outputs = self.layer(self.inputs, training=self.utils.is_training)
         return outputs
