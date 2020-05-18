@@ -12,9 +12,8 @@ class FullConnectedRNN(object):
     RNN的输出层
     """
 
-    def __init__(self, model_conf: ModelConfig, mode: RunMode, outputs):
+    def __init__(self, model_conf: ModelConfig, outputs):
         self.model_conf = model_conf
-        self.utils = NetworkUtils(mode)
 
         self.dense = tf.keras.layers.Dense(
             units=self.model_conf.category_num + 2,

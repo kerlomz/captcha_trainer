@@ -5,8 +5,6 @@
 import tensorflow as tf
 from network.utils import NetworkUtils
 from config import ModelConfig
-from constants import LossFunction, RunMode
-slim = tf.contrib.slim
 
 
 class DenseNet(object):
@@ -26,10 +24,19 @@ class DenseNet(object):
 
     def build(self):
 
-        with tf.variable_scope('DenseNet'):
+        with tf.keras.backend.name_scope('DenseNet'):
 
             x = tf.keras.layers.Conv2D(64, 3, strides=2, use_bias=False, name='conv1/conv', padding='same')(self.inputs)
-            x = tf.layers.BatchNormalization(axis=3, epsilon=1.001e-5, name='conv1/bn')(x, training=self.utils.training)
+            x = tf.layers.batch_normalization(
+                x,
+                epsilon=1.001e-5,
+                axis=3,
+                reuse=False,
+                momentum=0.9,
+                name='conv1/bn',
+                training=self.utils.is_training,
+            )
+
             x = tf.keras.layers.LeakyReLU(0.01, name='conv1/relu')(x)
             x = tf.keras.layers.MaxPooling2D(3, strides=2, name='pool1', padding='same')(x)
             x = self.utils.dense_block(x, self.blocks[0], name='conv2')
@@ -39,8 +46,19 @@ class DenseNet(object):
             x = self.utils.dense_block(x, self.blocks[2], name='conv4')
             x = self.utils.transition_block(x, 0.5, name='pool4')
             x = self.utils.dense_block(x, self.blocks[3], name='conv5')
-            x = tf.layers.BatchNormalization(axis=3, epsilon=1.001e-5, name='bn')(x, training=self.utils.training)
+            x = tf.layers.batch_normalization(
+                x,
+                epsilon=1.001e-5,
+                axis=3,
+                reuse=False,
+                momentum=0.9,
+                name='bn',
+                training=self.utils.is_training,
+            )
+
             x = tf.keras.layers.LeakyReLU(0.01, name='conv6/relu')(x)
 
             shape_list = x.get_shape().as_list()
+            print("x.get_shape()", shape_list)
+
             return self.utils.reshape_layer(x, self.loss_func, shape_list)

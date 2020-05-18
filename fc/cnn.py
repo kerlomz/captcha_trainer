@@ -13,9 +13,8 @@ class FullConnectedCNN(object):
     """
     CNN的输出层
     """
-    def __init__(self, model_conf: ModelConfig, mode: RunMode, outputs):
+    def __init__(self, model_conf: ModelConfig, outputs):
         self.model_conf = model_conf
-        self.utils = NetworkUtils(mode)
 
         self.max_label_num = self.model_conf.max_label_num
         if self.max_label_num == -1:

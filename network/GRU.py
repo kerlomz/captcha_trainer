@@ -25,7 +25,7 @@ class GRU(object):
         循环层构建参数
         :return: 返回循环层的输出层
         """
-        with tf.compat.v1.variable_scope('GRU'):
+        with tf.keras.backend.name_scope('GRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
                 units=self.model_conf.units_num * 2,
@@ -33,7 +33,7 @@ class GRU(object):
                 input_shape=mask.shape,
                 # reset_after=True,
             )
-            outputs = self.layer(mask, training=self.utils.training)
+            outputs = self.layer(mask, training=self.utils.is_training)
         return outputs
 
 
@@ -47,7 +47,7 @@ class BiGRU(object):
         self.layer = None
 
     def build(self):
-        with tf.compat.v1.variable_scope('BiGRU'):
+        with tf.keras.backend.name_scope('BiGRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.GRU(
@@ -55,7 +55,7 @@ class BiGRU(object):
                     return_sequences=True,
                 ),
                 input_shape=mask.shape,
-                trainable=self.utils.training
+                trainable=self.utils.is_training
             )
             outputs = self.layer(mask, training=self.training)
         return outputs
@@ -71,7 +71,7 @@ class GRUcuDNN(object):
         self.layer = None
 
     def build(self):
-        with tf.variable_scope('GRU'):
+        with tf.keras.backend.name_scope('GRU'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.GRU(
                 units=self.model_conf.units_num * 2,

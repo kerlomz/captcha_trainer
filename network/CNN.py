@@ -15,7 +15,7 @@ class CNN5(object):
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
         """
         :param model_conf: 从配置文件
-        :param inputs: 网络上一层输入tf.keras.layers.Input/tf.Tensor类型
+        :param inputs: 网络上一层输入 tf.keras.layers.Input / tf.Tensor 类型
         :param utils: 网络工具类
         """
         self.model_conf = model_conf
@@ -24,7 +24,7 @@ class CNN5(object):
         self.loss_func = self.model_conf.loss_func
 
     def build(self):
-        with tf.compat.v1.variable_scope("CNN5"):
+        with tf.keras.backend.name_scope("CNN5"):
             x = self.utils.cnn_layer(0, inputs=self.inputs, kernel_size=7, filters=32, strides=(1, 1))
             x = self.utils.cnn_layer(1, inputs=x, kernel_size=5, filters=64, strides=(1, 2))
             x = self.utils.cnn_layer(2, inputs=x, kernel_size=3, filters=128, strides=(1, 2))
@@ -36,7 +36,8 @@ class CNN5(object):
 
 
 class CNNX(object):
-    """暂时不用管，设计到一半的一个网络结构"""
+
+    """ 网络结构 """
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
         self.model_conf = model_conf
         self.inputs = inputs
@@ -53,20 +54,17 @@ class CNNX(object):
             kernel_initializer=self.utils.msra_initializer(kernel_size, filters),
             padding='SAME',
         )(inputs)
-        inputs = self.utils.BatchNormalization(
-            renorm_clipping={
-                'rmax': 3,
-                'rmin': 0.3333,
-                'dmax': 5
-            },
-            epsilon=1.001e-5,
-            trainable=self.utils.training
-        )(inputs, training=self.utils.training)
+        inputs = tf.layers.batch_normalization(
+            inputs,
+            reuse=False,
+            momentum=0.9,
+            training=self.utils.is_training
+        )
         inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
         return inputs
 
     def build(self):
-        with tf.compat.v1.variable_scope('CNNX'):
+        with tf.keras.backend.name_scope('CNNX'):
             x = self.inputs
 
             x = self.block(x, filters=16, kernel_size=7, strides=1)

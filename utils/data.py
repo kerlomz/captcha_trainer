@@ -77,7 +77,8 @@ class DataIterator:
             num_parallel_reads=20
         ).map(self.parse_example)
         dataset_train = dataset_train.shuffle(
-            min_after_dequeue
+            min_after_dequeue,
+            reshuffle_each_iteration=True
         ).batch(batch, drop_remainder=True).repeat()
         iterator = tf.compat.v1.data.make_one_shot_iterator(dataset_train)
         self.next_element = iterator.get_next()
@@ -99,9 +100,10 @@ class DataIterator:
         batch_labels = utils.sparse.sparse_tuple_from_sequences(label_batch)
         return batch_inputs, batch_labels
 
-    def generate_batch_by_tfrecords(self, sess):
+    def generate_batch_by_tfrecords(self, session):
         """根据TFRecords生成当前批次，输入为当前TensorFlow会话，输出为稀疏型X和Y"""
-        _input, _label = sess.run(self.next_element)
+        # print(session.graph)
+        _input, _label = session.run(self.next_element)
         input_batch = []
         label_batch = []
         for index, (i1, i2) in enumerate(zip(_input, _label)):

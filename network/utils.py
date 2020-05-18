@@ -2,31 +2,42 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import math
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras.regularizers import l2, l1_l2, l1
-from config import *
+from config import RunMode, LossFunction, exception, ConfigException
 
 
 class NetworkUtils(object):
+    """
+    网络组合块 - 细节实现
+    说明: 本类中所有的BN实现都采用: tf.layers.batch_normalization
+    为什么不用 【tf.keras.layers.BatchNormalization/tf.layers.BatchNormalization]
+    前者: `tf.control_dependencies(tf.GraphKeys.UPDATE_OPS)`
+    should not be used (consult the `tf.keras.layers.batch_normalization` documentation).
+    尝试过以下改进无果:
+    --------------------------------------------------------------------------------------
+        class BatchNormalization(tf.keras.layers.BatchNormalization):
+
+            def call(self, *args, **kwargs):
+                outputs = super(BatchNormalization, self).call(*args, **kwargs)
+                for u in self.updates:
+                    tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, u)
+                return outputs
+    --------------------------------------------------------------------------------------
+    后者: 虽然 BN 对应的 tf.Operation 在 tf.GraphKeys.UPDATE_OPS 中, 但是[Predict]模式下依旧结果欠佳
+    """
 
     def __init__(self, mode: RunMode):
-        self.extra_train_ops = []
-        self.mode: RunMode = mode
-        self.training = self.mode == RunMode.Trains
-        # print(self.training)
+        """
+        :param mode: RunMode 类, 主要用于控制 is_training 标志
+        """
+        self.mode = mode
+        self.is_training = self._is_training()
 
-    class BatchNormalization(tf.keras.layers.BatchNormalization):
-        """Fixed default name of BatchNormalization"""
-
-        def __init__(self, **kwargs):
-            super(NetworkUtils.BatchNormalization, self).__init__(**kwargs)
-
-        def call(self, *args, **kwargs):
-            outputs = super(NetworkUtils.BatchNormalization, self).call(*args, **kwargs)
-            # A temporary compatibility with keras batch norm.
-            for u in self.updates:
-                tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, u)
-            return outputs
+    def _is_training(self):
+        """ 取消 is_training 占位符作为[Predict]模式的输入依赖 """
+        return False if self.mode == RunMode.Predict else tf.keras.backend.placeholder(dtype=tf.bool)
 
     @staticmethod
     def msra_initializer(kl, dl):
@@ -44,8 +55,7 @@ class NetworkUtils(object):
         if loss_func == LossFunction.CTC:
             output_tensor = tf.keras.layers.TimeDistributed(
                 layer=tf.keras.layers.Flatten(),
-                trainable=self.training,
-            )(inputs=input_tensor, training=self.training)
+            )(inputs=input_tensor, training=self.is_training)
         elif loss_func == LossFunction.CrossEntropy:
             output_tensor = tf.keras.layers.Reshape([shape_list[1], shape_list[2] * shape_list[3]])(input_tensor)
         else:
@@ -53,7 +63,7 @@ class NetworkUtils(object):
         return output_tensor
 
     def cnn_layer(self, index, inputs, filters, kernel_size, strides):
-        """卷积-BN-激活函数-池化结构生成器"""
+        """卷积-BN-激活函数-池化结构块"""
 
         with tf.keras.backend.name_scope('unit-{}'.format(index + 1)):
             x = tf.keras.layers.Conv2D(
@@ -65,16 +75,19 @@ class NetworkUtils(object):
                 padding='same',
                 name='cnn-{}'.format(index + 1),
             )(inputs)
-            x = self.BatchNormalization(
+            x = tf.layers.batch_normalization(
+                x,
                 fused=True,
                 renorm_clipping={
                     'rmax': 3,
                     'rmin': 0.3333,
                     'dmax': 5
                 } if index == 0 else None,
-                epsilon=1.001e-5,
-                trainable=self.training,
-                name='bn{}'.format(index + 1))(x, training=self.training)
+                reuse=False,
+                momentum=0.9,
+                name='bn{}'.format(index + 1),
+                training=self.is_training
+            )
             x = tf.keras.layers.LeakyReLU(0.01)(x)
             x = tf.keras.layers.MaxPooling2D(
                 pool_size=(2, 2),
@@ -95,9 +108,13 @@ class NetworkUtils(object):
             Output tensor for the block.
         """
         # 1x1 Convolution (Bottleneck layer)
-        x = self.BatchNormalization(
-            epsilon=1.001e-5, name=name + '_0_bn', trainable=self.training
-        )(input_tensor, training=self.training)
+        x = tf.layers.batch_normalization(
+            input_tensor,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=name + '_0_bn',
+        )
         x = tf.keras.layers.LeakyReLU(0.01, name=name + '_0_relu')(x)
         x = tf.keras.layers.Conv2D(
             filters=4 * growth_rate,
@@ -110,9 +127,13 @@ class NetworkUtils(object):
             x = tf.keras.layers.Dropout(dropout_rate)(x)
 
         # 3x3 Convolution
-        x = self.BatchNormalization(
-            epsilon=1.001e-5, name=name + '_1_bn', trainable=self.training
-        )(input_tensor, training=self.training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=name + '_1_bn',
+        )
         x = tf.keras.layers.LeakyReLU(0.01, name=name + '_1_relu')(x)
         x = tf.keras.layers.Conv2D(
             filters=growth_rate,
@@ -153,9 +174,13 @@ class NetworkUtils(object):
         # Returns
             output tensor for the block.
         """
-        x = self.BatchNormalization(
-            epsilon=1.001e-5, name=name + '_bn', trainable=self.training
-        )(input_tensor, training=self.training)
+        x = tf.layers.batch_normalization(
+            input_tensor,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=name + '_bn'
+        )
         x = tf.keras.layers.LeakyReLU(0.01)(x)
         x = tf.keras.layers.Conv2D(
             filters=int(tf.keras.backend.int_shape(x)[3] * reduction),
@@ -197,7 +222,13 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '2a')(input_tensor)
-        x = self.BatchNormalization(name=bn_name_base + '2a', trainable=self.training)(x, training=self.training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=bn_name_base + '2a'
+        )
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -206,7 +237,13 @@ class NetworkUtils(object):
             padding='same',
             kernel_initializer='he_normal',
             name=conv_name_base + '2b')(x)
-        x = self.BatchNormalization(name=bn_name_base + '2b', trainable=self.training)(x, training=self.training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=bn_name_base + '2b'
+        )
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -215,7 +252,14 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '2c')(x)
-        x = self.BatchNormalization(name=bn_name_base + '2c', trainable=self.training)(x, training=self.training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=bn_name_base + '2c'
+        )
+
         shortcut = tf.keras.layers.Conv2D(
             filters=filters3,
             kernel_size=(1, 1),
@@ -223,9 +267,13 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '1')(input_tensor)
-        shortcut = self.BatchNormalization(
-            name=bn_name_base + '1', trainable=self.training
-        )(shortcut, training=self.training)
+        shortcut = tf.layers.batch_normalization(
+            shortcut,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
+            name=bn_name_base + '1'
+        )
 
         x = tf.keras.layers.add([x, shortcut])
         x = tf.keras.layers.LeakyReLU(0.01)(x)
@@ -256,11 +304,14 @@ class NetworkUtils(object):
             padding='same',
             name=conv_name_base + '2a'
         )(input_tensor)
-        x = self.BatchNormalization(
+        x = tf.layers.batch_normalization(
+            x,
             axis=bn_axis,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
             name=bn_name_base + '2a',
-            trainable=self.training
-        )(x, training=self.training)
+        )
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -270,11 +321,14 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             name=conv_name_base + '2b'
         )(x)
-        x = self.BatchNormalization(
+        x = tf.layers.batch_normalization(
+            x,
             axis=bn_axis,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
             name=bn_name_base + '2b',
-            trainable=self.training
-        )(x, training=self.training)
+        )
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         x = tf.keras.layers.Conv2D(
@@ -283,11 +337,14 @@ class NetworkUtils(object):
             padding='same',
             kernel_initializer='he_normal',
             name=conv_name_base + '2c')(x)
-        x = self.BatchNormalization(
+        x = tf.layers.batch_normalization(
+            x,
             axis=bn_axis,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training,
             name=bn_name_base + '2c',
-            trainable=self.training
-        )(x, training=self.training)
+        )
         x = tf.keras.layers.add([x, input_tensor])
         x = tf.keras.layers.LeakyReLU(0.01)(x)
         return x
@@ -320,12 +377,12 @@ class NetworkUtils(object):
                 activation=None,
                 name=prefix + 'expand'
             )(x)
-            x = self.BatchNormalization(
-                epsilon=1e-3,
-                momentum=0.999,
-                name=prefix + 'expand_BN',
-                trainable=self.training
-            )(x, training=self.training)
+            x = tf.layers.batch_normalization(
+                x,
+                reuse=False,
+                momentum=0.9,
+                training=self.is_training
+            )
             x = tf.keras.layers.LeakyReLU(0.01)(x)
         else:
             prefix = 'expanded_conv_'
@@ -339,12 +396,12 @@ class NetworkUtils(object):
             padding='same',
             name=prefix + 'depthwise'
         )(x)
-        x = self.BatchNormalization(
-            epsilon=1e-3,
-            momentum=0.999,
-            name=prefix + 'expand_BN',
-            trainable=self.training
-        )(x, training=self.training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training
+        )
 
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
@@ -357,12 +414,12 @@ class NetworkUtils(object):
             activation=None,
             name=prefix + 'project'
         )(x)
-        x = self.BatchNormalization(
-            epsilon=1e-3,
-            momentum=0.999,
-            name=prefix + 'expand_BN',
-            trainable=self.training
-        )(x, training=self.training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.is_training
+        )
 
         if in_channels == pointwise_filters and stride == 1:
             return tf.keras.layers.Add(name=prefix + 'add')([input_tensor, x])
