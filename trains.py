@@ -17,6 +17,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
 class Trains:
+
     stop_flag: bool = False
     """训练任务的类"""
 
@@ -74,7 +75,6 @@ class Trains:
             saver = tf.train.Saver(var_list=tf.global_variables())
             tf.logging.info(tf.train.latest_checkpoint(self.model_conf.model_root_path))
             saver.restore(predict_sess, tf.train.latest_checkpoint(self.model_conf.model_root_path))
-            # tf.keras.backend.set_session(session=predict_sess)
 
             output_graph_def = convert_variables_to_constants(
                 predict_sess,
@@ -198,6 +198,7 @@ class Trains:
                     feed = {
                         model.inputs: batch_inputs,
                         model.labels: batch_labels,
+                        model.utils.is_training: True
                     }
 
                     summary_str, batch_cost, step, _, seq_len = sess.run(
@@ -231,6 +232,7 @@ class Trains:
                         val_feed = {
                             model.inputs: test_inputs,
                             model.labels: test_labels,
+                            model.utils.is_training: False
                         }
                         dense_decoded, lr = sess.run(
                             [model.dense_decoded, model.lrn_rate],

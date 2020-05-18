@@ -22,18 +22,18 @@ import tensorflow as tf
 
 class NeuralNetwork(object):
 
-
     """
     神经网络构建类
-    大家需要注意，这里有一个极为不专业的操作，
-    :param: mode 参数它没有被真正使用，我可太菜了，整了半天BN的is_training还是被打到了。
-    说明：在 mode[Validation] 场景下，training=False 验证集的准确率波动很厉害，在 training=True 下准确率却很稳定上升
-    training=True 在mode[Predict] 场景下预测 BatchSize=1 的数据也能得到较为接近训练准确率的成绩。
-    按我原本的理解，mode[Validation/Predict] 场景下 training 都应该设为 False。
-    之前的版本 mode[Validation] 模式其实也是使用 True 值，我尝试过的方法是定义一个 tf.placeholder 来动态传入 is_training 值
-    因为是静态图，处理方法感觉还是不够优雅，其实直接用 tf.keras.Model 挺香的，但是由于 tf2 测试过还不是很稳定暂时不打算引入。
     """
     def __init__(self, model_conf: ModelConfig, mode: RunMode, cnn: CNNNetwork, recurrent: RecurrentNetwork):
+        """
+
+        :param model_conf: 模型配置
+        :param mode: 运行模式 (Trains/Validation/Predict), 其实[Validation]是没有真正被使用的，验证集使用的是[Trains]模式
+        对于静态图可以定义一个占位符[is_training]通过Feed值来实现这种控制, 但是预测
+        :param cnn:
+        :param recurrent:
+        """
         self.model_conf = model_conf
         self.decoder = Decoder(self.model_conf)
         self.mode = mode

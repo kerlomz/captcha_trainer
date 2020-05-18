@@ -25,7 +25,7 @@ from gui.pretreatment import PretreatmentDialog
 class Wizard:
 
     job: threading.Thread
-    current_task: Trains
+    current_task: Trains = None
     is_task_running: bool = False
     data_augmentation_entity = DataAugmentationEntity()
     pretreatment_entity = PretreatmentEntity()

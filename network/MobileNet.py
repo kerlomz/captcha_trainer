@@ -21,7 +21,6 @@ class MobileNetV2(object):
         self.padding = "SAME"
 
     def first_layer(self, inputs):
-
         x = tf.keras.layers.Conv2D(
             filters=32,
             kernel_size=(3, 3),
@@ -29,8 +28,13 @@ class MobileNetV2(object):
             padding='same',
             kernel_initializer='he_normal',
             name='conv1')(inputs)
-
-        x = self.utils.BatchNormalization(name='bn_conv1', momentum=0.999)(x, training=self.utils.is_training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.utils.is_training
+        )
+        # x = self.utils.BatchNormalization(name='bn_conv1', momentum=0.999)(x, training=self.utils.is_training)
         x = tf.keras.layers.LeakyReLU(0.01)(x)
 
         return x
@@ -41,16 +45,19 @@ class MobileNetV2(object):
             kernel_size=1,
             use_bias=False,
             name='Conv_1')(inputs)
-        x = self.utils.BatchNormalization(
-            epsilon=1e-3,
-            momentum=0.999,
-            name='Conv_1_bn',
-        )(x, training=self.utils.is_training)
+        x = tf.layers.batch_normalization(
+            x,
+            reuse=False,
+            momentum=0.9,
+            training=self.utils.is_training
+        )
+
         x = tf.keras.layers.ReLU(6., name='out_relu')(x)
         return x
 
     def build(self):
-        with tf.variable_scope('MobileNetV2'):
+
+        with tf.keras.backend.name_scope('MobileNetV2'):
 
             x = self.first_layer(self.inputs)
 
@@ -61,16 +68,16 @@ class MobileNetV2(object):
 
             x = self.utils.inverted_res_block(x, filters=32, stride=2, expansion=6, block_id=3)
             x = self.utils.inverted_res_block(x, filters=32, stride=1, expansion=6, block_id=4)
-            x = self.utils.inverted_res_block(x, filters=32,stride=1, expansion=6, block_id=5)
+            x = self.utils.inverted_res_block(x, filters=32, stride=1, expansion=6, block_id=5)
 
             x = self.utils.inverted_res_block(x, filters=64, stride=2, expansion=6, block_id=6)
-            x = self.utils.inverted_res_block(x, filters=64,  stride=1, expansion=6, block_id=7)
-            x = self.utils.inverted_res_block(x, filters=64,  stride=1, expansion=6, block_id=8)
+            x = self.utils.inverted_res_block(x, filters=64, stride=1, expansion=6, block_id=7)
+            x = self.utils.inverted_res_block(x, filters=64, stride=1, expansion=6, block_id=8)
             x = self.utils.inverted_res_block(x, filters=64, stride=1, expansion=6, block_id=9)
 
             x = self.utils.inverted_res_block(x, filters=96, stride=1, expansion=6, block_id=10)
             x = self.utils.inverted_res_block(x, filters=96, stride=1, expansion=6, block_id=11)
-            x = self.utils.inverted_res_block(x, filters=96,  stride=1, expansion=6, block_id=12)
+            x = self.utils.inverted_res_block(x, filters=96, stride=1, expansion=6, block_id=12)
 
             x = self.utils.inverted_res_block(x, filters=160, stride=2, expansion=6, block_id=13)
             x = self.utils.inverted_res_block(x, filters=160, stride=1, expansion=6, block_id=14)
@@ -81,4 +88,6 @@ class MobileNetV2(object):
             x = self.pwise_block(x)
 
             shape_list = x.get_shape().as_list()
+            print("x.get_shape()", shape_list)
+
             return self.utils.reshape_layer(x, self.loss_func, shape_list)

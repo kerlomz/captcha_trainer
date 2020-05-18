@@ -13,13 +13,12 @@ class LSTM(object):
     def __init__(self, model_conf: ModelConfig, inputs: tf.Tensor, utils: NetworkUtils):
         """
         :param model_conf: 配置
-        :param inputs: 网络上一层输入tf.keras.layers.Input/tf.Tensor类型
+        :param inputs: 网络上一层输入 tf.keras.layers.Input / tf.Tensor 类型
         :param utils: 网络工具类
         """
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
-        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -27,7 +26,7 @@ class LSTM(object):
         循环层构建参数
         :return: 返回循环层的输出层
         """
-        with tf.compat.v1.variable_scope('LSTM'):
+        with tf.keras.backend.name_scope('LSTM'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.LSTM(
                 units=self.model_conf.units_num * 2,
@@ -36,7 +35,7 @@ class LSTM(object):
                 dropout=0.2,
                 recurrent_dropout=0.1
             )
-            outputs = self.layer(mask, training=self.training)
+            outputs = self.layer(mask, training=self.utils.is_training)
         return outputs
 
 
@@ -52,7 +51,7 @@ class BiLSTM(object):
 
     def build(self):
         """同上"""
-        with tf.variable_scope('BiLSTM'):
+        with tf.keras.backend.name_scope('BiLSTM'):
             mask = tf.keras.layers.Masking()(self.inputs)
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.LSTM(
@@ -60,9 +59,8 @@ class BiLSTM(object):
                     return_sequences=True,
                 ),
                 input_shape=mask.shape,
-                trainable=self.utils.training
             )
-            outputs = self.layer(mask, training=self.training)
+            outputs = self.layer(mask, training=self.utils.is_training)
         return outputs
 
 
@@ -78,7 +76,7 @@ class LSTMcuDNN(object):
 
     def build(self):
         """同上"""
-        with tf.variable_scope('LSTM'):
+        with tf.keras.backend.name_scope('LSTM'):
             self.layer = tf.keras.layers.CuDNNLSTM(
                 units=self.model_conf.units_num * 2,
                 return_sequences=True,
@@ -99,7 +97,7 @@ class BiLSTMcuDNN(object):
 
     def build(self):
         """同上"""
-        with tf.variable_scope('BiLSTM'):
+        with tf.keras.backend.name_scope('BiLSTM'):
             self.layer = tf.keras.layers.Bidirectional(
                 layer=tf.keras.layers.CuDNNLSTM(
                     units=self.model_conf.units_num,
