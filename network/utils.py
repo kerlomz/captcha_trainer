@@ -389,7 +389,8 @@ class NetworkUtils(object):
                 momentum=0.9,
                 training=self.is_training
             )
-            x = tf.keras.layers.LeakyReLU(0.01)(x)
+            x = self.hard_swish(x)
+
         else:
             prefix = 'expanded_conv_'
 
@@ -409,7 +410,7 @@ class NetworkUtils(object):
             training=self.is_training
         )
 
-        x = tf.keras.layers.LeakyReLU(0.01)(x)
+        x = self.hard_swish(x)
 
         # Project
         x = tf.keras.layers.Conv2D(

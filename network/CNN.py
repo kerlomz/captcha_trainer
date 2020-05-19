@@ -60,8 +60,7 @@ class CNNX(object):
             momentum=0.9,
             training=self.utils.is_training
         )
-        inputs = tf.nn.swish(inputs)
-        # inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
+        inputs = self.utils.hard_swish(inputs)
         return inputs
 
     def build(self):
