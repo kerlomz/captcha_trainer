@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
 import sys
-from config import *
+from config import RecurrentNetwork, RESIZE_MAP, CNNNetwork, Optimizer
 from network.CNN import *
 from network.MobileNet import MobileNetV2
 from network.DenseNet import DenseNet
@@ -25,19 +25,18 @@ class NeuralNetwork(object):
     """
     神经网络构建类
     """
-    def __init__(self, model_conf: ModelConfig, mode: RunMode, cnn: CNNNetwork, recurrent: RecurrentNetwork):
+    def __init__(self, model_conf: ModelConfig, mode: RunMode, backbone: CNNNetwork, recurrent: RecurrentNetwork):
         """
 
         :param model_conf: 模型配置
-        :param mode: 运行模式 (Trains/Validation/Predict), 其实[Validation]是没有真正被使用的，验证集使用的是[Trains]模式
-        对于静态图可以定义一个占位符[is_training]通过Feed值来实现这种控制, 但是预测
-        :param cnn:
+        :param mode: 运行模式 (Trains/Validation/Predict)
+        :param backbone:
         :param recurrent:
         """
         self.model_conf = model_conf
         self.decoder = Decoder(self.model_conf)
         self.mode = mode
-        self.network = cnn
+        self.network = backbone
         self.recurrent = recurrent
         self.inputs = tf.keras.Input(dtype=tf.float32, shape=self.input_shape, name='input')
         self.labels = tf.keras.Input(dtype=tf.int32, shape=[None], sparse=True, name='labels')
@@ -215,5 +214,4 @@ class NeuralNetwork(object):
 
 
 if __name__ == '__main__':
-    # GraphOCR(RunMode.Trains, CNNNetwork.CNN5, RecurrentNetwork.GRU).build_graph()
     pass

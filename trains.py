@@ -67,7 +67,7 @@ class Trains:
             model = core.NeuralNetwork(
                 model_conf=self.model_conf,
                 mode=RunMode.Predict,
-                cnn=self.model_conf.neu_cnn,
+                backbone=self.model_conf.neu_cnn,
                 recurrent=self.model_conf.neu_recurrent
             )
             model.build_graph()
@@ -117,7 +117,7 @@ class Trains:
         model = core.NeuralNetwork(
             mode=RunMode.Trains,
             model_conf=self.model_conf,
-            cnn=self.model_conf.neu_cnn,
+            backbone=self.model_conf.neu_cnn,
             recurrent=self.model_conf.neu_recurrent
         )
         model.build_graph()
