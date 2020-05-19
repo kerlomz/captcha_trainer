@@ -5,9 +5,6 @@
 import tensorflow as tf
 from network.utils import NetworkUtils
 from config import ModelConfig
-from constants import LossFunction, RunMode
-
-slim = tf.contrib.slim
 
 
 class MobileNetV2(object):

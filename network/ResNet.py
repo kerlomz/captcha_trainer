@@ -3,12 +3,8 @@
 # Author: kerlomz <kerlomz@gmail.com>
 
 import tensorflow as tf
-from tensorflow.contrib.slim import nets
-from network.utils import NetworkUtils, RunMode
-from constants import LossFunction
+from network.utils import NetworkUtils
 from config import ModelConfig
-
-slim = tf.contrib.slim
 
 
 class ResNetUtils(object):

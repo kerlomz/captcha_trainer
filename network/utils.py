@@ -40,6 +40,12 @@ class NetworkUtils(object):
         return False if self.mode == RunMode.Predict else tf.keras.backend.placeholder(dtype=tf.bool)
 
     @staticmethod
+    def hard_swish(x, name='hard_swish'):
+        with tf.name_scope(name):
+            h_swish = x * tf.nn.relu6(x + 3) / 6
+            return h_swish
+
+    @staticmethod
     def msra_initializer(kl, dl):
         """ MSRA weight initializer
         (https://arxiv.org/pdf/1502.01852.pdf)

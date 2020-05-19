@@ -7,7 +7,6 @@ import json
 import platform
 import re
 import yaml
-# import utils
 from category import *
 from constants import *
 from exception import exception, ConfigException

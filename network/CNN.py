@@ -3,7 +3,7 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import tensorflow as tf
 from network.utils import NetworkUtils
-from config import *
+from config import ModelConfig
 from tensorflow.python.keras.regularizers import l1
 
 
@@ -60,7 +60,8 @@ class CNNX(object):
             momentum=0.9,
             training=self.utils.is_training
         )
-        inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
+        inputs = tf.nn.swish(inputs)
+        # inputs = tf.keras.layers.LeakyReLU(0.01)(inputs)
         return inputs
 
     def build(self):
