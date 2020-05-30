@@ -43,7 +43,6 @@ class BiGRU(object):
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
-        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -57,7 +56,7 @@ class BiGRU(object):
                 input_shape=mask.shape,
                 trainable=self.utils.is_training
             )
-            outputs = self.layer(mask, training=self.training)
+            outputs = self.layer(mask, training=self.utils.is_training)
         return outputs
 
 
@@ -67,7 +66,6 @@ class GRUcuDNN(object):
         self.model_conf = model_conf
         self.inputs = inputs
         self.utils = utils
-        self.training = self.utils.mode == RunMode.Trains
         self.layer = None
 
     def build(self):
@@ -79,5 +77,5 @@ class GRUcuDNN(object):
                 input_shape=mask.shape,
                 reset_after=True
             )
-            outputs = self.layer(mask, training=self.training)
+            outputs = self.layer(mask, training=self.utils.is_training)
         return outputs
