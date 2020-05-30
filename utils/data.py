@@ -108,7 +108,7 @@ class DataIterator:
         label_batch = []
         for index, (i1, i2) in enumerate(zip(_input, _label)):
             try:
-                label_array = self.encoder.text(i2, extracted=True)
+                label_array = self.encoder.text(i2)
                 if self.model_conf.model_field == ModelField.Image:
                     input_array = self.encoder.image(i1)
                 else:
@@ -120,6 +120,11 @@ class DataIterator:
 
                 if isinstance(input_array, str):
                     tf.logging.warn("{}, \nInput errors labeled: {}, ignored.".format(input_array, label_array))
+                    continue
+                if isinstance(label_array, dict):
+                    tf.logging.warn("The sample label {} contains invalid charset: {}.".format(
+                        label_array['label'], label_array['char']
+                    ))
                     continue
 
                 if input_array.shape[-1] != self.model_conf.image_channel:
@@ -137,7 +142,7 @@ class DataIterator:
                     continue
 
                 if len(label_array) > self.model_conf.max_label_num and using_cross_entropy:
-                    tf.logging.warn("The number of label[{}] exceeds the maximum number of labels, ignored.".format(i2))
+                    tf.logging.warn("The number of label[{}] exceeds the maximum number of labels, ignored.{}".format(i2, label_array))
                     continue
 
                 input_batch.append(input_array)
@@ -161,5 +166,4 @@ class DataIterator:
             )
 
         self.label_list = label_batch
-
         return self.to_sparse(input_batch, self.label_list)

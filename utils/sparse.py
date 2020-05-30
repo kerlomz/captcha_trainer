@@ -13,6 +13,9 @@ def sparse_tuple_from_sequences(sequences, dtype=np.int32):
         values.extend(seq)
 
     indices = np.asarray(indices, dtype=np.int64)
-    values = np.asarray(values, dtype=dtype)
+    try:
+        values = np.asarray(values, dtype=dtype)
+    except Exception as e:
+        print(e, values)
     shape = np.asarray([len(sequences), np.asarray(indices).max(0)[1] + 1], dtype=np.int64)
     return indices, values, shape

@@ -117,57 +117,47 @@ class Encoder(object):
         else:
             return np.array(im[:, :]) / 255.
 
-    def text(self, content, extracted=False):
+    def text(self, content):
         """针对文本类型的输入的编码"""
         if isinstance(content, bytes):
             content = content.decode("utf8")
 
-        # 如果标签来源为文件名形如 aaa_md5.png
-        if self.model_conf.label_from == LabelFrom.FileName:
+        found = content
+        # 如果匹配内置的大小写规范，触发自动转换
+        if isinstance(self.category_param, str) and '_LOWER' in self.category_param:
+            found = found.lower()
+        if isinstance(self.category_param, str) and '_UPPER' in self.category_param:
+            found = found.upper()
 
-            # 如果标签尚未提取解析
-            if not extracted:
-                found = re.search(self.model_conf.extract_regex, content)
-                if not found:
-                    exception(text="The regex is not extracted to the corresponding label", code=-777)
-                found = found.group()
-            else:
-                found = content
-
-            # 如果匹配内置的大小写规范，触发自动转换
-            if isinstance(self.category_param, str) and '_LOWER' in self.category_param:
-                found = found.lower()
-            if isinstance(self.category_param, str) and '_UPPER' in self.category_param:
-                found = found.upper()
-
-            # 标签是否包含分隔符
-            if self.model_conf.label_split:
-                labels = found.split(self.model_conf.label_split)
-            elif self.model_conf.max_label_num == 1:
-                labels = [found]
-            else:
-                labels = [_ for _ in found]
-            labels = self.filter_full_angle(labels)
-            try:
-                if not labels:
-                    return [0]
-                # 根据类别集合找到对应映射编码为dense数组
-                if self.model_conf.loss_func == LossFunction.CTC:
-                    label = self.split_continuous_char(
-                        [encode_maps(self.model_conf.category)[i] for i in labels]
-                    )
-                else:
-                    label = self.auto_padding_char(
-                        [encode_maps(self.model_conf.category)[i] for i in labels]
-                    )
-                return label
-
-            except KeyError as e:
-                exception(
-                    'The sample label {} contains invalid charset: {}.'.format(
-                        content, e.args[0]
-                    ), ConfigException.SAMPLE_LABEL_ERROR
+        # 标签是否包含分隔符
+        if self.model_conf.label_split:
+            labels = found.split(self.model_conf.label_split)
+        elif self.model_conf.max_label_num == 1:
+            labels = [found]
+        else:
+            labels = [_ for _ in found]
+        labels = self.filter_full_angle(labels)
+        try:
+            if not labels:
+                return [0]
+            # 根据类别集合找到对应映射编码为dense数组
+            if self.model_conf.loss_func == LossFunction.CTC:
+                label = self.split_continuous_char(
+                    [encode_maps(self.model_conf.category)[i] for i in labels]
                 )
+            else:
+                label = self.auto_padding_char(
+                    [encode_maps(self.model_conf.category)[i] for i in labels]
+                )
+            return label
+
+        except KeyError as e:
+            return dict(e=e, label=content, char=e.args[0])
+            # exception(
+            #     'The sample label {} contains invalid charset: {}.'.format(
+            #         content, e.args[0]
+            #     ), ConfigException.SAMPLE_LABEL_ERROR
+            # )
 
     def split_continuous_char(self, content):
         # 为连续的分类插入空白符

@@ -74,15 +74,15 @@ class CNNX(object):
                 strides=2,
                 padding='same')(x)
             max_pool1 = tf.keras.layers.MaxPooling2D(
-                pool_size=(3, 2),
+                pool_size=(1, 3),
                 strides=2,
                 padding='same')(x)
             max_pool2 = tf.keras.layers.MaxPooling2D(
-                pool_size=(5, 2),
+                pool_size=(1, 5),
                 strides=2,
                 padding='same')(x)
             max_pool3 = tf.keras.layers.MaxPooling2D(
-                pool_size=(7, 2),
+                pool_size=(1, 7),
                 strides=2,
                 padding='same')(x)
 

@@ -16,7 +16,7 @@ class DataSets:
     """此类用于打包数据集为TFRecords格式"""
     def __init__(self, model: ModelConfig):
         self.ignore_list = ["Thumbs.db", ".DS_Store"]
-        self.model = model
+        self.model: ModelConfig = model
         if not os.path.exists(self.model.dataset_root_path):
             os.makedirs(self.model.dataset_root_path)
 
@@ -47,7 +47,7 @@ class DataSets:
             'label': self.bytes_feature(label),
         }))
 
-    def convert_dataset(self, output_filename, file_list, mode: RunMode, is_add=False):
+    def convert_dataset_from_filename(self, output_filename, file_list, mode: RunMode, is_add=False):
         if is_add:
             output_filename = self.model.dataset_increasing_name(mode)
             if not output_filename:
@@ -75,6 +75,38 @@ class DataSets:
                     writer.write(example.SerializeToString())
                     pbar.set_description('[Processing dataset %s] [filename: %s]' % (mode, file_name))
 
+                except IOError as e:
+                    print('could not read:', file_list[1])
+                    print('error:', e)
+                    print('skip it \n')
+
+    def convert_dataset_from_txt(self, output_filename, file_path, label_lines, mode: RunMode, is_add=False):
+        if is_add:
+            output_filename = self.model.dataset_increasing_name(mode)
+            if not output_filename:
+                raise FileNotFoundError('Basic data set missing, please check.')
+            output_filename = os.path.join(self.model.dataset_root_path, output_filename)
+        file_list, label_list = [], []
+        for line in label_lines:
+            filename, label = line.split(" ", 1)
+            label = label.replace("\n", "")
+            label_list.append(label.encode('utf-8'))
+            path = os.path.join(file_path, filename)
+            file_list.append(path)
+
+        if os.path.exists(output_filename):
+            print('已存在, 跳过')
+            return
+
+        with tf.io.TFRecordWriter(output_filename) as writer:
+            pbar = tqdm(file_list)
+            for i, file_name in enumerate(pbar):
+                try:
+                    image_data = self.read_image(file_name)
+                    labels = label_list[i]
+                    example = self.input_to_tfrecords(image_data, labels)
+                    writer.write(example.SerializeToString())
+                    pbar.set_description('[Processing dataset %s] [filename: %s]' % (mode, file_name))
                 except IOError as e:
                     print('could not read:', file_list[1])
                     print('error:', e)
@@ -119,46 +151,100 @@ class DataSets:
         trains_path = [trains_path] if isinstance(trains_path, str) else trains_path
         validation_path = [validation_path] if isinstance(validation_path, str) else validation_path
 
-        if validation_path:
-            trains_dataset = self.merge_source(trains_path)
-            validation_dataset = self.merge_source(validation_path)
-            self.convert_dataset(
-                self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
-                validation_dataset,
-                mode=RunMode.Validation,
-                is_add=is_add,
-            )
-            self.convert_dataset(
-                self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
-                trains_dataset,
-                mode=RunMode.Trains,
-                is_add=is_add,
-            )
-
-        else:
-            origin_dataset = self.merge_source(trains_path)
-            trains_dataset = origin_dataset[self.model.validation_set_num:]
-            if self.model.validation_set_num > 0:
-                validation_dataset = origin_dataset[:self.model.validation_set_num]
-                self.convert_dataset(
+        if validation_path and not is_add:
+            if self.model.label_from == LabelFrom.FileName:
+                trains_dataset = self.merge_source(trains_path)
+                validation_dataset = self.merge_source(validation_path)
+                self.convert_dataset_from_filename(
                     self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
                     validation_dataset,
                     mode=RunMode.Validation,
-                    is_add=is_add
+                    is_add=is_add,
                 )
-            elif self.model.validation_set_num < 0:
-                self.convert_dataset(
-                    self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                self.convert_dataset_from_filename(
+                    self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
                     trains_dataset,
+                    mode=RunMode.Trains,
+                    is_add=is_add,
+                )
+            elif self.model.label_from == LabelFrom.TXT:
+
+                train_label_file = os.path.join(os.path.dirname(trains_path[0]), "train.txt")
+                val_label_file = os.path.join(os.path.dirname(validation_path[0]), "val.txt")
+
+                with open(train_label_file, "r", encoding="utf8") as f_train:
+                    train_label_line = f_train.readlines()
+
+                with open(val_label_file, "r", encoding="utf8") as f_val:
+                    val_label_line = f_val.readlines()
+
+                self.convert_dataset_from_txt(
+                    self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    label_lines=val_label_line,
+                    file_path=validation_path[0],
                     mode=RunMode.Validation,
+                    is_add=is_add,
+                )
+                self.convert_dataset_from_txt(
+                    self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    label_lines=train_label_line,
+                    file_path=trains_path[0],
+                    mode=RunMode.Trains,
+                    is_add=is_add,
+                )
+
+        else:
+            if self.model.label_from == LabelFrom.FileName:
+                origin_dataset = self.merge_source(trains_path)
+                trains_dataset = origin_dataset[self.model.validation_set_num:]
+                if self.model.validation_set_num > 0:
+                    validation_dataset = origin_dataset[:self.model.validation_set_num]
+                    self.convert_dataset_from_filename(
+                        self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                        validation_dataset,
+                        mode=RunMode.Validation,
+                        is_add=is_add
+                    )
+                elif self.model.validation_set_num < 0:
+                    self.convert_dataset_from_filename(
+                        self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                        trains_dataset,
+                        mode=RunMode.Validation,
+                        is_add=is_add
+                    )
+                self.convert_dataset_from_filename(
+                    self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    trains_dataset,
+                    mode=RunMode.Trains,
                     is_add=is_add
                 )
-            self.convert_dataset(
-                self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
-                trains_dataset,
-                mode=RunMode.Trains,
-                is_add=is_add
-            )
+            elif self.model.label_from == LabelFrom.TXT:
+
+                train_label_file = os.path.join(os.path.dirname(trains_path[0]), "train.txt")
+
+                with open(train_label_file, "r", encoding="utf8") as f:
+                    sample_label_line = f.readlines()
+
+                random.shuffle(sample_label_line)
+
+                train_label_line = sample_label_line[self.model.validation_set_num:]
+                val_label_line = sample_label_line[:self.model.validation_set_num]
+
+                self.convert_dataset_from_txt(
+                    self.model.validation_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    label_lines=val_label_line,
+                    file_path=trains_path[0],
+                    mode=RunMode.Validation,
+                    is_add=is_add,
+                )
+                self.convert_dataset_from_txt(
+                    self.model.trains_path[DatasetType.TFRecords][-1 if is_add else 0],
+                    label_lines=train_label_line,
+                    file_path=trains_path[0],
+                    mode=RunMode.Trains,
+                    is_add=is_add,
+                )
+
         state = "DONE"
         if callback:
             callback()

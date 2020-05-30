@@ -86,6 +86,7 @@ LABEL_FROM_MAP = {
     'XML': LabelFrom.XML,
     'LMDB': LabelFrom.LMDB,
     'FileName': LabelFrom.FileName,
+    'TXT': LabelFrom.TXT
 }
 
 EXCEPT_FORMAT_MAP = {

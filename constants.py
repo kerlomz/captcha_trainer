@@ -25,6 +25,7 @@ class LabelFrom(Enum):
     XML = 'XML'
     LMDB = 'LMDB'
     FileName = 'FileName'
+    TXT = 'TXT'
 
 
 @unique

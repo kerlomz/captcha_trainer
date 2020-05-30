@@ -30,6 +30,7 @@ class Wizard:
     data_augmentation_entity = DataAugmentationEntity()
     pretreatment_entity = PretreatmentEntity()
     extract_regex = ".*?(?=_)"
+    label_from = LabelFrom.FileName
 
     def __init__(self, parent: tk.Tk):
         self.layout = {
@@ -415,7 +416,8 @@ class Wizard:
             'ARITHMETIC',
             'FLOAT',
             'CHS_3500',
-            'ALPHANUMERIC_CHS_3500_LOWER'
+            'ALPHANUMERIC_CHS_3500_LOWER',
+            'DOCUMENT_OCR'
         ), state='readonly')
         self.comb_category.current(1)
         self.comb_category.bind("<<ComboboxSelected>>", lambda x: self.comb_category_callback(x))
@@ -1009,7 +1011,7 @@ class Wizard:
 
     @staticmethod
     def popup_about():
-        messagebox.showinfo("About", "Image Classification Wizard Tool based on Deep Learning 1.0\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419")
+        messagebox.showinfo("About", "Image Classification Wizard Tool based on Deep Learning 1.0 (20200529)\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419")
 
     def auto_loss(self, event):
         if self.comb_recurrent.get() == 'NoRecurrent':
@@ -1043,6 +1045,7 @@ class Wizard:
         self.comb_loss.set(model_conf.loss_func_param)
 
         self.extract_regex = model_conf.extract_regex
+        self.label_from = model_conf.label_from
 
         if isinstance(model_conf.category_param, list):
             self.category_entry['state'] = tk.NORMAL
@@ -1128,7 +1131,7 @@ class Wizard:
             ReplaceTransparent=False,
             HorizontalStitching=False,
             OutputSplit='',
-            LabelFrom=LabelFrom.FileName.value,
+            LabelFrom=self.label_from.value,
             ExtractRegex=self.extract_regex,
             LabelSplit='',
             DatasetTrainsPath=self.dataset_value(

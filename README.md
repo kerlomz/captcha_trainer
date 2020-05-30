@@ -20,7 +20,7 @@
 
 
 
-> **编译版下载地址：** https://github.com/kerlomz/captcha_trainer/releases/tag/1.0
+> **编译版下载地址：** https://github.com/kerlomz/captcha_trainer/releases/
 
 ------
 
@@ -489,6 +489,6 @@ for file in all_files:
 
 图像识别技术：857149419
 
-数据矿工：119794042
+数据矿工：778910502
 
 思知人工智能：90780053
