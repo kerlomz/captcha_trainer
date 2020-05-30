@@ -21,6 +21,8 @@ PATH_SPLIT = "/"
 MODEL_CONFIG_NAME = "model.yaml"
 IGNORE_FILES = ['.DS_Store']
 
+CORE_VERSION = '20200530'
+
 NETWORK_MAP = {
     'CNNX': CNNNetwork.CNNX,
     'CNN5': CNNNetwork.CNN5,

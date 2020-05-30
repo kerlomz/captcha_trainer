@@ -12,7 +12,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from constants import *
-from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP, DataAugmentationEntity, PretreatmentEntity
+from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP, DataAugmentationEntity, PretreatmentEntity, CORE_VERSION
 from make_dataset import DataSets
 from predict_testing import Predict
 from trains import Trains
@@ -1011,7 +1011,7 @@ class Wizard:
 
     @staticmethod
     def popup_about():
-        messagebox.showinfo("About", "Image Classification Wizard Tool based on Deep Learning 1.0 (20200529)\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419")
+        messagebox.showinfo("About", "Image Classification Wizard Tool based on Deep Learning 1.0 CORE_VERSION({})\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419".format(CORE_VERSION))
 
     def auto_loss(self, event):
         if self.comb_recurrent.get() == 'NoRecurrent':
