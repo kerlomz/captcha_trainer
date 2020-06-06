@@ -20,6 +20,7 @@ class DataAugmentationDialog(tk.Toplevel):
             }
         }
         self.data_augmentation_entity = None
+        self.da_random_captcha = {"Enable": False, "FontPath": ""}
         self.window_width = 750
         self.window_height = 220
 
@@ -195,6 +196,28 @@ class DataAugmentationDialog(tk.Toplevel):
             tiny_space=True
         )
 
+        # 随机验证码字体 - 标签
+        self.random_captcha_font_text = ttk.Label(self, text='RandomCaptcha - Font', anchor=tk.W)
+        self.layout_utils.next_to_widget(
+            src=self.random_captcha_font_text,
+            target=self.random_transition_entry,
+            width=130,
+            height=20,
+            tiny_space=False
+        )
+
+        # 随机验证码字体
+        self.random_captcha_font_val = tk.StringVar()
+        self.random_captcha_font_val.set("")
+        self.random_captcha_font_entry = ttk.Entry(self, textvariable=self.random_captcha_font_val, justify=tk.LEFT)
+        self.layout_utils.next_to_widget(
+            src=self.random_captcha_font_entry,
+            target=self.random_captcha_font_text,
+            width=75,
+            height=20,
+            tiny_space=True
+        )
+
         # 透视变换 - 多选框
         self.warp_perspective_val = tk.IntVar()
         self.warp_perspective_val.set(0)
@@ -334,6 +357,8 @@ class DataAugmentationDialog(tk.Toplevel):
         self.channel_swap_val.set(entity.channel_swap)
         self.random_blank_val.set(entity.random_blank)
         self.random_transition_val.set(entity.random_transition)
+        self.da_random_captcha = entity.random_captcha
+        self.random_captcha_font_val.set(self.da_random_captcha['FontPath'])
 
     def save_conf(self):
         self.data_augmentation_entity.binaryzation = json.loads(self.binaryzation_val.get()) if self.binaryzation_val else []
@@ -343,6 +368,13 @@ class DataAugmentationDialog(tk.Toplevel):
         self.data_augmentation_entity.sp_noise = self.sp_noise_val.get()
         self.data_augmentation_entity.random_blank = self.random_blank_val.get()
         self.data_augmentation_entity.random_transition = self.random_transition_val.get()
+
+        if self.random_captcha_font_val.get():
+            self.data_augmentation_entity.random_captcha['Enable'] = True
+            self.data_augmentation_entity.random_captcha['FontPath'] = self.random_captcha_font_val.get()
+        else:
+            self.data_augmentation_entity.random_captcha['Enable'] = False
+            self.data_augmentation_entity.random_captcha['FontPath'] = ""
 
         self.data_augmentation_entity.equalize_hist = True if self.equalize_hist_val.get() == 1 else False
         self.data_augmentation_entity.laplace = True if self.laplace_val.get() == 1 else False

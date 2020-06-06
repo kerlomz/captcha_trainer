@@ -136,6 +136,7 @@ DataAugmentation:
   ChannelSwap: {DA_ChannelSwap}
   RandomBlank: {DA_RandomBlank}
   RandomTransition: {DA_RandomTransition}
+  RandomCaptcha: {DA_RandomCaptcha}
 
 # Binaryzation: The parameter is an integer number between 0 and 255, -1 is not enabled.
 # ReplaceTransparent: Transparent background replacement, bool type.

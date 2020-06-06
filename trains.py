@@ -11,6 +11,7 @@ from config import *
 from tf_graph_util import convert_variables_to_constants
 from PIL import ImageFile
 from tf_onnx_util import convert_onnx
+from middleware.random_captcha import RandomCaptcha
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
@@ -71,6 +72,7 @@ class Trains:
                 recurrent=self.model_conf.neu_recurrent
             )
             model.build_graph()
+            model.build_train_op()
             input_graph_def = predict_sess.graph.as_graph_def()
             saver = tf.train.Saver(var_list=tf.global_variables())
             tf.logging.info(tf.train.latest_checkpoint(self.model_conf.model_root_path))
@@ -106,6 +108,21 @@ class Trains:
             return True
         return False
 
+    def init_captcha_gennerator(self, ran_captcha):
+
+        path = self.model_conf.da_random_captcha['FontPath']
+        if not os.path.exists(path):
+            exception("Font path does not exist.", code=-6754)
+        items = os.listdir(path)
+        fonts = [os.path.join(path, item) for item in items]
+        ran_captcha.sample = self.model_conf.category[1:]
+        ran_captcha.fonts_list = fonts
+        ran_captcha.check_font()
+        ran_captcha.rgb_r = [0, 255]
+        ran_captcha.rgb_g = [0, 255]
+        ran_captcha.rgb_b = [0, 255]
+        ran_captcha.fonts_num = [4, 8]
+
     def train_process(self):
         """
         训练任务
@@ -122,18 +139,29 @@ class Trains:
         )
         model.build_graph()
 
+        ran_captcha = RandomCaptcha()
+
+        if self.model_conf.da_random_captcha['Enable']:
+            self.init_captcha_gennerator(ran_captcha=ran_captcha)
+
         tf.compat.v1.logging.info('Loading Trains DataSet...')
-        train_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Trains)
+        train_feeder = utils.data.DataIterator(
+            model_conf=self.model_conf, mode=RunMode.Trains, ran_captcha=ran_captcha
+        )
         train_feeder.read_sample_from_tfrecords(self.model_conf.trains_path[DatasetType.TFRecords])
 
         tf.compat.v1.logging.info('Loading Validation DataSet...')
-        validation_feeder = utils.data.DataIterator(model_conf=self.model_conf, mode=RunMode.Validation)
+        validation_feeder = utils.data.DataIterator(
+            model_conf=self.model_conf, mode=RunMode.Validation, ran_captcha=ran_captcha
+        )
         validation_feeder.read_sample_from_tfrecords(self.model_conf.validation_path[DatasetType.TFRecords])
 
         tf.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
         tf.logging.info('Total {} Validation DataSets'.format(validation_feeder.size))
         if validation_feeder.size >= train_feeder.size:
-            exception("The number of training sets cannot be less than the test set.", )
+            exception("The number of training sets cannot be less than the validation set.", )
+        if validation_feeder.size < self.model_conf.validation_batch_size:
+            exception("The number of validation sets cannot be less than the validation batch size.", )
 
         num_train_samples = train_feeder.size
         num_validation_samples = validation_feeder.size
@@ -145,6 +173,9 @@ class Trains:
                 'will use validation set size as validation batch size.'.format(validation_feeder.size))
 
         num_batches_per_epoch = int(num_train_samples / self.model_conf.batch_size)
+
+        model.build_train_op(num_train_samples)
+
         # 会话配置
         sess_config = tf.compat.v1.ConfigProto(
             # allow_soft_placement=True,
@@ -219,7 +250,7 @@ class Trains:
                         )
 
                     # 达到保存步数对模型过程进行存储
-                    if step % trains_validation_steps == 0 and step != 0:
+                    if step % save_step == 0 and step != 0:
                         saver.save(sess, self.model_conf.save_model, global_step=step)
 
                     # 进入验证集验证环节

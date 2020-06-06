@@ -860,8 +860,11 @@ class Wizard:
         )
         current_project_name = self.comb_project_name.get()
         if len(current_project_name) > 0 and current_project_name not in self.project_names:
+            self.extract_regex = ".*?(?=_)"
+            self.label_from = LabelFrom.FileName
             self.sample_map[DatasetType.Directory][RunMode.Trains].delete(0, tk.END)
             self.sample_map[DatasetType.Directory][RunMode.Validation].delete(0, tk.END)
+            self.category_val.set("")
             if not current_project_name.endswith(suffix):
                 self.comb_project_name.insert(tk.END, suffix)
             self.current_project = self.comb_project_name.get()
@@ -1052,6 +1055,7 @@ class Wizard:
             self.comb_category.set('CUSTOMIZED')
             self.category_val.set(json.dumps(model_conf.category_param, ensure_ascii=False))
         else:
+            self.category_val.set("")
             self.category_entry['state'] = tk.DISABLED
             self.comb_category.set(model_conf.category_param)
 
@@ -1079,6 +1083,7 @@ class Wizard:
         self.data_augmentation_entity.channel_swap = model_conf.da_channel_swap
         self.data_augmentation_entity.random_blank = model_conf.da_random_blank
         self.data_augmentation_entity.random_transition = model_conf.da_random_transition
+        self.data_augmentation_entity.random_captcha = model_conf.da_random_captcha
 
         self.pretreatment_entity.binaryzation = model_conf.pre_binaryzation
         self.pretreatment_entity.replace_transparent = model_conf.pre_replace_transparent
@@ -1170,6 +1175,7 @@ class Wizard:
             DA_ChannelSwap=self.data_augmentation_entity.channel_swap,
             DA_RandomBlank=self.data_augmentation_entity.random_blank,
             DA_RandomTransition=self.data_augmentation_entity.random_transition,
+            DA_RandomCaptcha=self.data_augmentation_entity.random_captcha,
             Pre_Binaryzation=self.pretreatment_entity.binaryzation,
             Pre_ReplaceTransparent=self.pretreatment_entity.replace_transparent,
             Pre_HorizontalStitching=self.pretreatment_entity.horizontal_stitching,

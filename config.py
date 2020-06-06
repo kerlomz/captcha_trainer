@@ -127,6 +127,7 @@ class DataAugmentationEntity:
     channel_swap: bool = False
     random_blank: int = -1
     random_transition: int = -1
+    random_captcha: dict = {"Enable": False, "FontPath": ""}
 
 
 class PretreatmentEntity:
@@ -217,6 +218,7 @@ class ModelConfig:
     da_channel_swap: bool
     da_random_blank: int
     da_random_transition: int
+    da_random_captcha: dict = {"Enable": False, "FontPath": ""}
 
     """PRETREATMENT"""
     pretreatment_root: dict
@@ -353,6 +355,9 @@ class ModelConfig:
         self.da_channel_swap = self.data_augmentation_root.get('ChannelSwap')
         self.da_random_blank = self.data_augmentation_root.get('RandomBlank')
         self.da_random_transition = self.data_augmentation_root.get('RandomTransition')
+        self.da_random_captcha = self.data_augmentation_root.get('RandomCaptcha')
+        if not self.da_random_captcha:
+            self.da_random_captcha = {"Enable": False, "FontPath": ""}
 
         """PRETREATMENT"""
         self.pretreatment_root = self.conf['Pretreatment']
@@ -493,6 +498,13 @@ class ModelConfig:
         return result
 
     @staticmethod
+    def dict_param(params: dict, intent=6):
+        if params is None:
+            params = {}
+        result = "".join(["\n{} ".format(' ' * intent) + "{}: {}".format(k, v) for k, v in params.items()])
+        return result
+
+    @staticmethod
     def val_filter(val):
         if isinstance(val, str) and len(val) == 1:
             val = "'{}'".format(val)
@@ -553,6 +565,7 @@ class ModelConfig:
                 DA_ChannelSwap=self.da_channel_swap,
                 DA_RandomBlank=self.da_random_blank,
                 DA_RandomTransition=self.da_random_transition,
+                DA_RandomCaptcha=self.dict_param(self.da_random_captcha, intent=4),
                 Pre_Binaryzation=self.pre_binaryzation,
                 Pre_ReplaceTransparent=self.pre_replace_transparent,
                 Pre_HorizontalStitching=self.pre_horizontal_stitching,
@@ -635,6 +648,8 @@ class ModelConfig:
         self.da_channel_swap = argv.get('DA_ChannelSwap')
         self.da_random_blank = argv.get('DA_RandomBlank')
         self.da_random_transition = argv.get('DA_RandomTransition')
+        self.da_random_captcha = argv.get('DA_RandomCaptcha')
+        print(self.da_random_captcha)
         self.pre_binaryzation = argv.get('Pre_Binaryzation')
         self.pre_replace_transparent = argv.get('Pre_ReplaceTransparent')
         self.pre_horizontal_stitching = argv.get('Pre_HorizontalStitching')

@@ -222,6 +222,12 @@ class DataSets:
 
                 train_label_file = os.path.join(os.path.dirname(trains_path[0]), "train.txt")
 
+                if not os.path.exists(train_label_file):
+                    msg("Train label file not found!")
+                    if callback:
+                        callback()
+                    return
+
                 with open(train_label_file, "r", encoding="utf8") as f:
                     sample_label_line = f.readlines()
 

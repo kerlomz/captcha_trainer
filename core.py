@@ -43,6 +43,7 @@ class NeuralNetwork(object):
         self.utils = NetworkUtils(mode)
         self.merged_summary = None
         self.optimizer = None
+        self.dataset_size = None
 
     @property
     def input_shape(self):
@@ -56,6 +57,9 @@ class NeuralNetwork(object):
         在当前Session中构建网络计算图
         """
         self._build_model()
+
+    def build_train_op(self, dataset_size=None):
+        self.dataset_size = dataset_size
         self._build_train_op()
         self.merged_summary = tf.compat.v1.summary.merge_all()
 
@@ -121,6 +125,13 @@ class NeuralNetwork(object):
                 self.outputs = FullConnectedCNN(model_conf=self.model_conf, outputs=logits).build()
             return self.outputs
 
+    @property
+    def decay_steps(self):
+        if not self.dataset_size:
+            return 10000
+        epoch_step = int(self.dataset_size / self.model_conf.batch_size)
+        return int(epoch_step / 3 * 2)
+
     def _build_train_op(self):
         """构建训练操作符"""
 
@@ -149,7 +160,7 @@ class NeuralNetwork(object):
             self.model_conf.trains_learning_rate,
             self.global_step,
             staircase=True,
-            decay_steps=10000,
+            decay_steps=self.decay_steps,
             decay_rate=0.98,
         )
         tf.compat.v1.summary.scalar('learning_rate', self.lrn_rate)

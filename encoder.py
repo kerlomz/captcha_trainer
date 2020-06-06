@@ -33,7 +33,7 @@ class Encoder(object):
 
         path_or_stream = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, bytes) else path_or_bytes
         if not path_or_stream:
-            return "Picture is corrupted: {}".format( path_or_bytes)
+            return "Picture is corrupted: {}".format(path_or_bytes)
         try:
             pil_image = PIL.Image.open(path_or_stream)
         except OSError as e:

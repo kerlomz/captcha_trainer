@@ -75,6 +75,7 @@ class Predict:
                 self.model_conf.neu_recurrent
             )
             model.build_graph()
+            model.build_train_op()
 
             saver = tf.train.Saver(var_list=tf.global_variables())
 
