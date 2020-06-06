@@ -115,7 +115,7 @@ class DataIterator:
             try:
                 image, labels = self.ran_captcha.create()
                 _images.append(image)
-                _labels.append(''.join(labels).lower().encode())
+                _labels.append(''.join(labels).encode())
             except Exception as e:
                 print(e)
                 pass
