@@ -78,7 +78,7 @@ class DataIterator:
         min_after_dequeue = 1000
         batch = self.batch_map[self.mode]
         if self.model_conf.da_random_captcha['Enable']:
-            batch = random.randint(int(batch / 2), batch)
+            batch = random.randint(int(batch / 3 * 2), batch)
 
         dataset_train = tf.data.TFRecordDataset(
             filenames=path,
@@ -113,7 +113,7 @@ class DataIterator:
         _labels = []
         for i in range(num):
             try:
-                image, labels = self.ran_captcha.create()
+                image, labels, font_type = self.ran_captcha.create()
                 _images.append(image)
                 _labels.append(''.join(labels).encode())
             except Exception as e:

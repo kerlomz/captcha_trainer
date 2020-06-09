@@ -115,7 +115,7 @@ class Trains:
             exception("Font path does not exist.", code=-6754)
         items = os.listdir(path)
         fonts = [os.path.join(path, item) for item in items]
-        ran_captcha.sample = self.model_conf.category[1:]
+        ran_captcha.sample = NUMBER + ALPHA_UPPER + ALPHA_LOWER
         ran_captcha.fonts_list = fonts
         ran_captcha.check_font()
         ran_captcha.rgb_r = [0, 255]

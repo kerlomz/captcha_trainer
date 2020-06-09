@@ -19,7 +19,7 @@ class BackgroundType(Enum):
 
 class RandomCaptcha(object):
     def __init__(self):
-        self.__width = [150, 200]
+        self.__width = [130, 160]
         self.__height = [50, 60]
         self.__background_mode = BackgroundType.RGB
         self.__background_img_assests_path = None
@@ -31,7 +31,7 @@ class RandomCaptcha(object):
         self.__fonts_list = []
         self.__samples = []
         self.__fonts_num = [4, 4]
-        self.__font_size = [20, 40]
+        self.__font_size = [26, 36]
         self.__font_mode = 0
         self.__max_line_count = 2
         self.__max_point_count = 20
@@ -168,11 +168,10 @@ class RandomCaptcha(object):
         for font_type in self.fonts_list:
             try:
                 font = TTFont(font_type)
-                glyfMapDict = font['glyf']
-                uniMap = font['cmap'].tables[0].ttFont.getBestCmap()
+                uni_map = font['cmap'].tables[0].ttFont.getBestCmap()
                 for item in self.sample:
                     codepoint = ord(str(item))
-                    if codepoint in uniMap.keys():
+                    if codepoint in uni_map.keys():
                         continue
                     else:
                         font.close()
@@ -186,8 +185,13 @@ class RandomCaptcha(object):
 
         pass
 
-    def set_text(self, __image: ImageDraw, img_width, img_height) -> list:
-        font_size = random.choice(range(self.font_size[0], self.font_size[1]))
+    def set_text(self, __image: ImageDraw, img_width, img_height):
+
+        if img_width >= 150:
+            font_size = random.choice(range(self.font_size[0], self.font_size[1]))
+        else:
+            font_size = random.choice(range(self.font_size[0], int((self.font_size[0] + self.font_size[1])/2)))
+
         font_num = random.choice(range(self.fonts_num[0], self.fonts_num[1]))
         max_width = int(img_width / font_num)
         max_height = int(img_height)
@@ -209,7 +213,7 @@ class RandomCaptcha(object):
             labels.append(f)
             __image.text((x, y), f, font=font,
                          fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-        return labels
+        return labels, font_type
 
     def set_noise(self, __image: ImageDraw, img_width, img_height):
         for i in range(self.max_line_count):
@@ -229,9 +233,9 @@ class RandomCaptcha(object):
             __image.arc((x, y, x + 4, y + 4), 0, 40, fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
 
     def set_content(self, __image: ImageDraw, img_width, img_height):
-        labels = self.set_text(__image, img_width, img_height)
+        labels, font_type = self.set_text(__image, img_width, img_height)
         self.set_noise(__image, img_width, img_height)
-        return labels
+        return labels, font_type
 
     def create(self, mode: str = "bytes", img_format: str = "png"):
         if type(self.width) == list:
@@ -254,18 +258,18 @@ class RandomCaptcha(object):
                        random.randint(b_range[0], b_range[1]))
                 __image = Image.new('RGB', (img_width, img_height), rgb)
                 img = ImageDraw.Draw(__image)
-                labels = self.set_content(img, img_width, img_height)
+                labels, font_type = self.set_content(img, img_width, img_height)
                 if mode == "bytes":
                     img_byte_arr = io.BytesIO()
                     __image.save(img_byte_arr, format=img_format)
-                    return img_byte_arr.getvalue(), labels
+                    return img_byte_arr.getvalue(), labels, font_type
                 elif mode == "numpy":
-                    return np.array(__image), labels
+                    return np.array(__image), labels, font_type
                 elif mode == "base64":
                     img_byte_arr = io.BytesIO()
                     __image.save(img_byte_arr, format=img_format)
                     _bytes = img_byte_arr.getvalue()
-                    return base64.b64encode(_bytes).decode(), labels
+                    return base64.b64encode(_bytes).decode(), labels, font_type
                 else:
                     raise FutureWarning("暂不支持的输出类型")
             else:

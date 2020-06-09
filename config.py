@@ -649,7 +649,6 @@ class ModelConfig:
         self.da_random_blank = argv.get('DA_RandomBlank')
         self.da_random_transition = argv.get('DA_RandomTransition')
         self.da_random_captcha = argv.get('DA_RandomCaptcha')
-        print(self.da_random_captcha)
         self.pre_binaryzation = argv.get('Pre_Binaryzation')
         self.pre_replace_transparent = argv.get('Pre_ReplaceTransparent')
         self.pre_horizontal_stitching = argv.get('Pre_HorizontalStitching')

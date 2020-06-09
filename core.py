@@ -130,7 +130,7 @@ class NeuralNetwork(object):
         if not self.dataset_size:
             return 10000
         epoch_step = int(self.dataset_size / self.model_conf.batch_size)
-        return int(epoch_step / 3 * 2)
+        return int(epoch_step / 4)
 
     def _build_train_op(self):
         """构建训练操作符"""
