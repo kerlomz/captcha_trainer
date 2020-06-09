@@ -358,7 +358,8 @@ class DataAugmentationDialog(tk.Toplevel):
         self.random_blank_val.set(entity.random_blank)
         self.random_transition_val.set(entity.random_transition)
         self.da_random_captcha = entity.random_captcha
-        self.random_captcha_font_val.set(self.da_random_captcha['FontPath'])
+        if self.da_random_captcha['Enable']:
+            self.random_captcha_font_val.set(self.da_random_captcha['FontPath'])
 
     def save_conf(self):
         self.data_augmentation_entity.binaryzation = json.loads(self.binaryzation_val.get()) if self.binaryzation_val else []
