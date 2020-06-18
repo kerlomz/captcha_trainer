@@ -68,7 +68,9 @@ class DataSets:
                     if labels:
                         labels = labels.group()
                     else:
-                        raise NameError('invalid filename {}'.format(file_name))
+                        tf.logging.warning('invalid filename {}, ignored.'.format(file_name))
+                        continue
+                        # raise NameError('invalid filename {}'.format(file_name))
                     labels = labels.encode('utf-8')
 
                     example = self.input_to_tfrecords(image_data, labels)

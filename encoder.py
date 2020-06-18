@@ -79,6 +79,11 @@ class Encoder(object):
             binaryzation=self.model_conf.pre_binaryzation,
         )
 
+        if self.model_conf.pre_horizontal_stitching:
+            up_slice = im[0: int(size[1] / 2), 0: size[0]]
+            down_slice = im[int(size[1] / 2): size[1], 0: size[0]]
+            im = np.concatenate((up_slice, down_slice), axis=1)
+
         if self.mode == RunMode.Trains and bool(random.getrandbits(1)):
             im = preprocessing(
                 image=im,
