@@ -75,7 +75,7 @@ class Trains:
             model.build_train_op()
             input_graph_def = predict_sess.graph.as_graph_def()
             saver = tf.train.Saver(var_list=tf.global_variables())
-            tf.logging.info(tf.train.latest_checkpoint(self.model_conf.model_root_path))
+            tf.compat.v1.logging.info(tf.train.latest_checkpoint(self.model_conf.model_root_path))
             saver.restore(predict_sess, tf.train.latest_checkpoint(self.model_conf.model_root_path))
 
             output_graph_def = convert_variables_to_constants(
@@ -156,8 +156,8 @@ class Trains:
         )
         validation_feeder.read_sample_from_tfrecords(self.model_conf.validation_path[DatasetType.TFRecords])
 
-        tf.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
-        tf.logging.info('Total {} Validation DataSets'.format(validation_feeder.size))
+        tf.compat.v1.logging.info('Total {} Trains DataSets'.format(train_feeder.size))
+        tf.compat.v1.logging.info('Total {} Validation DataSets'.format(validation_feeder.size))
         if validation_feeder.size >= train_feeder.size:
             exception("The number of training sets cannot be less than the validation set.", )
         if validation_feeder.size < self.model_conf.validation_batch_size:
@@ -168,7 +168,7 @@ class Trains:
 
         if num_validation_samples < self.model_conf.validation_batch_size:
             self.model_conf.validation_batch_size = num_validation_samples
-            tf.logging.warn(
+            tf.compat.v1.logging.warn(
                 'The number of validation sets is less than the validation batch size, '
                 'will use validation set size as validation batch size.'.format(validation_feeder.size))
 
@@ -207,7 +207,7 @@ class Trains:
                 # 加载被中断的训练任务
                 saver.restore(sess, checkpoint_state.model_checkpoint_path)
 
-            tf.logging.info('Start training...')
+            tf.compat.v1.logging.info('Start training...')
 
             # 进入训练任务循环
             while 1:
@@ -239,7 +239,7 @@ class Trains:
                     train_writer.add_summary(summary_str, step)
 
                     if step % save_step == 0 and step != 0:
-                        tf.logging.info(
+                        tf.compat.v1.logging.info(
                             'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, Shape[1]: {}'.format(
                                 step,
                                 time.time() - batch_time,
@@ -276,7 +276,7 @@ class Trains:
                         )
                         log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
                               "Time = {:.3f} sec/batch, LearningRate: {}"
-                        tf.logging.info(log.format(
+                        tf.compat.v1.logging.info(log.format(
                             epoch_count,
                             step,
                             accuracy,
@@ -294,7 +294,7 @@ class Trains:
                     break
                 if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
                     self.compile_graph(accuracy)
-                    tf.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
+                    tf.compat.v1.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
                     break
                 epoch_count += 1
 
@@ -303,10 +303,10 @@ def main(argv):
     project_name = argv[-1]
     model_conf = ModelConfig(project_name=project_name)
     Trains(model_conf).train_process()
-    tf.logging.info('Training completed.')
+    tf.compat.v1.logging.info('Training completed.')
     pass
 
 
 if __name__ == '__main__':
-    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+    # tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
     tf.compat.v1.app.run()

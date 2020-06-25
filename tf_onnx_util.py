@@ -38,7 +38,8 @@ If you run into issues, open an issue here:
     https://github.com/onnx/tensorflow-onnx/issues
 """
 
-logger = logging.getLogger(constants.TF2ONNX_PACKAGE_NAME)
+logger = tf.compat.v1.logging
+# logger = logging.getLogger(constants.TF2ONNX_PACKAGE_NAME)
 
 
 def freeze_session(sess, keep_var_names=None, output_names=None, clear_devices=True):
@@ -92,7 +93,7 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
     if outputs_op:
         outputs_op = outputs_op.split(",")
 
-    logging.basicConfig(level=logging.get_verbosity_level(True))
+    # logging.basicConfig(level=logging.get_verbosity_level(True))
 
     utils.set_debug_mode(True)
 
