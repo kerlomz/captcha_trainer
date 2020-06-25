@@ -30,6 +30,7 @@ class Wizard:
     data_augmentation_entity = DataAugmentationEntity()
     pretreatment_entity = PretreatmentEntity()
     extract_regex = ".*?(?=_)"
+    label_split = ""
     label_from = LabelFrom.FileName
 
     def __init__(self, parent: tk.Tk):
@@ -1048,6 +1049,7 @@ class Wizard:
         self.comb_loss.set(model_conf.loss_func_param)
 
         self.extract_regex = model_conf.extract_regex
+        self.label_split = model_conf.label_split
         self.label_from = model_conf.label_from
 
         if isinstance(model_conf.category_param, list):
@@ -1138,7 +1140,7 @@ class Wizard:
             OutputSplit='',
             LabelFrom=self.label_from.value,
             ExtractRegex=self.extract_regex,
-            LabelSplit='',
+            LabelSplit=self.label_split,
             DatasetTrainsPath=self.dataset_value(
                 dataset_type=DatasetType.TFRecords, mode=RunMode.Trains
             ),
