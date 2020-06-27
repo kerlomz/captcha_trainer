@@ -369,6 +369,7 @@ class ModelConfig:
         self.pre_concat_frames = self.pretreatment_root.get('ConcatFrames')
         self.pre_blend_frames = self.pretreatment_root.get('BlendFrames')
         self.pre_exec_map = self.pretreatment_root.get('ExecuteMap')
+        self.pre_exec_map = self.pre_exec_map if self.pre_exec_map else {}
 
         """COMPILE_MODEL"""
         self.compile_model_path = os.path.join(self.output_path, 'graph')
