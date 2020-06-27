@@ -248,40 +248,54 @@ def preprocessing(
     :param warp_perspective: bool, 透视变形
     :param sp_noise: 浮点, 椒盐噪声
     :param rotate: 数字, 旋转
+    :param corp: 裁剪
     :return:
     """
     pretreatment = Pretreatment(image)
-    if rotate > 0 and bool(random.getrandbits(1)):
+    if rotate > 0:
         pretreatment.rotate(rotate, True)
-    if random_transition != -1 and bool(random.getrandbits(1)):
+    if random_transition != -1:
         pretreatment.random_transition(5, True)
-    if 0 < sp_noise < 1 and bool(random.getrandbits(1)):
+    if 0 < sp_noise < 1:
         pretreatment.sp_noise(sp_noise, True)
-    if binaryzation != -1 and bool(random.getrandbits(1)):
+    if binaryzation != -1:
         pretreatment.binarization(binaryzation, True)
-    if median_blur != -1 and bool(random.getrandbits(1)):
+    if median_blur != -1:
         pretreatment.median_blur(median_blur, True)
-    if gaussian_blur != -1 and bool(random.getrandbits(1)):
+    if gaussian_blur != -1:
         pretreatment.gaussian_blur(gaussian_blur, True)
-    if equalize_hist and bool(random.getrandbits(1)):
+    if equalize_hist:
         pretreatment.equalize_hist(True, True)
-    if laplacian and bool(random.getrandbits(1)):
+    if laplacian:
         pretreatment.laplacian(True, True)
-    if warp_perspective and bool(random.getrandbits(1)):
+    if warp_perspective:
         pretreatment.warp_perspective(True)
-    if random_brightness and bool(random.getrandbits(1)):
+    if random_brightness:
         pretreatment.random_brightness(True)
-    if random_blank != -1 and bool(random.getrandbits(1)):
+    if random_blank != -1:
         pretreatment.random_blank(2, True)
-    if random_gamma and bool(random.getrandbits(1)):
+    if random_gamma:
         pretreatment.random_gamma(True)
-    if random_channel_swap and bool(random.getrandbits(1)):
+    if random_channel_swap:
         pretreatment.random_channel_swap(True)
-    if random_saturation and bool(random.getrandbits(1)):
+    if random_saturation:
         pretreatment.random_saturation(True)
-    if random_hue and bool(random.getrandbits(1)):
+    if random_hue:
         pretreatment.random_hue(18, True)
     return pretreatment.get()
+
+
+def preprocessing_by_func(exec_map: dict, src_arr):
+    if not exec_map:
+        return src_arr
+    target_arr = cv2.cvtColor(src_arr, cv2.COLOR_RGB2BGR)
+    key = random.choice(list(exec_map.keys()))
+    for sentence in exec_map.get(key):
+        if sentence.startswith("@@"):
+            target_arr = eval(sentence[2:])
+        elif sentence.startswith("$$"):
+            exec(sentence[2:])
+    return cv2.cvtColor(target_arr, cv2.COLOR_BGR2RGB)
 
 
 if __name__ == '__main__':
@@ -296,13 +310,19 @@ if __name__ == '__main__':
     with open(path, "rb") as f:
         path_or_bytes = f.read()
     path_or_stream = io.BytesIO(path_or_bytes)
-    pil_image = PIL.Image.open(path_or_stream).convert("L")
+    pil_image = PIL.Image.open(path_or_stream).convert("RGB")
     im = np.array(pil_image)
-    im = preprocessing(
-        image=im,
-        binaryzation=150,
-        sp_noise=0.05,
-    ).astype(np.float32)
+    im = preprocessing_by_func(exec_map={
+        "corp": [
+          "@@target_arr[:, 60:, :]",
+        ],
+      }, src_arr=im)
+    # im = preprocessing(
+    #     image=im,
+    #     # binaryzation=200,
+    #     equalize_hist=True
+    #     # sp_noise=0.05,
+    # ).astype(np.float32)
     # im = im.swapaxes(0, 1)
     # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     cv_img = cv2.imencode('.png', im)[1]

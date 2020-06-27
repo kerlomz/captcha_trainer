@@ -1092,6 +1092,7 @@ class Wizard:
         self.pretreatment_entity.horizontal_stitching = model_conf.pre_horizontal_stitching
         self.pretreatment_entity.concat_frames = model_conf.pre_concat_frames
         self.pretreatment_entity.blend_frames = model_conf.pre_blend_frames
+        self.pretreatment_entity.exec_map = model_conf.pre_exec_map
 
         for dataset_validation in self.get_param(model_conf.validation_path, DatasetType.TFRecords, default=[]):
             self.dataset_validation_listbox.insert(tk.END, dataset_validation)
@@ -1183,6 +1184,7 @@ class Wizard:
             Pre_HorizontalStitching=self.pretreatment_entity.horizontal_stitching,
             Pre_ConcatFrames=self.pretreatment_entity.concat_frames,
             Pre_BlendFrames=self.pretreatment_entity.blend_frames,
+            Pre_ExecuteMap=self.pretreatment_entity.exec_map
         )
         model_conf.update()
         return model_conf

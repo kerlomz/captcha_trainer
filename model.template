@@ -150,6 +150,7 @@ Pretreatment:
   HorizontalStitching: {Pre_HorizontalStitching}
   ConcatFrames: {Pre_ConcatFrames}
   BlendFrames: {Pre_BlendFrames}
+  ExecuteMap: {Pre_ExecuteMap}
 
 
 

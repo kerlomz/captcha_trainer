@@ -13,6 +13,7 @@ from constants import RunMode
 from config import ModelConfig, LabelFrom, LossFunction
 from category import encode_maps, FULL_ANGLE_MAP
 from pretreatment import preprocessing
+from pretreatment import preprocessing_by_func
 from tools.gif_frames import concat_frames, blend_frame
 
 
@@ -67,6 +68,11 @@ class Encoder(object):
 
         if isinstance(im, list):
             return None
+
+        im = preprocessing_by_func(
+            exec_map=self.model_conf.pre_exec_map,
+            src_arr=im
+        )
 
         if self.model_conf.image_channel == 1 and len(im.shape) == 3:
             if self.mode == RunMode.Trains:

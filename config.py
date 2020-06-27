@@ -136,6 +136,7 @@ class PretreatmentEntity:
     blend_frames: object = -1
     replace_transparent: bool = True
     horizontal_stitching: bool = False
+    exec_map: dict = {}
 
 
 class ModelConfig:
@@ -227,6 +228,7 @@ class ModelConfig:
     pre_horizontal_stitching: bool
     pre_concat_frames: object
     pre_blend_frames: object
+    pre_exec_map = dict = {}
 
     """COMPILE_MODEL"""
     compile_model_path: str
@@ -366,6 +368,7 @@ class ModelConfig:
         self.pre_horizontal_stitching = self.pretreatment_root.get("HorizontalStitching")
         self.pre_concat_frames = self.pretreatment_root.get('ConcatFrames')
         self.pre_blend_frames = self.pretreatment_root.get('BlendFrames')
+        self.pre_exec_map = self.pretreatment_root.get('ExecuteMap')
 
         """COMPILE_MODEL"""
         self.compile_model_path = os.path.join(self.output_path, 'graph')
@@ -571,6 +574,7 @@ class ModelConfig:
                 Pre_HorizontalStitching=self.pre_horizontal_stitching,
                 Pre_ConcatFrames=self.pre_concat_frames,
                 Pre_BlendFrames=self.pre_blend_frames,
+                Pre_ExecuteMap=self.pre_exec_map
             )
         with open(model_conf_path if model_conf_path else self.model_conf_path, "w", encoding="utf8") as f:
             f.write(model)
@@ -654,6 +658,7 @@ class ModelConfig:
         self.pre_horizontal_stitching = argv.get('Pre_HorizontalStitching')
         self.pre_concat_frames = argv.get('Pre_ConcatFrames')
         self.pre_blend_frames = argv.get('Pre_BlendFrames')
+        self.pre_exec_map = argv.get('Pre_ExecuteMap')
 
     def println(self):
         print('Loading Configuration...')
