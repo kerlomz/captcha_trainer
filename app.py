@@ -603,7 +603,11 @@ class Wizard:
             sequence="<Button-1>",
             func=lambda x: self.fetch_projects()
         )
-        self.comb_project_name.bind("<<ComboboxSelected>>", lambda x: self.read_conf(x))
+
+        def read_conf(event):
+            threading.Thread(target=self.read_conf).start()
+
+        self.comb_project_name.bind("<<ComboboxSelected>>", read_conf)
 
         # 保存配置 - 按钮
         self.btn_save_conf = ttk.Button(
@@ -1033,7 +1037,8 @@ class Wizard:
         result = src.get(key)
         return result if result else default
 
-    def read_conf(self, event):
+    def read_conf(self):
+        print('Reading configuration...')
         selected = self.comb_project_name.get()
         self.current_project = selected
         model_conf = ModelConfig(selected)
@@ -1105,6 +1110,7 @@ class Wizard:
             self.dataset_validation_listbox.insert(tk.END, dataset_validation)
         for dataset_train in self.get_param(model_conf.trains_path, DatasetType.TFRecords, default=[]):
             self.dataset_train_listbox.insert(tk.END, dataset_train)
+        print('Loading configuration is completed.')
         return model_conf
 
     @property
