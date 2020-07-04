@@ -31,7 +31,6 @@ class Wizard:
     pretreatment_entity = PretreatmentEntity()
     extract_regex = ".*?(?=_)"
     label_split = ""
-    label_from = LabelFrom.FileName
 
     def __init__(self, parent: tk.Tk):
         self.layout = {
@@ -69,11 +68,17 @@ class Wizard:
         self.help_menu = tk.Menu(self.menubar, tearoff=False)
         self.system_menu = tk.Menu(self.menubar, tearoff=False)
         self.edit_var = tk.DoubleVar()
+        self.label_from_var = tk.StringVar()
+
         self.memory_usage_menu = tk.Menu(self.menubar, tearoff=False)
         self.memory_usage_menu.add_radiobutton(label="50%", variable=self.edit_var, value=0.5)
         self.memory_usage_menu.add_radiobutton(label="60%", variable=self.edit_var, value=0.6)
         self.memory_usage_menu.add_radiobutton(label="70%", variable=self.edit_var, value=0.7)
         self.memory_usage_menu.add_radiobutton(label="80%", variable=self.edit_var, value=0.8)
+
+        self.label_from_menu = tk.Menu(self.menubar, tearoff=False)
+        self.label_from_menu.add_radiobutton(label="FileName", variable=self.label_from_var, value='FileName')
+        self.label_from_menu.add_radiobutton(label="TXT", variable=self.label_from_var, value='TXT')
 
         self.menubar.add_cascade(label="System", menu=self.system_menu)
         self.system_menu.add_cascade(label="Memory Usage", menu=self.memory_usage_menu)
@@ -82,6 +87,8 @@ class Wizard:
         self.data_menu.add_command(label="Pretreatment", command=lambda: self.popup_pretreatment())
         self.data_menu.add_separator()
         self.data_menu.add_command(label="Clear Dataset", command=lambda: self.clear_dataset())
+        self.data_menu.add_separator()
+        self.data_menu.add_cascade(label="Label From", menu=self.label_from_menu)
         self.menubar.add_cascade(label="Data", menu=self.data_menu)
 
         self.help_menu.add_command(label="About", command=lambda: self.popup_about())
@@ -862,7 +869,7 @@ class Wizard:
         current_project_name = self.comb_project_name.get()
         if len(current_project_name) > 0 and current_project_name not in self.project_names:
             self.extract_regex = ".*?(?=_)"
-            self.label_from = LabelFrom.FileName
+            self.label_from_var.set('FileName')
             self.sample_map[DatasetType.Directory][RunMode.Trains].delete(0, tk.END)
             self.sample_map[DatasetType.Directory][RunMode.Validation].delete(0, tk.END)
             self.category_val.set("")
@@ -1050,7 +1057,7 @@ class Wizard:
 
         self.extract_regex = model_conf.extract_regex
         self.label_split = model_conf.label_split
-        self.label_from = model_conf.label_from
+        self.label_from_var.set(model_conf.label_from.value)
 
         if isinstance(model_conf.category_param, list):
             self.category_entry['state'] = tk.NORMAL
@@ -1139,7 +1146,7 @@ class Wizard:
             ReplaceTransparent=False,
             HorizontalStitching=False,
             OutputSplit='',
-            LabelFrom=self.label_from.value,
+            LabelFrom=self.label_from_var.get(),
             ExtractRegex=self.extract_regex,
             LabelSplit=self.label_split,
             DatasetTrainsPath=self.dataset_value(

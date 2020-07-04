@@ -3,7 +3,9 @@
 # Author: kerlomz <kerlomz@gmail.com>
 import cv2
 import random
+import PIL
 import numpy as np
+from math import floor, ceil
 
 
 class Pretreatment(object):
@@ -97,22 +99,22 @@ class Pretreatment(object):
             self.origin = _rotate
         return _rotate
 
-    def warp_perspective(self, modify=False) -> np.ndarray:
-        size = self.origin.shape
-        height, width = size[0], size[1]
-        size0 = random.randint(3, 9)
-        size1 = random.randint(25, 30)
-        size2 = random.randint(23, 27)
-        size3 = random.randint(33, 37)
-        pts1 = np.float32([[0, 0], [0, size1], [size1, size1], [size1, 0]])
-        pts2 = np.float32([[size0, 0], [-size0, size1], [size2, size1], [size3, 0]])
-        is_random = bool(random.getrandbits(1))
-        param = (pts2, pts1) if is_random else (pts1, pts2)
-        warp_mat = cv2.getPerspectiveTransform(*param)
-        dst = cv2.warpPerspective(self.origin, warp_mat, (width, height))
-        if modify:
-            self.origin = dst
-        return dst
+    # def warp_perspective(self, modify=False) -> np.ndarray:
+    #     size = self.origin.shape
+    #     height, width = size[0], size[1]
+    #     size0 = random.randint(3, 9)
+    #     size1 = random.randint(25, 30)
+    #     size2 = random.randint(23, 27)
+    #     size3 = random.randint(33, 37)
+    #     pts1 = np.float32([[0, 0], [0, size1], [size1, size1], [size1, 0]])
+    #     pts2 = np.float32([[size0, 0], [-size0, size1], [size2, size1], [size3, 0]])
+    #     is_random = bool(random.getrandbits(1))
+    #     param = (pts2, pts1) if is_random else (pts1, pts2)
+    #     warp_mat = cv2.getPerspectiveTransform(*param)
+    #     dst = cv2.warpPerspective(self.origin, warp_mat, (width, height))
+    #     if modify:
+    #         self.origin = dst
+    #     return dst
 
     def sp_noise(self, prob, modify=False):
         size = self.origin.shape
@@ -213,6 +215,105 @@ class Pretreatment(object):
         output = cv2.warpAffine(self.origin, m, (width, height), borderValue=random_color)
         if modify:
             self.origin = output
+        return output
+
+    def warp_perspective(self, modify=False):
+
+        tmp = PIL.Image.fromarray(self.origin)
+        w, h = tmp.size
+
+        magnitude = random.randint(2, 4)
+        grid_width = random.randint(5, 10)
+        grid_height = random.randint(3, 7)
+
+        horizontal_tiles = grid_width
+        vertical_tiles = grid_height
+
+        width_of_square = int(floor(w / float(horizontal_tiles)))
+        height_of_square = int(floor(h / float(vertical_tiles)))
+
+        width_of_last_square = w - (width_of_square * (horizontal_tiles - 1))
+        height_of_last_square = h - (height_of_square * (vertical_tiles - 1))
+
+        dimensions = []
+
+        for vertical_tile in range(vertical_tiles):
+            for horizontal_tile in range(horizontal_tiles):
+                if vertical_tile == (vertical_tiles - 1) and horizontal_tile == (horizontal_tiles - 1):
+                    dimensions.append([horizontal_tile * width_of_square,
+                                       vertical_tile * height_of_square,
+                                       width_of_last_square + (horizontal_tile * width_of_square),
+                                       height_of_last_square + (height_of_square * vertical_tile)])
+                elif vertical_tile == (vertical_tiles - 1):
+                    dimensions.append([horizontal_tile * width_of_square,
+                                       vertical_tile * height_of_square,
+                                       width_of_square + (horizontal_tile * width_of_square),
+                                       height_of_last_square + (height_of_square * vertical_tile)])
+                elif horizontal_tile == (horizontal_tiles - 1):
+                    dimensions.append([horizontal_tile * width_of_square,
+                                       vertical_tile * height_of_square,
+                                       width_of_last_square + (horizontal_tile * width_of_square),
+                                       height_of_square + (height_of_square * vertical_tile)])
+                else:
+                    dimensions.append([horizontal_tile * width_of_square,
+                                       vertical_tile * height_of_square,
+                                       width_of_square + (horizontal_tile * width_of_square),
+                                       height_of_square + (height_of_square * vertical_tile)])
+
+        # For loop that generates polygons could be rewritten, but maybe harder to read?
+        # polygons = [x1,y1, x1,y2, x2,y2, x2,y1 for x1,y1, x2,y2 in dimensions]
+
+        # last_column = [(horizontal_tiles - 1) + horizontal_tiles * i for i in range(vertical_tiles)]
+        last_column = []
+        for i in range(vertical_tiles):
+            last_column.append((horizontal_tiles-1)+horizontal_tiles*i)
+
+        last_row = range((horizontal_tiles * vertical_tiles) - horizontal_tiles, horizontal_tiles * vertical_tiles)
+
+        polygons = []
+        for x1, y1, x2, y2 in dimensions:
+            polygons.append([x1, y1, x1, y2, x2, y2, x2, y1])
+
+        polygon_indices = []
+        for i in range((vertical_tiles * horizontal_tiles) - 1):
+            if i not in last_row and i not in last_column:
+                polygon_indices.append([i, i + 1, i + horizontal_tiles, i + 1 + horizontal_tiles])
+
+        for a, b, c, d in polygon_indices:
+            dx = random.randint(-magnitude, magnitude)
+            dy = random.randint(-magnitude, magnitude)
+
+            x1, y1, x2, y2, x3, y3, x4, y4 = polygons[a]
+            polygons[a] = [x1, y1,
+                            x2, y2,
+                            x3 + dx, y3 + dy,
+                            x4, y4]
+
+            x1, y1, x2, y2, x3, y3, x4, y4 = polygons[b]
+            polygons[b] = [x1, y1,
+                            x2 + dx, y2 + dy,
+                            x3, y3,
+                            x4, y4]
+
+            x1, y1, x2, y2, x3, y3, x4, y4 = polygons[c]
+            polygons[c] = [x1, y1,
+                            x2, y2,
+                            x3, y3,
+                            x4 + dx, y4 + dy]
+
+            x1, y1, x2, y2, x3, y3, x4, y4 = polygons[d]
+            polygons[d] = [x1 + dx, y1 + dy,
+                            x2, y2,
+                            x3, y3,
+                            x4, y4]
+
+        generated_mesh = []
+        for i in range(len(dimensions)):
+            generated_mesh.append([dimensions[i], polygons[i]])
+
+        output = tmp.transform(tmp.size, PIL.Image.MESH, generated_mesh, resample=PIL.Image.BICUBIC)
+        if modify:
+            self.origin = cv2.cvtColor(np.asarray(output), cv2.COLOR_RGB2BGR)
         return output
 
 
