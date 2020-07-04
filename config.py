@@ -7,6 +7,7 @@ import json
 import platform
 import re
 import yaml
+import threading
 from category import *
 from constants import *
 from exception import exception, ConfigException
@@ -156,6 +157,7 @@ class ModelConfig:
     """FIELD PARAM - IMAGE"""
     field_root: dict
     category_param: list or str
+    category_param_text: str
     image_channel: int
     image_width: int
     image_height: int
@@ -280,7 +282,10 @@ class ModelConfig:
         """FIELD PARAM - IMAGE"""
         self.field_root = self.conf['FieldParam']
         self.category_param = self.field_root.get('Category')
-
+        if isinstance(self.category_param, list):
+            self.category_param_text = json.dumps(self.category_param, ensure_ascii=False)
+        elif isinstance(self.category_param, str):
+            self.category_param_text = self.category_param
         self.image_channel = self.field_root.get('ImageChannel')
         self.image_width = self.field_root.get('ImageWidth')
         self.image_height = self.field_root.get('ImageHeight')
@@ -614,6 +619,11 @@ class ModelConfig:
             self.category_param = json.dumps(argv.get('Category'), ensure_ascii=False)
         else:
             self.category_param = argv.get('Category')
+
+        if isinstance(self.category_param, list):
+            self.category_param_text = json.dumps(self.category_param, ensure_ascii=False)
+        elif isinstance(self.category_param, str):
+            self.category_param_text = self.category_param
 
         self.resize = argv.get('Resize')
         self.image_channel = argv.get('ImageChannel')

@@ -31,6 +31,7 @@ class Wizard:
     pretreatment_entity = PretreatmentEntity()
     extract_regex = ".*?(?=_)"
     label_split = ""
+    model_conf: ModelConfig = None
 
     def __init__(self, parent: tk.Tk):
         self.layout = {
@@ -882,6 +883,8 @@ class Wizard:
             self.current_project = self.comb_project_name.get()
             self.update_dataset_files_path(mode=RunMode.Trains)
             self.update_dataset_files_path(mode=RunMode.Validation)
+            self.data_augmentation_entity = DataAugmentationEntity()
+            self.pretreatment_entity = PretreatmentEntity()
 
     @property
     def project_path(self):
@@ -1064,15 +1067,6 @@ class Wizard:
         self.label_split = model_conf.label_split
         self.label_from_var.set(model_conf.label_from.value)
 
-        if isinstance(model_conf.category_param, list):
-            self.category_entry['state'] = tk.NORMAL
-            self.comb_category.set('CUSTOMIZED')
-            self.category_val.set(json.dumps(model_conf.category_param, ensure_ascii=False))
-        else:
-            self.category_val.set("")
-            self.category_entry['state'] = tk.DISABLED
-            self.comb_category.set(model_conf.category_param)
-
         self.comb_optimizer.set(model_conf.neu_optimizer_param)
         self.learning_rate_spin.set(model_conf.trains_learning_rate)
         self.end_acc_val.set(model_conf.trains_end_acc)
@@ -1110,8 +1104,23 @@ class Wizard:
             self.dataset_validation_listbox.insert(tk.END, dataset_validation)
         for dataset_train in self.get_param(model_conf.trains_path, DatasetType.TFRecords, default=[]):
             self.dataset_train_listbox.insert(tk.END, dataset_train)
-        print('Loading configuration is completed.')
-        return model_conf
+
+        # print('Loading category configuration...')
+        if isinstance(model_conf.category_param, list):
+            self.category_entry['state'] = tk.DISABLED
+            self.comb_category.set('CUSTOMIZED')
+            if len(model_conf.category_param) > 1000:
+                self.category_val.set("Too many categories, not shown for now.")
+            else:
+                self.category_val.set(model_conf.category_param_text)
+                self.category_entry['state'] = tk.NORMAL
+        else:
+            self.category_val.set("")
+            self.category_entry['state'] = tk.DISABLED
+            self.comb_category.set(model_conf.category_param)
+        # print('Loading configuration is completed.')
+        self.model_conf = model_conf
+        return self.model_conf
 
     @property
     def validation_batch_size(self):
@@ -1293,6 +1302,8 @@ class Wizard:
             return None
         if comb_selected == 'CUSTOMIZED':
             category_value = self.category_entry.get()
+            if category_value == "Too many categories, not shown for now.":
+                return self.model_conf.category_param_text
             category_value = category_value.replace("'", '"') if "'" in category_value else category_value
             category_value = self.json_filter(category_value, str)
         else:
