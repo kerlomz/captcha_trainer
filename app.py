@@ -1370,6 +1370,7 @@ class Wizard:
             status = 'Training failure'
         self.button_state(self.btn_training, tk.NORMAL)
         self.button_state(self.btn_stop, tk.DISABLED)
+        self.comb_project_name['state'] = tk.NORMAL
         self.is_task_running = False
         tk.messagebox.showinfo('Training Status', status)
 
@@ -1407,6 +1408,7 @@ class Wizard:
         model_conf = self.save_conf()
         if not self.check_dataset(model_conf):
             return
+        self.comb_project_name['state'] = tk.DISABLED
         self.job = self.threading_exec(
             lambda: self.training_task()
         )
