@@ -21,6 +21,8 @@ from gui.utils import LayoutGUI
 from gui.data_augmentation import DataAugmentationDialog
 from gui.pretreatment import PretreatmentDialog
 
+NOT_EDITABLE_MSG = "ONLY SUPPORT MODIFICATION FROM FILE"
+
 
 class Wizard:
 
@@ -1110,7 +1112,7 @@ class Wizard:
             self.category_entry['state'] = tk.DISABLED
             self.comb_category.set('CUSTOMIZED')
             if len(model_conf.category_param) > 1000:
-                self.category_val.set("Too many categories, not shown for now.")
+                self.category_val.set(NOT_EDITABLE_MSG)
             else:
                 self.category_val.set(model_conf.category_param_text)
                 self.category_entry['state'] = tk.NORMAL
@@ -1302,7 +1304,7 @@ class Wizard:
             return None
         if comb_selected == 'CUSTOMIZED':
             category_value = self.category_entry.get()
-            if category_value == "Too many categories, not shown for now.":
+            if category_value == NOT_EDITABLE_MSG:
                 return self.model_conf.category_param_text
             category_value = category_value.replace("'", '"') if "'" in category_value else category_value
             category_value = self.json_filter(category_value, str)
