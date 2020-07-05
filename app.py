@@ -1477,14 +1477,15 @@ class Wizard:
                 len_label = len(label)
                 category.extend(label)
 
-        category_pram = self.closest_category(category)
-        if not category_pram:
-            return
-        self.comb_category.set(category_pram)
         size = PilImage.open(os.path.join(dataset_path[0], file_names[0])).size
         self.size_val.set(json.dumps(size))
         self.resize_val.set(json.dumps(size))
         self.label_num_spin.set(len_label)
+        if not self.category_val.get() or self.category_val.get() != NOT_EDITABLE_MSG:
+            category_pram = self.closest_category(category)
+            if not category_pram:
+                return
+            self.comb_category.set(category_pram)
 
     def listbox_delete_item_callback(self, event, listbox: tk.Listbox):
         i = listbox.curselection()[0]

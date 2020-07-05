@@ -77,9 +77,9 @@ class Pretreatment(object):
 
         if bool(random.getrandbits(1)):
             angle = random.choice([
-                    -10, -20, -30, -45, -50, -60, -75, -90, -95, -100,
-                    10, 20, 30, 45, 50, 60, 75, 90, 95, 100
-                ])
+                -10, -20, -30, -45, -50, -60, -75, -90, -95, -100,
+                10, 20, 30, 45, 50, 60, 75, 90, 95, 100
+            ])
         else:
             angle = -random.randint(-value, value)
 
@@ -266,7 +266,7 @@ class Pretreatment(object):
         # last_column = [(horizontal_tiles - 1) + horizontal_tiles * i for i in range(vertical_tiles)]
         last_column = []
         for i in range(vertical_tiles):
-            last_column.append((horizontal_tiles-1)+horizontal_tiles*i)
+            last_column.append((horizontal_tiles - 1) + horizontal_tiles * i)
 
         last_row = range((horizontal_tiles * vertical_tiles) - horizontal_tiles, horizontal_tiles * vertical_tiles)
 
@@ -285,27 +285,27 @@ class Pretreatment(object):
 
             x1, y1, x2, y2, x3, y3, x4, y4 = polygons[a]
             polygons[a] = [x1, y1,
-                            x2, y2,
-                            x3 + dx, y3 + dy,
-                            x4, y4]
+                           x2, y2,
+                           x3 + dx, y3 + dy,
+                           x4, y4]
 
             x1, y1, x2, y2, x3, y3, x4, y4 = polygons[b]
             polygons[b] = [x1, y1,
-                            x2 + dx, y2 + dy,
-                            x3, y3,
-                            x4, y4]
+                           x2 + dx, y2 + dy,
+                           x3, y3,
+                           x4, y4]
 
             x1, y1, x2, y2, x3, y3, x4, y4 = polygons[c]
             polygons[c] = [x1, y1,
-                            x2, y2,
-                            x3, y3,
-                            x4 + dx, y4 + dy]
+                           x2, y2,
+                           x3, y3,
+                           x4 + dx, y4 + dy]
 
             x1, y1, x2, y2, x3, y3, x4, y4 = polygons[d]
             polygons[d] = [x1 + dx, y1 + dy,
-                            x2, y2,
-                            x3, y3,
-                            x4, y4]
+                           x2, y2,
+                           x3, y3,
+                           x4, y4]
 
         generated_mesh = []
         for i in range(len(dimensions)):
@@ -386,11 +386,12 @@ def preprocessing(
     return pretreatment.get()
 
 
-def preprocessing_by_func(exec_map: dict, src_arr):
+def preprocessing_by_func(exec_map: dict, src_arr, key=None):
     if not exec_map:
         return src_arr
     target_arr = cv2.cvtColor(src_arr, cv2.COLOR_RGB2BGR)
-    key = random.choice(list(exec_map.keys()))
+    if not key:
+        key = random.choice(list(exec_map.keys()))
     for sentence in exec_map.get(key):
         if sentence.startswith("@@"):
             target_arr = eval(sentence[2:])
@@ -414,18 +415,37 @@ if __name__ == '__main__':
     pil_image = PIL.Image.open(path_or_stream).convert("RGB")
     im = np.array(pil_image)
     im = preprocessing_by_func(exec_map={
-        "corp": [
-          "@@target_arr[:, 60:, :]",
+        "black": [
+            "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
         ],
-      }, src_arr=im)
+        "red": [],
+        "yellow": [
+            "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+            "@@target_arr[:, :, (0, 2, 0)]",
+            "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+
+            # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+            # "@@target_arr[:, :, (0, 2, 1)]",
+
+            # "$$target_arr[:, :, 1] = 255 - target_arr[:, :, 1]",
+            # "@@target_arr[:, :, (2, 1, 0)]",
+            # "@@target_arr[:, :, (1, 2, 0)]",
+        ],
+        "blue": [
+            "@@target_arr[:, :, (1, 2, 0)]",
+        ]
+    },
+        src_arr=im,
+        key="yellow"
+    )
     # im = preprocessing(
     #     image=im,
     #     # binaryzation=200,
-    #     equalize_hist=True
+    #     warp_perspective=True
     #     # sp_noise=0.05,
     # ).astype(np.float32)
     # im = im.swapaxes(0, 1)
-    # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     cv_img = cv2.imencode('.png', im)[1]
     img_bytes = bytes(bytearray(cv_img))
     with open(r"1.jpg", "wb") as f:
