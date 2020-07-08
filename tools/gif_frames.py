@@ -56,7 +56,8 @@ def blend_frame(image_obj, need_frame=None):
         need_frame = [-1]
     img_arr = split_frames(image_obj, need_frame)
     img_arr = blend_arr(img_arr)
-    img_arr = cv2.cvtColor(img_arr, cv2.COLOR_RGB2GRAY)
+    if len(img_arr.shape) > 2 and img_arr.shape[2] == 3:
+        img_arr = cv2.cvtColor(img_arr, cv2.COLOR_RGB2GRAY)
     img_arr = cv2.equalizeHist(img_arr)
     return img_arr
 

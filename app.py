@@ -17,6 +17,7 @@ from make_dataset import DataSets
 from predict_testing import Predict
 from trains import Trains
 from category import category_extract, SIMPLE_CATEGORY_MODEL
+from utils.category_frequency_statistics import fetch_category_list
 from gui.utils import LayoutGUI
 from gui.data_augmentation import DataAugmentationDialog
 from gui.pretreatment import PretreatmentDialog
@@ -92,6 +93,7 @@ class Wizard:
         self.data_menu.add_command(label="Clear Dataset", command=lambda: self.clear_dataset())
         self.data_menu.add_separator()
         self.data_menu.add_cascade(label="Label From", menu=self.label_from_menu)
+        self.data_menu.add_command(label="Fetch Category", command=lambda: self.fetch_category())
         self.menubar.add_cascade(label="Data", menu=self.data_menu)
 
         self.help_menu.add_command(label="About", command=lambda: self.popup_about())
@@ -1464,6 +1466,26 @@ class Wizard:
         for k, v in category_group.items():
             if v == min_index:
                 return k
+
+    def fetch_category(self):
+        if self.model_conf.label_from == LabelFrom.TXT or self.label_from_var.get() == LabelFrom.TXT.value:
+            messagebox.showerror(
+                "Error!", "The Label From is currently not supported."
+            )
+            return
+        self.save_conf()
+        category_list = fetch_category_list(self.model_conf, is_json=True)
+        if not category_list:
+            return
+        self.comb_category.current(0)
+        if len(category_list) > 1000:
+            self.category_entry['state'] = tk.DISABLED
+            self.category_val.set(NOT_EDITABLE_MSG)
+            self.model_conf.category_param_text = category_list
+        else:
+            self.category_entry['state'] = tk.NORMAL
+            self.category_val.set(category_list)
+        self.save_conf()
 
     def fetch_sample(self, dataset_path):
         file_names = os.listdir(dataset_path[0])[0:100]
