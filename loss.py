@@ -20,7 +20,6 @@ class Loss(object):
         # target = labels
         print('logits', logits.shape)
         print('target', target.shape)
-
         # logits = tf.reshape(tensor=logits, shape=[tf.shape(labels)[0], None])
         return tf.keras.backend.sparse_categorical_crossentropy(
             target=target,

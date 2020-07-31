@@ -158,10 +158,10 @@ class DataIterator:
                     continue
 
                 if input_array.shape[-1] != self.model_conf.image_channel:
-                    pass
-                    # tf.logging.warn("{}, \nInput shape: {}, ignored.".format(
-                    #     self.model_conf.image_channel, input_array.shape[-1])
-                    # )
+                    # pass
+                    tf.logging.warn("{}, \nInput shape: {}, ignored.".format(
+                        self.model_conf.image_channel, input_array.shape[-1])
+                    )
                     continue
 
                 label_len_correct = len(label_array) != self.model_conf.max_label_num
@@ -184,6 +184,7 @@ class DataIterator:
                 file_format = EXCEPT_FORMAT_MAP[self.model_conf.model_field]
                 with open(file="oserror_{}.{}".format(random_suffix, file_format), mode="wb") as f:
                     f.write(i1)
+                tf.logging.warn("OSError [{}]".format(i2))
                 continue
 
         # 如果图片尺寸不固定则padding当前批次，使用最大的宽度作为序列最大长度

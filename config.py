@@ -22,7 +22,25 @@ PATH_SPLIT = "/"
 MODEL_CONFIG_NAME = "model.yaml"
 IGNORE_FILES = ['.DS_Store']
 
-CORE_VERSION = '2020705'
+
+def resource_path(relative_path):
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
+def get_version():
+    version_file_path = resource_path("resource/VERSION")
+
+    if not os.path.exists(version_file_path):
+        return "NULL"
+
+    with open(version_file_path, "r", encoding="utf8") as f:
+        return "".join(f.readlines()).strip()
+
 
 NETWORK_MAP = {
     'CNNX': CNNNetwork.CNNX,
@@ -594,10 +612,17 @@ class ModelConfig:
 
     def dataset_increasing_name(self, mode: RunMode):
         dataset_group = os.listdir(self.dataset_root_path)
-        if len(dataset_group) < 1:
+        if len([i for i in dataset_group if i.startswith(mode.value)]) < 1:
             return "Trains.0.tfrecords" if mode == RunMode.Trains else "Validation.0.tfrecords"
         name_split = [i.split(".") for i in dataset_group if mode.value in i]
-        last_index = max([int(i[1]) for i in name_split])
+        if not name_split:
+            name_split = [mode.value, "0", ".tfrecords"]
+        try:
+            last_index = max([int(i[1]) for i in name_split])
+        except ValueError as e:
+            print(e)
+            last_index = -1
+
         current_index = last_index + 1
         name_prefix = name_split[0][0]
         name_suffix = name_split[0][2]

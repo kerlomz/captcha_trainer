@@ -12,7 +12,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from constants import *
-from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP, DataAugmentationEntity, PretreatmentEntity, CORE_VERSION
+from config import ModelConfig, OUTPUT_SHAPE1_MAP, NETWORK_MAP, DataAugmentationEntity, PretreatmentEntity, get_version
 from make_dataset import DataSets
 from predict_testing import Predict
 from trains import Trains
@@ -50,7 +50,7 @@ class Wizard:
         self.project_root_path = "./projects"
         if not os.path.exists(self.project_root_path):
             os.makedirs(self.project_root_path)
-        self.parent.title('Image Classification Wizard Tool based on Deep Learning')
+        self.parent.title('Eve-DL Trainer v1({})'.format(get_version()))
         self.parent.resizable(width=False, height=False)
         self.window_width = 815
         self.window_height = 700
@@ -1033,7 +1033,7 @@ class Wizard:
 
     @staticmethod
     def popup_about():
-        messagebox.showinfo("About", "Image Classification Wizard Tool based on Deep Learning 1.0 CORE_VERSION({})\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419".format(CORE_VERSION))
+        messagebox.showinfo("About", "Eve-DL Trainer CORE_VERSION({})\n\nAuthor's mailbox: kerlomz@gmail.com\n\nQQ Group: 857149419".format(get_version()))
 
     def auto_loss(self, event):
         if self.comb_recurrent.get() == 'NoRecurrent':
@@ -1510,9 +1510,12 @@ class Wizard:
             self.comb_category.set(category_pram)
 
     def listbox_delete_item_callback(self, event, listbox: tk.Listbox):
-        i = listbox.curselection()[0]
-        listbox.delete(i)
-        self.save_conf()
+        try:
+            i = listbox.curselection()[0]
+            listbox.delete(i)
+            self.save_conf()
+        except IndexError as e:
+            print(e)
 
     def comb_category_callback(self, event):
         comb_selected = self.comb_category.get()

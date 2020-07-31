@@ -207,9 +207,11 @@ class Pretreatment(object):
     def random_transition(self, max_int, modify=False):
         size = self.origin.shape
         height, width = size[0], size[1]
-        corp_range_w = random.randint(0, max_int)
-        corp_range_h = random.randint(0, max_int)
-        m = np.float32([[1, 0, corp_range_w], [0, 1, corp_range_h]])
+        crop_range_w = random.randint(0, max_int)
+        crop_range_w = crop_range_w if bool(random.getrandbits(1)) else -crop_range_w
+        crop_range_h = random.randint(0, max_int)
+        crop_range_h = crop_range_h if bool(random.getrandbits(1)) else -crop_range_h
+        m = np.float32([[1, 0, crop_range_w], [0, 1, crop_range_h]])
         random_color = random.randint(240, 255)
         random_color = (random_color, random_color, random_color) if bool(random.getrandbits(1)) else (0, 0, 0)
         output = cv2.warpAffine(self.origin, m, (width, height), borderValue=random_color)
@@ -313,7 +315,7 @@ class Pretreatment(object):
 
         output = tmp.transform(tmp.size, PIL.Image.MESH, generated_mesh, resample=PIL.Image.BICUBIC)
         if modify:
-            self.origin = cv2.cvtColor(np.asarray(output), cv2.COLOR_RGB2BGR)
+            self.origin = np.asarray(output)
         return output
 
 
@@ -365,23 +367,23 @@ def preprocessing(
         pretreatment.median_blur(median_blur, True)
     if gaussian_blur != -1:
         pretreatment.gaussian_blur(gaussian_blur, True)
-    if equalize_hist:
+    if equalize_hist and bool(random.getrandbits(1)):
         pretreatment.equalize_hist(True, True)
     if laplacian:
         pretreatment.laplacian(True, True)
     if warp_perspective:
         pretreatment.warp_perspective(True)
-    if random_brightness:
+    if random_brightness and bool(random.getrandbits(1)):
         pretreatment.random_brightness(True)
     if random_blank != -1:
         pretreatment.random_blank(2, True)
-    if random_gamma:
+    if random_gamma and bool(random.getrandbits(1)):
         pretreatment.random_gamma(True)
-    if random_channel_swap:
+    if random_channel_swap and bool(random.getrandbits(1)):
         pretreatment.random_channel_swap(True)
-    if random_saturation:
+    if random_saturation and bool(random.getrandbits(1)):
         pretreatment.random_saturation(True)
-    if random_hue:
+    if random_hue and bool(random.getrandbits(1)):
         pretreatment.random_hue(18, True)
     return pretreatment.get()
 
@@ -405,47 +407,50 @@ if __name__ == '__main__':
     import os
     import PIL.Image
     import random
-    root_dir = r"H:\img"
+
+    root_dir = r"H:\TrainSet\九宫格\极验\切图"
     name = random.choice(os.listdir(root_dir))
     # name = "3956_b8cee4da-3530-11ea-9778-c2f9192435fa.png"
     path = os.path.join(root_dir, name)
+    print(path)
     with open(path, "rb") as f:
         path_or_bytes = f.read()
     path_or_stream = io.BytesIO(path_or_bytes)
     pil_image = PIL.Image.open(path_or_stream).convert("RGB")
     im = np.array(pil_image)
-    im = preprocessing_by_func(exec_map={
-        "black": [
-            "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-        ],
-        "red": [],
-        "yellow": [
-            "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-            "@@target_arr[:, :, (0, 2, 0)]",
-            "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-
-            # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-            # "@@target_arr[:, :, (0, 2, 1)]",
-
-            # "$$target_arr[:, :, 1] = 255 - target_arr[:, :, 1]",
-            # "@@target_arr[:, :, (2, 1, 0)]",
-            # "@@target_arr[:, :, (1, 2, 0)]",
-        ],
-        "blue": [
-            "@@target_arr[:, :, (1, 2, 0)]",
-        ]
-    },
-        src_arr=im,
-        key="yellow"
-    )
-    # im = preprocessing(
-    #     image=im,
-    #     # binaryzation=200,
-    #     warp_perspective=True
-    #     # sp_noise=0.05,
-    # ).astype(np.float32)
+    # im = preprocessing_by_func(exec_map={
+    #     "black": [
+    #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+    #     ],
+    #     "red": [],
+    #     "yellow": [
+    #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+    #         "@@target_arr[:, :, (0, 2, 0)]",
+    #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+    #
+    #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+    #         # "@@target_arr[:, :, (0, 2, 1)]",
+    #
+    #         # "$$target_arr[:, :, 1] = 255 - target_arr[:, :, 1]",
+    #         # "@@target_arr[:, :, (2, 1, 0)]",
+    #         # "@@target_arr[:, :, (1, 2, 0)]",
+    #     ],
+    #     "blue": [
+    #         "@@target_arr[:, :, (1, 2, 0)]",
+    #     ]
+    # },
+    #     src_arr=im,
+    #     key="blue"
+    # )
+    im = preprocessing(
+        image=im,
+        # binaryzation=150,
+        # warp_perspective=True,
+        random_transition=True,
+        # rotate=90
+    ).astype(np.float32)
     # im = im.swapaxes(0, 1)
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     cv_img = cv2.imencode('.png', im)[1]
     img_bytes = bytes(bytearray(cv_img))
     with open(r"1.jpg", "wb") as f:

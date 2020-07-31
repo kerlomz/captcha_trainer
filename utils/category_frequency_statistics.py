@@ -56,9 +56,11 @@ def fetch_category_list(model: ModelConfig, is_json=False):
 
                 if not labels:
                     continue
-
-                for label_item in labels:
-                    category_set.add(label_item)
+                if model.max_label_num == 1:
+                    category_set.add(labels)
+                else:
+                    for label_item in labels:
+                        category_set.add(label_item)
         category_list = list(category_set)
         category_list.sort()
         if is_json:

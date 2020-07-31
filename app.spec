@@ -3,13 +3,13 @@ import time
 # block_cipher = pyi_crypto.PyiBlockCipher(key='')
 block_cipher = None
 
-added_files = [('resource/icon.ico', 'resource'), ('model.template', '.'), ('resource/VERSION', 'astor')]
+added_files = [('resource/icon.ico', 'resource'), ('model.template', '.'), ('resource/VERSION', 'astor'), ('resource/VERSION', 'resource')]
 
 a = Analysis(['app.py'],
              pathex=['.'],
              binaries=[],
              datas=added_files,
-             hiddenimports=['numpy.core._dtype_ctypes'],
+             hiddenimports=['numpy.core._dtype_ctypes', 'pkg_resources.py2_warn'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
