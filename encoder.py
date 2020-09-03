@@ -40,7 +40,9 @@ class Encoder(object):
         except OSError as e:
             return "{} - {}".format(e, path_or_bytes)
 
-        if pil_image.mode == 'P':
+        gif_handle = self.model_conf.pre_concat_frames != -1 or self.model_conf.pre_blend_frames != -1
+
+        if pil_image.mode == 'P' and not gif_handle:
             pil_image = pil_image.convert('RGB')
 
         rgb = pil_image.split()
@@ -50,8 +52,6 @@ class Encoder(object):
             )
 
         size = pil_image.size
-
-        gif_handle = self.model_conf.pre_concat_frames != -1 or self.model_conf.pre_blend_frames != -1
 
         if len(rgb) > 3 and self.model_conf.pre_replace_transparent and not gif_handle:
             background = PIL.Image.new('RGBA', pil_image.size, (255, 255, 255))
