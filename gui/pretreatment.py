@@ -185,7 +185,7 @@ class PretreatmentDialog(tk.Toplevel):
 
         try:
 
-            if entity.blend_frames == -1:
+            if entity.blend_frames == -1 or self.blend_frames_entry['state'] == tk.DISABLED:
                 self.blend_frames_check_val.set(0)
                 self.blend_frames_val.set(json.dumps([-1]))
             else:
@@ -193,7 +193,7 @@ class PretreatmentDialog(tk.Toplevel):
                 self.blend_frames_entry['state'] = tk.NORMAL
                 self.blend_frames_val.set(json.dumps(entity.blend_frames))
 
-            if entity.concat_frames == -1:
+            if entity.concat_frames == -1 or self.concat_frames_entry['state'] == tk.DISABLED:
                 self.concat_frames_check_val.set(0)
                 self.concat_frames_val.set(json.dumps([0, -1]))
             else:
@@ -217,8 +217,12 @@ class PretreatmentDialog(tk.Toplevel):
 
             if self.concat_frames_check_val.get() == 1:
                 self.pretreatment_entity.concat_frames = json.loads(self.concat_frames_val.get())
+            else:
+                self.pretreatment_entity.concat_frames = -1
             if self.blend_frames_check_val.get() == 1:
                 self.pretreatment_entity.blend_frames = json.loads(self.blend_frames_val.get())
+            else:
+                self.pretreatment_entity.blend_frames = -1
             self.pretreatment_entity.horizontal_stitching = True if self.horizontal_stitching_check_val.get() == 1 else False
             self.pretreatment_entity.replace_transparent = True if self.replace_transparent_check_val.get() == 1 else False
             self.pretreatment_entity.binaryzation = self.binaryzation_val.get()
