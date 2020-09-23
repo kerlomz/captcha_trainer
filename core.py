@@ -129,6 +129,7 @@ class NeuralNetwork(object):
     def decay_steps(self):
         if not self.dataset_size:
             return 10000
+        # return 10000
         epoch_step = int(self.dataset_size / self.model_conf.batch_size)
         return int(epoch_step / 4)
 

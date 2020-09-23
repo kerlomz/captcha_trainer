@@ -22,7 +22,8 @@ class FullConnectedRNN(object):
         )
 
         self.outputs = self.dense(outputs)
-        self.predict = tf.keras.backend.permute_dimensions(self.outputs, pattern=(1, 0, 2))
+        self.predict = tf.transpose(self.outputs, perm=(1, 0, 2), name="predict")
+        # self.predict = tf.keras.backend.permute_dimensions(self.outputs, pattern=(1, 0, 2))
 
     def build(self):
         return self.predict

@@ -106,9 +106,9 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
         tf.import_graph_def(graph_def, name='')
     with tf.Session(graph=tf_graph):
         g = process_tf_graph(tf_graph,
-                             continue_on_error=False,
+                             continue_on_error=True,
                              target=",".join(constants.DEFAULT_TARGET),
-                             opset=10,
+                             opset=11,
                              custom_op_handlers=None,
                              extra_opset=None,
                              shape_override=None,
