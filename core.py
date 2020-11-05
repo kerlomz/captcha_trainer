@@ -123,7 +123,7 @@ class NeuralNetwork(object):
                 self.outputs = FullConnectedRNN(model_conf=self.model_conf, outputs=logits).build()
             elif self.model_conf.loss_func == LossFunction.CrossEntropy:
                 self.outputs = FullConnectedCNN(model_conf=self.model_conf, outputs=logits).build()
-            return self.outputs
+        return self.outputs
 
     @property
     def decay_steps(self):

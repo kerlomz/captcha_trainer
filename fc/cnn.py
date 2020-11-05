@@ -32,7 +32,7 @@ class FullConnectedCNN(object):
         )(inputs=outputs)
 
         print("output to reshape ----------- ", self.outputs.shape)
-        self.outputs = tf.keras.layers.Reshape([self.max_label_num, self.category_num])(self.outputs)
+        self.outputs = tf.reshape(self.outputs, [-1, self.max_label_num, self.category_num], name="predict")
 
     def build(self):
         return self.outputs

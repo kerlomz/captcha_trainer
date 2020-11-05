@@ -149,12 +149,12 @@ class DataIterator:
                     continue
 
                 if isinstance(input_array, str):
-                    tf.logging.warn("{}, \nInput errors labeled: {}, ignored.".format(input_array, label_array))
+                    tf.logging.warn("{}, \nInput errors labeled: {} [{}], ignored.".format(input_array, i1, label_array))
                     continue
                 if isinstance(label_array, dict):
-                    tf.logging.warn("The sample label {} contains invalid charset: {}.".format(
-                        label_array['label'], label_array['char']
-                    ))
+                    # tf.logging.warn("The sample label {} contains invalid charset: {}.".format(
+                    #     label_array['label'], label_array['char']
+                    # ))
                     continue
 
                 if input_array.shape[-1] != self.model_conf.image_channel:

@@ -427,10 +427,11 @@ class Wizard:
             'ALPHABET_UPPER',
             'ALPHABET',
             'ARITHMETIC',
+            'ARITHMETIC_MIX_ALPHA_LOWER',
             'FLOAT',
             'CHS_3500',
             'ALPHANUMERIC_CHS_3500_LOWER',
-            'DOCUMENT_OCR'
+            'DOCUMENT_OCR',
         ), state='readonly')
         self.comb_category.current(1)
         self.comb_category.bind("<<ComboboxSelected>>", lambda x: self.comb_category_callback(x))
@@ -1072,7 +1073,7 @@ class Wizard:
         self.label_from_var.set(model_conf.label_from.value)
 
         self.comb_optimizer.set(model_conf.neu_optimizer_param)
-        self.learning_rate_spin.set(model_conf.trains_learning_rate)
+        self.learning_rate_spin.set(float(model_conf.trains_learning_rate))
         self.end_acc_val.set(model_conf.trains_end_acc)
         self.end_cost_val.set(model_conf.trains_end_cost)
         self.end_epochs_spin.set(model_conf.trains_end_epochs)
@@ -1468,12 +1469,12 @@ class Wizard:
                 return k
 
     def fetch_category(self):
+        self.model_conf = self.save_conf()
         if self.model_conf.label_from == LabelFrom.TXT or self.label_from_var.get() == LabelFrom.TXT.value:
             messagebox.showerror(
                 "Error!", "The Label From is currently not supported."
             )
             return
-        self.save_conf()
         category_list = fetch_category_list(self.model_conf, is_json=True)
         if not category_list:
             return

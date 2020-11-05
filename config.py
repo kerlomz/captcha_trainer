@@ -357,7 +357,7 @@ class ModelConfig:
         self.trains_end_cost = self.trains_end_cost if self.trains_end_cost else 1
         self.trains_end_epochs = self.trains_root.get('EndEpochs')
         self.trains_end_epochs = self.trains_end_epochs if self.trains_end_epochs else 2
-        self.trains_learning_rate = self.trains_root.get('LearningRate')
+        self.trains_learning_rate: float = float(self.trains_root.get('LearningRate'))
         self.batch_size = self.trains_root.get('BatchSize')
         self.batch_size = self.batch_size if self.batch_size else 64
         self.validation_batch_size = self.trains_root.get('ValidationBatchSize')

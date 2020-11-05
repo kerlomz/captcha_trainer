@@ -53,11 +53,13 @@ def fetch_category_list(model: ModelConfig, is_json=False):
             for filename in os.listdir(iter_dir):
 
                 labels = extract_labels_from_filename(filename, model.extract_regex)
-
                 if not labels:
                     continue
-                if model.max_label_num == 1:
+                if int(model.max_label_num) == 1:
                     category_set.add(labels)
+                elif '&' in labels:
+                    for label_item in labels.split('&'):
+                        category_set.add(label_item)
                 else:
                     for label_item in labels:
                         category_set.add(label_item)

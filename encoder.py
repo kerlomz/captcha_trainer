@@ -15,6 +15,7 @@ from category import encode_maps, FULL_ANGLE_MAP
 from pretreatment import preprocessing
 from pretreatment import preprocessing_by_func
 from tools.gif_frames import concat_frames, blend_frame
+from collections import Counter
 
 
 class Encoder(object):
@@ -25,6 +26,25 @@ class Encoder(object):
         self.model_conf = model_conf
         self.mode = mode
         self.category_param = self.model_conf.category_param
+
+    @staticmethod
+    def main_color_replace(im: np.ndarray, num=2, repl=(255, 255, 255)):
+
+        red, green, blue = im.T
+
+        colors = []
+        for (r, g, b) in im[:, 1, :]:
+            colors.append((r, g, b))
+
+        most_common = [i[0] for i in Counter(colors).most_common(num)]
+
+        areas = False
+
+        for r, g, b in most_common:
+            areas = areas | ((red == r) & (green == g) & (blue == b))
+
+        im[:, :, :][areas.T] = repl
+        return im
 
     def image(self, path_or_bytes):
         """针对图片类型的输入的编码"""
@@ -40,12 +60,24 @@ class Encoder(object):
         except OSError as e:
             return "{} - {}".format(e, path_or_bytes)
 
+        use_compress = True
+
         gif_handle = self.model_conf.pre_concat_frames != -1 or self.model_conf.pre_blend_frames != -1
 
         if pil_image.mode == 'P' and not gif_handle:
             pil_image = pil_image.convert('RGB')
 
         rgb = pil_image.split()
+
+        if self.mode == RunMode.Trains and use_compress:
+            img_compress = io.BytesIO()
+
+            pil_image.convert('RGB').save(img_compress, format='JPEG', quality=random.randint(75, 100))
+            img_compress_bytes = img_compress.getvalue()
+            img_compress.close()
+            path_or_stream = io.BytesIO(img_compress_bytes)
+            pil_image = PIL.Image.open(path_or_stream)
+
         if len(rgb) == 1 and self.model_conf.image_channel == 3:
             return "The number of image channels {} is inconsistent with the number of configured channels {}.".format(
                 len(rgb), self.model_conf.image_channel
@@ -53,11 +85,37 @@ class Encoder(object):
 
         size = pil_image.size
 
-        if len(rgb) > 3 and self.model_conf.pre_replace_transparent and not gif_handle:
+        # if self.mode == RunMode.Trains and len(rgb) == 3 and use_compress:
+        #     new_size = [size[0] + random.randint(5, 10), size[1] + random.randint(5, 10)]
+        #     background = PIL.Image.new(
+        #         'RGB', new_size, (255, 255, 255)
+        #     )
+        #     random_offset_w = random.randint(0, 5)
+        #     random_offset_h = random.randint(0, 5)
+        #     background.paste(
+        #         pil_image,
+        #         (
+        #             random_offset_w,
+        #             random_offset_h,
+        #             size[0] + random_offset_w,
+        #             size[1] + random_offset_h
+        #         ),
+        #         None
+        #     )
+        #     background.convert('RGB')
+        #     pil_image = background
+
+        if len(rgb) > 3 and self.model_conf.pre_replace_transparent and not gif_handle and not use_compress:
             background = PIL.Image.new('RGBA', pil_image.size, (255, 255, 255))
-            background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
-            background.convert('RGB')
-            pil_image = background
+            try:
+                background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
+                background.convert('RGB')
+                pil_image = background
+            except:
+                pil_image = pil_image.convert('RGB')
+
+        if len(pil_image.split()) > 3 and self.model_conf.image_channel == 3:
+            pil_image = pil_image.convert('RGB')
 
         if self.model_conf.pre_concat_frames != -1:
             im = concat_frames(pil_image, need_frame=self.model_conf.pre_concat_frames)
@@ -140,9 +198,14 @@ class Encoder(object):
         if isinstance(self.category_param, str) and '_UPPER' in self.category_param:
             found = found.upper()
 
+        if self.model_conf.category_param == 'ARITHMETIC':
+            found = found.replace("x", "×").replace('？', "?")
+
         # 标签是否包含分隔符
         if self.model_conf.label_split:
             labels = found.split(self.model_conf.label_split)
+        elif '&' in found:
+            labels = found.split('&')
         elif self.model_conf.max_label_num == 1:
             labels = [found]
         else:
