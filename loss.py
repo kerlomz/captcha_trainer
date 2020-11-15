@@ -31,7 +31,7 @@ class Loss(object):
     def ctc(labels, logits, sequence_length):
         """CTC 损失函数"""
 
-        return tf.nn.ctc_loss_v2(
+        return tf.compat.v1.nn.ctc_loss_v2(
             labels=labels,
             logits=logits,
             logit_length=sequence_length,

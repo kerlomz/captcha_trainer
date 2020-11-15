@@ -137,7 +137,7 @@ class NeuralNetwork(object):
         """构建训练操作符"""
 
         # 步数
-        self.global_step = tf.train.get_or_create_global_step()
+        self.global_step = tf.compat.v1.train.get_or_create_global_step()
 
         # Loss函数
         if self.model_conf.loss_func == LossFunction.CTC:
@@ -175,7 +175,7 @@ class NeuralNetwork(object):
                 amsbound=True
             )
         elif self.model_conf.neu_optimizer == Optimizer.Adam:
-            self.optimizer = tf.train.AdamOptimizer(
+            self.optimizer = tf.compat.v1.train.AdamOptimizer(
                 learning_rate=self.lrn_rate
             )
         elif self.model_conf.neu_optimizer == Optimizer.RAdam:
@@ -185,26 +185,26 @@ class NeuralNetwork(object):
                 min_lr=1e-6
             )
         elif self.model_conf.neu_optimizer == Optimizer.Momentum:
-            self.optimizer = tf.train.MomentumOptimizer(
+            self.optimizer = tf.compat.v1.train.MomentumOptimizer(
                 learning_rate=self.lrn_rate,
                 use_nesterov=True,
                 momentum=0.9,
             )
         elif self.model_conf.neu_optimizer == Optimizer.SGD:
-            self.optimizer = tf.train.GradientDescentOptimizer(
+            self.optimizer = tf.compat.v1.train.GradientDescentOptimizer(
                 learning_rate=self.lrn_rate,
             )
         elif self.model_conf.neu_optimizer == Optimizer.AdaGrad:
-            self.optimizer = tf.train.AdagradOptimizer(
+            self.optimizer = tf.compat.v1.train.AdagradOptimizer(
                 learning_rate=self.lrn_rate,
             )
         elif self.model_conf.neu_optimizer == Optimizer.RMSProp:
-            self.optimizer = tf.train.RMSPropOptimizer(
+            self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
                 learning_rate=self.lrn_rate,
             )
 
         # BN 操作符更新(moving_mean, moving_variance)
-        update_ops = tf.compat.v1.get_collection(tf.GraphKeys.UPDATE_OPS)
+        update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
 
         # 将 train_op 和 update_ops 融合
         with tf.control_dependencies(update_ops):

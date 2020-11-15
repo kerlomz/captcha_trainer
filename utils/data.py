@@ -59,7 +59,7 @@ class DataIterator:
     @staticmethod
     def total_sample(file_name):
         sample_nums = 0
-        for _ in tf.python_io.tf_record_iterator(file_name):
+        for _ in tf.compat.v1.python_io.tf_record_iterator(file_name):
             sample_nums += 1
         return sample_nums
 
@@ -144,12 +144,12 @@ class DataIterator:
                     input_array = self.encoder.text(i1)
 
                 if input_array is None:
-                    tf.logging.warn(
+                    tf.compat.v1.logging.warn(
                         "{}, Cannot identify image file labeled: {}, ignored.".format(input_array, label_array))
                     continue
 
                 if isinstance(input_array, str):
-                    tf.logging.warn("{}, \nInput errors labeled: {} [{}], ignored.".format(input_array, i1, label_array))
+                    tf.compat.v1.logging.warn("{}, \nInput errors labeled: {} [{}], ignored.".format(input_array, i1, label_array))
                     continue
                 if isinstance(label_array, dict):
                     # tf.logging.warn("The sample label {} contains invalid charset: {}.".format(
@@ -159,7 +159,7 @@ class DataIterator:
 
                 if input_array.shape[-1] != self.model_conf.image_channel:
                     # pass
-                    tf.logging.warn("{}, \nInput shape: {}, ignored.".format(
+                    tf.compat.v1.logging.warn("{}, \nInput shape: {}, ignored.".format(
                         self.model_conf.image_channel, input_array.shape[-1])
                     )
                     continue
@@ -167,12 +167,12 @@ class DataIterator:
                 label_len_correct = len(label_array) != self.model_conf.max_label_num
                 using_cross_entropy = self.model_conf.loss_func == LossFunction.CrossEntropy
                 if label_len_correct and using_cross_entropy and not self.model_conf.auto_padding:
-                    tf.logging.warn("The number of labels must be fixed when using cross entropy, label: {}, "
+                    tf.compat.v1.logging.warn("The number of labels must be fixed when using cross entropy, label: {}, "
                                     "the number of tags is incorrect, ignored.".format(i2))
                     continue
 
                 if len(label_array) > self.model_conf.max_label_num and using_cross_entropy:
-                    tf.logging.warn(
+                    tf.compat.v1.logging.warn(
                         "The number of label[{}] exceeds the maximum number of labels, ignored.{}".format(i2,
                                                                                                           label_array))
                     continue
@@ -184,7 +184,7 @@ class DataIterator:
                 file_format = EXCEPT_FORMAT_MAP[self.model_conf.model_field]
                 with open(file="oserror_{}.{}".format(random_suffix, file_format), mode="wb") as f:
                     f.write(i1)
-                tf.logging.warn("OSError [{}]".format(i2))
+                tf.compat.v1.logging.warn("OSError [{}]".format(i2))
                 continue
 
         # 如果图片尺寸不固定则padding当前批次，使用最大的宽度作为序列最大长度

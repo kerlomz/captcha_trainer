@@ -74,18 +74,18 @@ class Wizard:
         self.edit_var = tk.DoubleVar()
         self.label_from_var = tk.StringVar()
 
-        self.memory_usage_menu = tk.Menu(self.menubar, tearoff=False)
-        self.memory_usage_menu.add_radiobutton(label="50%", variable=self.edit_var, value=0.5)
-        self.memory_usage_menu.add_radiobutton(label="60%", variable=self.edit_var, value=0.6)
-        self.memory_usage_menu.add_radiobutton(label="70%", variable=self.edit_var, value=0.7)
-        self.memory_usage_menu.add_radiobutton(label="80%", variable=self.edit_var, value=0.8)
+        # self.memory_usage_menu = tk.Menu(self.menubar, tearoff=False)
+        # self.memory_usage_menu.add_radiobutton(label="50%", variable=self.edit_var, value=0.5)
+        # self.memory_usage_menu.add_radiobutton(label="60%", variable=self.edit_var, value=0.6)
+        # self.memory_usage_menu.add_radiobutton(label="70%", variable=self.edit_var, value=0.7)
+        # self.memory_usage_menu.add_radiobutton(label="80%", variable=self.edit_var, value=0.8)
 
         self.label_from_menu = tk.Menu(self.menubar, tearoff=False)
         self.label_from_menu.add_radiobutton(label="FileName", variable=self.label_from_var, value='FileName')
         self.label_from_menu.add_radiobutton(label="TXT", variable=self.label_from_var, value='TXT')
 
         self.menubar.add_cascade(label="System", menu=self.system_menu)
-        self.system_menu.add_cascade(label="Memory Usage", menu=self.memory_usage_menu)
+        # self.system_menu.add_cascade(label="Memory Usage", menu=self.memory_usage_menu)
 
         self.data_menu.add_command(label="Data Augmentation", command=lambda: self.popup_data_augmentation())
         self.data_menu.add_command(label="Pretreatment", command=lambda: self.popup_pretreatment())

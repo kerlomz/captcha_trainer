@@ -47,9 +47,9 @@ def freeze_session(sess, keep_var_names=None, output_names=None, clear_devices=T
     output_names = [i.split(':')[:-1][0] for i in output_names]
     graph = sess.graph
     with graph.as_default():
-        freeze_var_names = list(set(v.op.name for v in tf.global_variables()).difference(keep_var_names or []))
+        freeze_var_names = list(set(v.op.name for v in tf.compat.v1.global_variables()).difference(keep_var_names or []))
         output_names = output_names or []
-        output_names += [v.op.name for v in tf.global_variables()]
+        output_names += [v.op.name for v in tf.compat.v1.global_variables()]
         input_graph_def = graph.as_graph_def(add_shapes=True)
         if clear_devices:
             for node in input_graph_def.node:
@@ -103,8 +103,8 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
     graph_def = tf_optimize(inputs_op, outputs_op, graph_def, True)
 
     with tf.Graph().as_default() as tf_graph:
-        tf.import_graph_def(graph_def, name='')
-    with tf.Session(graph=tf_graph):
+        tf.compat.v1.import_graph_def(graph_def, name='')
+    with tf.compat.v1.Session(graph=tf_graph):
         g = process_tf_graph(tf_graph,
                              continue_on_error=True,
                              target=",".join(constants.DEFAULT_TARGET),

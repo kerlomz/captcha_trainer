@@ -54,7 +54,7 @@ class CNNX(object):
             kernel_initializer=self.utils.msra_initializer(kernel_size, filters),
             padding='SAME',
         )(inputs)
-        inputs = tf.layers.batch_normalization(
+        inputs = tf.compat.v1.layers.batch_normalization(
             inputs,
             reuse=False,
             momentum=0.9,

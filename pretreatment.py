@@ -76,15 +76,12 @@ class Pretreatment(object):
         center = (width // 2, height // 2)
 
         if bool(random.getrandbits(1)):
-            angle = random.choice([
-                -10, -20, -30, -45, -50, -60, -75, -90, -95, -100,
-                10, 20, 30, 45, 50, 60, 75, 90, 95, 100
-            ])
+            angle = random.randint(-20, 20)
         else:
             angle = -random.randint(-value, value)
 
         m = cv2.getRotationMatrix2D(center, angle, scale)
-        _rotate = cv2.warpAffine(self.origin, m, (width, height))
+        _rotate = cv2.warpAffine(self.origin, m, (width, height), borderValue=(255, 255, 255))
         # angle = -random.randint(-value, value)
         # if abs(angle) > 15:
         #     _img = cv2.resize(self.origin, (width, int(height / 2)))
@@ -187,19 +184,22 @@ class Pretreatment(object):
     def random_blank(self, max_int, modify=False):
         if len(self.origin.shape) < 2:
             return self.origin
-        corp_range_w = random.randint(0, max_int)
-        corp_range_h = random.randint(0, max_int)
-        output = self.origin
-        random_p_h = -corp_range_h if bool(random.getrandbits(1)) else corp_range_h
-        random_v_h = 255 if bool(random.getrandbits(1)) else 0
-        random_p_w = -corp_range_w if bool(random.getrandbits(1)) else corp_range_w
-        random_v_w = 255 if bool(random.getrandbits(1)) else 0
-        if len(self.origin.shape) < 3:
-            output[random_p_h, :] = 255 if bool(random.getrandbits(1)) else random_v_h
-            output[:, random_p_w] = 255 if bool(random.getrandbits(1)) else random_v_w
-        else:
-            output[random_p_h, :, :] = 255 if bool(random.getrandbits(1)) else random_v_h
-            output[:, random_p_w, :] = 255 if bool(random.getrandbits(1)) else random_v_w
+
+        new_shape = list(self.origin.shape)
+        new_shape[0] = random.randint(1, 15)
+        blank_down = np.ones(new_shape, dtype=np.uint8) * 255
+        output = np.concatenate([self.origin, blank_down], axis=0)
+        new_shape[0] = random.randint(1, 15)
+        blank_up = np.ones(new_shape, dtype=np.uint8) * 255
+        output = np.concatenate([blank_up, output], axis=0)
+        new_shape = list(output.shape)
+        new_shape[1] = random.randint(1, 15)
+        blank_left = np.ones(new_shape, dtype=np.uint8) * 255
+        output = np.concatenate([blank_left, output], axis=1)
+        new_shape[1] = random.randint(1, 15)
+        blank_right = np.ones(new_shape, dtype=np.uint8) * 255
+        output = np.concatenate([output, blank_right], axis=1)
+
         if modify:
             self.origin = output
         return output
@@ -224,9 +224,9 @@ class Pretreatment(object):
         tmp = PIL.Image.fromarray(self.origin)
         w, h = tmp.size
 
-        magnitude = random.randint(2, 4)
-        grid_width = random.randint(5, 10)
-        grid_height = random.randint(3, 7)
+        magnitude = random.randint(2, 6)
+        grid_width = random.randint(5, 13)
+        grid_height = random.randint(3, 10)
 
         horizontal_tiles = grid_width
         vertical_tiles = grid_height
@@ -321,6 +321,7 @@ class Pretreatment(object):
 
 def preprocessing(
         image,
+        is_random=False,
         binaryzation=-1,
         median_blur=-1,
         gaussian_blur=-1,
@@ -355,35 +356,35 @@ def preprocessing(
     :return:
     """
     pretreatment = Pretreatment(image)
-    if rotate > 0:
+    if rotate > 0 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.rotate(rotate, True)
-    if random_transition != -1:
+    if random_transition != -1 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_transition(5, True)
-    if 0 < sp_noise < 1:
+    if 0 < sp_noise < 1 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.sp_noise(sp_noise, True)
-    if binaryzation != -1:
+    if binaryzation != -1 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.binarization(binaryzation, True)
-    if median_blur != -1:
+    if median_blur != -1 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.median_blur(median_blur, True)
-    if gaussian_blur != -1:
+    if gaussian_blur != -1 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.gaussian_blur(gaussian_blur, True)
-    if equalize_hist and bool(random.getrandbits(1)):
+    if equalize_hist and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.equalize_hist(True, True)
-    if laplacian:
+    if laplacian and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.laplacian(True, True)
-    if warp_perspective:
+    if warp_perspective and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.warp_perspective(True)
-    if random_brightness and bool(random.getrandbits(1)):
+    if random_brightness and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_brightness(True)
-    if random_blank != -1:
+    if random_blank != -1 and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_blank(2, True)
-    if random_gamma and bool(random.getrandbits(1)):
+    if random_gamma and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_gamma(True)
-    if random_channel_swap and bool(random.getrandbits(1)):
+    if random_channel_swap and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_channel_swap(True)
-    if random_saturation and bool(random.getrandbits(1)):
+    if random_saturation and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_saturation(True)
-    if random_hue and bool(random.getrandbits(1)):
+    if random_hue and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_hue(18, True)
     return pretreatment.get()
 
@@ -407,51 +408,79 @@ if __name__ == '__main__':
     import os
     import PIL.Image
     import random
+    import hashlib
+    from tools.gif_frames import concat_frames
 
-    root_dir = r"H:\TrainSet\九宫格\极验\切图"
-    name = random.choice(os.listdir(root_dir))
+    root_dir = r"H:\TrainSet\点选\顶象\定位"
+    target_dir = r"H:\TrainSet\点选\顶象\定位1"
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    # name = random.choice(os.listdir(root_dir))
     # name = "3956_b8cee4da-3530-11ea-9778-c2f9192435fa.png"
-    path = os.path.join(root_dir, name)
-    print(path)
-    with open(path, "rb") as f:
-        path_or_bytes = f.read()
-    path_or_stream = io.BytesIO(path_or_bytes)
-    pil_image = PIL.Image.open(path_or_stream).convert("RGB")
-    im = np.array(pil_image)
-    # im = preprocessing_by_func(exec_map={
-    #     "black": [
-    #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-    #     ],
-    #     "red": [],
-    #     "yellow": [
-    #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-    #         "@@target_arr[:, :, (0, 2, 0)]",
-    #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-    #
-    #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
-    #         # "@@target_arr[:, :, (0, 2, 1)]",
-    #
-    #         # "$$target_arr[:, :, 1] = 255 - target_arr[:, :, 1]",
-    #         # "@@target_arr[:, :, (2, 1, 0)]",
-    #         # "@@target_arr[:, :, (1, 2, 0)]",
-    #     ],
-    #     "blue": [
-    #         "@@target_arr[:, :, (1, 2, 0)]",
-    #     ]
-    # },
-    #     src_arr=im,
-    #     key="blue"
-    # )
-    im = preprocessing(
-        image=im,
-        # binaryzation=150,
-        # warp_perspective=True,
-        random_transition=True,
-        # rotate=90
-    ).astype(np.float32)
-    # im = im.swapaxes(0, 1)
-    # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-    cv_img = cv2.imencode('.png', im)[1]
-    img_bytes = bytes(bytearray(cv_img))
-    with open(r"1.jpg", "wb") as f:
-        f.write(img_bytes)
+    for i, name in enumerate(os.listdir(root_dir)):
+        path = os.path.join(root_dir, name)
+        if name.count('_') > 1:
+            label = name.split("_")[0:-1]
+            label = "_".join(label)
+        else:
+            label = name.split("_")[0]
+        print(path)
+        with open(path, "rb") as f:
+            path_or_bytes = f.read()
+        path_or_stream = io.BytesIO(path_or_bytes)
+        try:
+            pil_image = PIL.Image.open(path_or_stream)
+        except:
+            continue
+        # im = concat_frames(pil_image, [16, 47])
+        im = np.array(pil_image)
+        # im = preprocessing_by_func(exec_map={
+        #     "black": [
+        #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+        #     ],
+        #     "red": [],
+        #     "yellow": [
+        #         "@@target_arr[:, :, (0, 0, 1)]",
+        #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+        #         # "@@target_arr[:, :, (0, 2, 0)]",
+        #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+        #
+        #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
+        #         # "@@target_arr[:, :, (0, 2, 1)]",
+        #
+        #         # "$$target_arr[:, :, 1] = 255 - target_arr[:, :, 1]",
+        #         # "@@target_arr[:, :, (2, 1, 0)]",
+        #         # "@@target_arr[:, :, (1, 2, 0)]",
+        #     ],
+        #     "blue": [
+        #         "@@target_arr[:, :, (1, 2, 0)]",
+        #     ]
+        # },
+        #     src_arr=im,
+        #     key="blue"
+        # )
+        im = preprocessing(
+            image=im,
+            is_random=False,
+            gaussian_blur=5,
+            # binaryzation=220,
+            # equalize_hist=True,
+            random_brightness=True,
+            random_gamma=True,
+            # random_channel_swap=True,
+            # random_hue=True,
+            # laplacian=True
+            # binaryzation=random.randint(70, 120),
+            # warp_perspective=True,
+            # random_transition=True,
+            # rotate=100,
+            # random_blank=True
+        ).astype(np.float32)
+        # im = im.swapaxes(0, 1)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        cv_img = cv2.imencode('.png', im)[1]
+        img_bytes = bytes(bytearray(cv_img))
+        tag = hashlib.md5(img_bytes).hexdigest()
+        new_name = "{}_{}.png".format(label, tag)
+        with open(os.path.join(target_dir, new_name), "wb") as f:
+            f.write(img_bytes)

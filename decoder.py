@@ -15,7 +15,7 @@ class Decoder:
 
     def ctc(self, inputs, sequence_length):
         """针对CTC Loss的解码"""
-        ctc_decode, _ = tf.nn.ctc_beam_search_decoder_v2(inputs, sequence_length, beam_width=1)
+        ctc_decode, _ = tf.compat.v1.nn.ctc_beam_search_decoder_v2(inputs, sequence_length, beam_width=1)
         decoded_sequences = tf.sparse.to_dense(ctc_decode[0], default_value=self.category_num, name='dense_decoded')
         return decoded_sequences
 

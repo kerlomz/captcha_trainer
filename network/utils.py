@@ -81,7 +81,7 @@ class NetworkUtils(object):
                 padding='same',
                 name='cnn-{}'.format(index + 1),
             )(inputs)
-            x = tf.layers.batch_normalization(
+            x = tf.compat.v1.layers.batch_normalization(
                 x,
                 fused=True,
                 renorm_clipping={
@@ -114,7 +114,7 @@ class NetworkUtils(object):
             Output tensor for the block.
         """
         # 1x1 Convolution (Bottleneck layer)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             input_tensor,
             reuse=False,
             momentum=0.9,
@@ -133,7 +133,7 @@ class NetworkUtils(object):
             x = tf.keras.layers.Dropout(dropout_rate)(x)
 
         # 3x3 Convolution
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             reuse=False,
             momentum=0.9,
@@ -180,7 +180,7 @@ class NetworkUtils(object):
         # Returns
             output tensor for the block.
         """
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             input_tensor,
             reuse=False,
             momentum=0.9,
@@ -228,7 +228,7 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '2a')(input_tensor)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             reuse=False,
             momentum=0.9,
@@ -243,7 +243,7 @@ class NetworkUtils(object):
             padding='same',
             kernel_initializer='he_normal',
             name=conv_name_base + '2b')(x)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             reuse=False,
             momentum=0.9,
@@ -258,7 +258,7 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '2c')(x)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             reuse=False,
             momentum=0.9,
@@ -273,7 +273,7 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             padding='same',
             name=conv_name_base + '1')(input_tensor)
-        shortcut = tf.layers.batch_normalization(
+        shortcut = tf.compat.v1.layers.batch_normalization(
             shortcut,
             reuse=False,
             momentum=0.9,
@@ -310,7 +310,7 @@ class NetworkUtils(object):
             padding='same',
             name=conv_name_base + '2a'
         )(input_tensor)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             axis=bn_axis,
             reuse=False,
@@ -327,7 +327,7 @@ class NetworkUtils(object):
             kernel_initializer='he_normal',
             name=conv_name_base + '2b'
         )(x)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             axis=bn_axis,
             reuse=False,
@@ -343,7 +343,7 @@ class NetworkUtils(object):
             padding='same',
             kernel_initializer='he_normal',
             name=conv_name_base + '2c')(x)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             axis=bn_axis,
             reuse=False,
@@ -383,7 +383,7 @@ class NetworkUtils(object):
                 activation=None,
                 name=prefix + 'expand'
             )(x)
-            x = tf.layers.batch_normalization(
+            x = tf.compat.v1.layers.batch_normalization(
                 x,
                 reuse=False,
                 momentum=0.9,
@@ -403,7 +403,7 @@ class NetworkUtils(object):
             padding='same',
             name=prefix + 'depthwise'
         )(x)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             reuse=False,
             momentum=0.9,
@@ -421,7 +421,7 @@ class NetworkUtils(object):
             activation=None,
             name=prefix + 'project'
         )(x)
-        x = tf.layers.batch_normalization(
+        x = tf.compat.v1.layers.batch_normalization(
             x,
             reuse=False,
             momentum=0.9,

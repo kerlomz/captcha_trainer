@@ -32,9 +32,9 @@ class Validation(object):
         decoded_seq_len = len(decoded_seq)
 
         if original_seq_len != decoded_seq_len:
-            tf.logging.error(original_seq)
-            tf.logging.error(decoded_seq)
-            tf.logging.error('original lengths {} is different from the decoded_seq {}, please check again'.format(
+            tf.compat.v1.logging.error(original_seq)
+            tf.compat.v1.logging.error(decoded_seq)
+            tf.compat.v1.logging.error('original lengths {} is different from the decoded_seq {}, please check again'.format(
                 original_seq_len,
                 decoded_seq_len
             ))
@@ -52,7 +52,7 @@ class Validation(object):
             processed_origin_label = [j for j in origin_label if j not in ignore_value]
 
             if i < 5:
-                tf.logging.info(
+                tf.compat.v1.logging.info(
                     "{} {} {} {} {} --> {} {}".format(
                         i,
                         len(processed_origin_label),

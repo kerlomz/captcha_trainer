@@ -3,6 +3,10 @@
 # Author: kerlomz <kerlomz@gmail.com>
 
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
+tf.compat.v1.disable_eager_execution()
+gpus = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 import core
 import utils
 import utils.data
@@ -38,6 +42,9 @@ class Trains:
             inputs_op="input:0",
             outputs_op="dense_decoded:0" if loss_func == LossFunction.CrossEntropy else "output/predict:0"
         )
+        tf.compat.v1.reset_default_graph()
+        tf.compat.v1.keras.backend.clear_session()
+        predict_sess.close()
 
     @staticmethod
     def compile_tflite(input_path):
@@ -62,7 +69,10 @@ class Trains:
         :return:
         """
         input_graph = tf.Graph()
-        predict_sess = tf.Session(graph=input_graph)
+        tf.compat.v1.keras.backend.clear_session()
+        tf.compat.v1.reset_default_graph()
+        predict_sess = tf.compat.v1.Session(graph=input_graph)
+        tf.compat.v1.keras.backend.set_session(predict_sess)
 
         with predict_sess.graph.as_default():
             model = core.NeuralNetwork(
@@ -74,7 +84,7 @@ class Trains:
             model.build_graph()
             model.build_train_op()
             input_graph_def = predict_sess.graph.as_graph_def()
-            saver = tf.train.Saver(var_list=tf.global_variables())
+            saver = tf.compat.v1.train.Saver(var_list=tf.compat.v1.global_variables())
             tf.compat.v1.logging.info(tf.train.latest_checkpoint(self.model_conf.model_root_path))
             saver.restore(predict_sess, tf.train.latest_checkpoint(self.model_conf.model_root_path))
 
@@ -181,14 +191,15 @@ class Trains:
         model.build_train_op(num_train_samples)
 
         # 会话配置
-        sess_config = tf.compat.v1.ConfigProto(
-            # allow_soft_placement=True,
-            log_device_placement=False,
-            gpu_options=tf.compat.v1.GPUOptions(
-                allocator_type='BFC',
-                allow_growth=True,  # it will cause fragmentation.
-                per_process_gpu_memory_fraction=self.model_conf.memory_usage)
-        )
+        # sess_config = tf.compat.v1.ConfigProto(
+        #     # allow_soft_placement=True,
+        #     # log_device_placement=False,
+        #     gpu_options=tf.compat.v1.GPUOptions(
+        #         # allocator_type='BFC',
+        #         # allow_growth=True,  # it will cause fragmentation.
+        #         per_process_gpu_memory_fraction=0.3
+        #     )
+        # )
         accuracy = 0
         epoch_count = 1
 
@@ -200,107 +211,113 @@ class Trains:
             save_step = 100
             trains_validation_steps = self.model_conf.trains_validation_steps
 
-        with tf.compat.v1.Session(config=sess_config) as sess:
-            init_op = tf.global_variables_initializer()
-            sess.run(init_op)
-            saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=2)
-            train_writer = tf.compat.v1.summary.FileWriter('logs', sess.graph)
-            # try:
-            checkpoint_state = tf.train.get_checkpoint_state(self.model_conf.model_root_path)
-            if checkpoint_state and checkpoint_state.model_checkpoint_path:
-                # 加载被中断的训练任务
-                saver.restore(sess, checkpoint_state.model_checkpoint_path)
+        sess = tf.compat.v1.Session()
 
-            tf.compat.v1.logging.info('Start training...')
+        init_op = tf.compat.v1.global_variables_initializer()
+        sess.run(init_op)
+        saver = tf.compat.v1.train.Saver(var_list=tf.compat.v1.global_variables(), max_to_keep=2)
+        train_writer = tf.compat.v1.summary.FileWriter('logs', sess.graph)
+        # try:
+        checkpoint_state = tf.train.get_checkpoint_state(self.model_conf.model_root_path)
+        if checkpoint_state and checkpoint_state.model_checkpoint_path:
+            # 加载被中断的训练任务
+            saver.restore(sess, checkpoint_state.model_checkpoint_path)
 
-            # 进入训练任务循环
-            while 1:
+        tf.compat.v1.logging.info('Start training...')
 
-                start_time = time.time()
-                batch_cost = 65535
-                # 批次循环
-                for cur_batch in range(num_batches_per_epoch):
+        # 进入训练任务循环
+        while 1:
 
-                    if self.stop_flag:
-                        break
+            start_time = time.time()
+            batch_cost = 65535
+            # 批次循环
+            for cur_batch in range(num_batches_per_epoch):
 
-                    batch_time = time.time()
-
-                    trains_batch = train_feeder.generate_batch_by_tfrecords(sess)
-
-                    batch_inputs, batch_labels = trains_batch
-
-                    feed = {
-                        model.inputs: batch_inputs,
-                        model.labels: batch_labels,
-                        model.utils.is_training: True
-                    }
-
-                    summary_str, batch_cost, step, _, seq_len = sess.run(
-                        [model.merged_summary, model.cost, model.global_step, model.train_op, model.seq_len],
-                        feed_dict=feed
-                    )
-                    train_writer.add_summary(summary_str, step)
-
-                    if step % save_step == 0 and step != 0:
-                        tf.compat.v1.logging.info(
-                            'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, Shape[1]: {}'.format(
-                                step,
-                                time.time() - batch_time,
-                                batch_cost,
-                                len(batch_inputs),
-                                seq_len[0]
-                            )
-                        )
-
-                    # 达到保存步数对模型过程进行存储
-                    if step % save_step == 0 and step != 0:
-                        saver.save(sess, self.model_conf.save_model, global_step=step)
-
-                    # 进入验证集验证环节
-                    if step % trains_validation_steps == 0 and step != 0:
-
-                        batch_time = time.time()
-                        validation_batch = validation_feeder.generate_batch_by_tfrecords(sess)
-
-                        test_inputs, test_labels = validation_batch
-                        val_feed = {
-                            model.inputs: test_inputs,
-                            model.labels: test_labels,
-                            model.utils.is_training: False
-                        }
-                        dense_decoded, lr = sess.run(
-                            [model.dense_decoded, model.lrn_rate],
-                            feed_dict=val_feed
-                        )
-                        # 计算准确率
-                        accuracy = self.validation.accuracy_calculation(
-                            validation_feeder.labels,
-                            dense_decoded,
-                        )
-                        log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
-                              "Time = {:.3f} sec/batch, LearningRate: {}"
-                        tf.compat.v1.logging.info(log.format(
-                            epoch_count,
-                            step,
-                            accuracy,
-                            batch_cost,
-                            time.time() - batch_time,
-                            lr / len(validation_batch),
-                        ))
-
-                        # 满足终止条件但尚未完成当前epoch时跳出epoch循环
-                        if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
-                            break
-
-                # 满足终止条件时，跳出任务循环
                 if self.stop_flag:
                     break
-                if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
-                    self.compile_graph(accuracy)
-                    tf.compat.v1.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
-                    break
-                epoch_count += 1
+
+                batch_time = time.time()
+
+                trains_batch = train_feeder.generate_batch_by_tfrecords(sess)
+
+                batch_inputs, batch_labels = trains_batch
+
+                feed = {
+                    model.inputs: batch_inputs,
+                    model.labels: batch_labels,
+                    model.utils.is_training: True
+                }
+
+                summary_str, batch_cost, step, _, seq_len = sess.run(
+                    [model.merged_summary, model.cost, model.global_step, model.train_op, model.seq_len],
+                    feed_dict=feed
+                )
+                train_writer.add_summary(summary_str, step)
+
+                if step % save_step == 0 and step != 0:
+                    tf.compat.v1.logging.info(
+                        'Step: {} Time: {:.3f} sec/batch, Cost = {:.8f}, BatchSize: {}, Shape[1]: {}'.format(
+                            step,
+                            time.time() - batch_time,
+                            batch_cost,
+                            len(batch_inputs),
+                            seq_len[0]
+                        )
+                    )
+
+                # 达到保存步数对模型过程进行存储
+                if step % save_step == 0 and step != 0:
+                    saver.save(sess, self.model_conf.save_model, global_step=step)
+
+                # 进入验证集验证环节
+                if step % trains_validation_steps == 0 and step != 0:
+
+                    batch_time = time.time()
+                    validation_batch = validation_feeder.generate_batch_by_tfrecords(sess)
+
+                    test_inputs, test_labels = validation_batch
+                    val_feed = {
+                        model.inputs: test_inputs,
+                        model.labels: test_labels,
+                        model.utils.is_training: False
+                    }
+                    dense_decoded, lr = sess.run(
+                        [model.dense_decoded, model.lrn_rate],
+                        feed_dict=val_feed
+                    )
+                    # 计算准确率
+                    accuracy = self.validation.accuracy_calculation(
+                        validation_feeder.labels,
+                        dense_decoded,
+                    )
+                    log = "Epoch: {}, Step: {}, Accuracy = {:.4f}, Cost = {:.5f}, " \
+                          "Time = {:.3f} sec/batch, LearningRate: {}"
+                    tf.compat.v1.logging.info(log.format(
+                        epoch_count,
+                        step,
+                        accuracy,
+                        batch_cost,
+                        time.time() - batch_time,
+                        lr / len(validation_batch),
+                    ))
+
+                    # 满足终止条件但尚未完成当前epoch时跳出epoch循环
+                    if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
+                        break
+
+            # 满足终止条件时，跳出任务循环
+            if self.stop_flag:
+                break
+            if self.achieve_cond(acc=accuracy, cost=batch_cost, epoch=epoch_count):
+                # sess.close()
+                tf.compat.v1.keras.backend.clear_session()
+                sess.close()
+                self.compile_graph(accuracy)
+                tf.compat.v1.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
+
+                break
+            epoch_count += 1
+        tf.compat.v1.logging.info('Total Time: {} sec.'.format(time.time() - start_time))
 
 
 def main(argv):

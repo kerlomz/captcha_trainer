@@ -1,7 +1,6 @@
-tensorflow-gpu==1.14.0
 pillow>=4.3.0
 opencv-python
-numpy>=1.16.0
+numpy==1.18.4
 pyyaml>=3.13
 tqdm
 colorama
