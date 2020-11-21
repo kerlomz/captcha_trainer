@@ -68,7 +68,7 @@ class DataSets:
                     if labels:
                         labels = labels.group()
                     else:
-                        tf.logging.warning('invalid filename {}, ignored.'.format(file_name))
+                        tf.compat.v1.logging.warning('invalid filename {}, ignored.'.format(file_name))
                         continue
                         # raise NameError('invalid filename {}'.format(file_name))
                     labels = labels.encode('utf-8')

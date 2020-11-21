@@ -1,6 +1,6 @@
 pillow>=4.3.0
 opencv-python
-numpy==1.18.4
+numpy==1.18.5
 pyyaml>=3.13
 tqdm
 colorama
