@@ -5,8 +5,11 @@
 import tensorflow as tf
 tf.compat.v1.disable_v2_behavior()
 tf.compat.v1.disable_eager_execution()
-gpus = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)
+try:
+    gpus = tf.config.list_physical_devices('GPU')
+    tf.config.experimental.set_memory_growth(gpus[0], True)
+except Exception as e:
+    print(e, "No available gpu found.")
 import core
 import utils
 import utils.data
@@ -111,7 +114,7 @@ class Trains:
             RecurrentNetwork.BiLSTMcuDNN,
         ]:
             self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path, self.model_conf.loss_func)
-        # self.compile_tflite(last_compile_model_path)
+        self.compile_tflite(last_compile_model_path)
 
     def achieve_cond(self, acc, cost, epoch):
         achieve_accuracy = acc >= self.model_conf.trains_end_acc
