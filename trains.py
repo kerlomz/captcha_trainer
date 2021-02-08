@@ -54,11 +54,12 @@ class Trains:
         input_tensor_name = ["input"]
         classes_tensor_name = ["dense_decoded"]
 
-        converter = tf.lite.TFLiteConverter.from_frozen_graph(
+        converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
             input_path,
             input_tensor_name,
             classes_tensor_name,
         )
+        converter.target_spec.supported_ops = [tf.compat.v1.lite.OpsSet.TFLITE_BUILTINS, tf.compat.v1.lite.OpsSet.SELECT_TF_OPS]
         # converter.post_training_quantize = True
         tflite_model = converter.convert()
         output_path = input_path.replace(".pb", ".tflite")
