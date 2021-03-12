@@ -225,8 +225,8 @@ class Pretreatment(object):
         w, h = tmp.size
 
         magnitude = random.randint(2, 6)
-        grid_width = random.randint(5, 13)
-        grid_height = random.randint(3, 10)
+        grid_width = random.randint(5, 10)
+        grid_height = random.randint(3, 8)
 
         horizontal_tiles = grid_width
         vertical_tiles = grid_height
@@ -411,8 +411,8 @@ if __name__ == '__main__':
     import hashlib
     from tools.gif_frames import concat_frames
 
-    root_dir = r"H:\TrainSet\点选\顶象\定位"
-    target_dir = r"H:\TrainSet\点选\顶象\定位1"
+    root_dir = r"H:\TrainSet\单字\0"
+    target_dir = r"H:\TrainSet\单字\02"
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     # name = random.choice(os.listdir(root_dir))
@@ -432,15 +432,19 @@ if __name__ == '__main__':
             pil_image = PIL.Image.open(path_or_stream)
         except:
             continue
+        size = pil_image.size
+        # offset = random.randint(5, 9)
+        # pil_image = pil_image.crop([offset, offset, size[0]-offset, size[1]-offset])
         # im = concat_frames(pil_image, [16, 47])
         im = np.array(pil_image)
+        print(im.shape)
         # im = preprocessing_by_func(exec_map={
         #     "black": [
         #         "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
         #     ],
         #     "red": [],
         #     "yellow": [
-        #         "@@target_arr[:, :, (0, 0, 1)]",
+        #         "@@target_arr[:, :, (0, 2, 1)]",
         #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
         #         # "@@target_arr[:, :, (0, 2, 0)]",
         #         # "$$target_arr[:, :, 2] = 255 - target_arr[:, :, 2]",
@@ -453,20 +457,33 @@ if __name__ == '__main__':
         #         # "@@target_arr[:, :, (1, 2, 0)]",
         #     ],
         #     "blue": [
-        #         "@@target_arr[:, :, (1, 2, 0)]",
+        #         "@@target_arr[1, :, :]",
         #     ]
         # },
         #     src_arr=im,
-        #     key="blue"
+        #     key="yellow"
         # )
+
+        # background = PIL.Image.new('RGBA', pil_image.size, (255, 255, 255))
+        # try:
+        #     background.paste(pil_image, (0, 0, size[0], size[1]), pil_image)
+        #     background.convert('RGB')
+        #     pil_image = background
+        # except:
+        #     pil_image = pil_image.convert('RGB')
+
+
+        # im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
         im = preprocessing(
-            image=im,
             is_random=False,
-            gaussian_blur=5,
-            # binaryzation=220,
+            image=im,
+            # is_random=False,
+            # gaussian_blur=5,
+            # sp_noise=0.01,
+            # binaryzation=160,
             # equalize_hist=True,
-            random_brightness=True,
-            random_gamma=True,
+            # random_brightness=True,
+            # random_gamma=True,
             # random_channel_swap=True,
             # random_hue=True,
             # laplacian=True
@@ -476,8 +493,9 @@ if __name__ == '__main__':
             # rotate=100,
             # random_blank=True
         ).astype(np.float32)
+        # im = cv2.resize(im, (120, 35))
         # im = im.swapaxes(0, 1)
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
         cv_img = cv2.imencode('.png', im)[1]
         img_bytes = bytes(bytearray(cv_img))
         tag = hashlib.md5(img_bytes).hexdigest()

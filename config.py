@@ -99,7 +99,7 @@ COMPILE_MODEL_MAP = {
 }
 
 RESIZE_MAP = {
-    LossFunction.CTC: lambda x, y: [None, y],
+    LossFunction.CTC: lambda x, y: [x, y],
     LossFunction.CrossEntropy: lambda x, y: [x, y]
 }
 

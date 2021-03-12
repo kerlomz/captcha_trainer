@@ -87,7 +87,7 @@ class DataIterator:
         dataset_train = dataset_train.shuffle(
             min_after_dequeue,
             reshuffle_each_iteration=True
-        ).batch(batch, drop_remainder=True).repeat()
+        ).prefetch(128).batch(batch, drop_remainder=True).repeat()
         iterator = tf.compat.v1.data.make_one_shot_iterator(dataset_train)
         self.next_element = iterator.get_next()
 

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Author: kerlomz <kerlomz@gmail.com>
-
 import tensorflow as tf
 tf.compat.v1.disable_v2_behavior()
 tf.compat.v1.disable_eager_execution()
 try:
     gpus = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
+
 except Exception as e:
     print(e, "No available gpu found.")
+from tensorflow.python.platform.build_info import build_info
 import core
 import utils
 import utils.data
@@ -17,8 +18,8 @@ import validation
 from config import *
 from tf_graph_util import convert_variables_to_constants
 from PIL import ImageFile
+# if build_info['cuda_version'] == '64_110':
 from tf_onnx_util import convert_onnx
-from middleware.random_captcha import RandomCaptcha
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
@@ -37,6 +38,22 @@ class Trains:
         self.validation = validation.Validation(self.model_conf)
 
     @staticmethod
+    def compile_tflite(input_path):
+        input_tensor_name = ["input"]
+        classes_tensor_name = ["dense_decoded"]
+
+        converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
+            input_path,
+            input_tensor_name,
+            classes_tensor_name,
+        )
+        # converter.post_training_quantize = True
+        tflite_model = converter.convert()
+        output_path = input_path.replace(".pb", ".tflite")
+        with open(output_path, "wb") as f:
+            f.write(tflite_model)
+
+    @staticmethod
     def compile_onnx(predict_sess, output_graph_def, input_path, loss_func: LossFunction):
         convert_onnx(
             sess=predict_sess,
@@ -49,29 +66,13 @@ class Trains:
         tf.compat.v1.keras.backend.clear_session()
         predict_sess.close()
 
-    @staticmethod
-    def compile_tflite(input_path):
-        input_tensor_name = ["input"]
-        classes_tensor_name = ["dense_decoded"]
-
-        converter = tf.lite.TFLiteConverter.from_frozen_graph(
-            input_path,
-            input_tensor_name,
-            classes_tensor_name,
-        )
-        # converter.post_training_quantize = True
-        tflite_model = converter.convert()
-        output_path = input_path.replace(".pb", ".tflite")
-        with open(output_path, "wb") as f:
-            f.write(tflite_model)
-
     def compile_graph(self, acc):
         """
         编译当前准确率下对应的计算图为pb模型，准确率仅作为模型命名的一部分
         :param acc: 准确率
         :return:
         """
-        input_graph = tf.Graph()
+        input_graph = tf.compat.v1.Graph()
         tf.compat.v1.keras.backend.clear_session()
         tf.compat.v1.reset_default_graph()
         predict_sess = tf.compat.v1.Session(graph=input_graph)
@@ -108,13 +109,14 @@ class Trains:
         with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
             gf.write(output_graph_def.SerializeToString())
 
-        if self.model_conf.neu_recurrent not in [
-            RecurrentNetwork.BiLSTM,
-            RecurrentNetwork.BiGRU,
-            RecurrentNetwork.BiLSTMcuDNN,
-        ]:
-            self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path, self.model_conf.loss_func)
-        self.compile_tflite(last_compile_model_path)
+        # if build_info['cuda_version'] == '64_110' and self.model_conf.neu_recurrent not in [
+        #     RecurrentNetwork.BiLSTM,
+        #     RecurrentNetwork.BiGRU,
+        #     RecurrentNetwork.BiLSTMcuDNN,
+        # ]:
+        #     self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path, self.model_conf.loss_func)
+        # if self.model_conf.neu_recurrent == RecurrentNetwork.NoRecurrent:
+        #     self.compile_tflite(last_compile_model_path)
 
     def achieve_cond(self, acc, cost, epoch):
         achieve_accuracy = acc >= self.model_conf.trains_end_acc
@@ -156,20 +158,15 @@ class Trains:
         )
         model.build_graph()
 
-        ran_captcha = RandomCaptcha()
-
-        if self.model_conf.da_random_captcha['Enable']:
-            self.init_captcha_gennerator(ran_captcha=ran_captcha)
-
         tf.compat.v1.logging.info('Loading Trains DataSet...')
         train_feeder = utils.data.DataIterator(
-            model_conf=self.model_conf, mode=RunMode.Trains, ran_captcha=ran_captcha
+            model_conf=self.model_conf, mode=RunMode.Trains
         )
         train_feeder.read_sample_from_tfrecords(self.model_conf.trains_path[DatasetType.TFRecords])
 
         tf.compat.v1.logging.info('Loading Validation DataSet...')
         validation_feeder = utils.data.DataIterator(
-            model_conf=self.model_conf, mode=RunMode.Validation, ran_captcha=ran_captcha
+            model_conf=self.model_conf, mode=RunMode.Validation
         )
         validation_feeder.read_sample_from_tfrecords(self.model_conf.validation_path[DatasetType.TFRecords])
 
@@ -194,15 +191,15 @@ class Trains:
         model.build_train_op(num_train_samples)
 
         # 会话配置
-        # sess_config = tf.compat.v1.ConfigProto(
-        #     # allow_soft_placement=True,
-        #     # log_device_placement=False,
-        #     gpu_options=tf.compat.v1.GPUOptions(
-        #         # allocator_type='BFC',
-        #         # allow_growth=True,  # it will cause fragmentation.
-        #         per_process_gpu_memory_fraction=0.3
-        #     )
-        # )
+        sess_config = tf.compat.v1.ConfigProto(
+            allow_soft_placement=True,
+            # log_device_placement=False,
+            gpu_options=tf.compat.v1.GPUOptions(
+                allocator_type='BFC',
+                allow_growth=True,  # it will cause fragmentation.
+                # per_process_gpu_memory_fraction=0.3
+            )
+        )
         accuracy = 0
         epoch_count = 1
 
@@ -214,7 +211,7 @@ class Trains:
             save_step = 100
             trains_validation_steps = self.model_conf.trains_validation_steps
 
-        sess = tf.compat.v1.Session()
+        sess = tf.compat.v1.Session(config=sess_config)
 
         init_op = tf.compat.v1.global_variables_initializer()
         sess.run(init_op)

@@ -60,7 +60,7 @@ class Encoder(object):
         except OSError as e:
             return "{} - {}".format(e, path_or_bytes)
 
-        use_compress = True
+        use_compress = False
 
         gif_handle = self.model_conf.pre_concat_frames != -1 or self.model_conf.pre_blend_frames != -1
 
@@ -69,14 +69,14 @@ class Encoder(object):
 
         rgb = pil_image.split()
 
-        if self.mode == RunMode.Trains and use_compress:
-            img_compress = io.BytesIO()
-
-            pil_image.convert('RGB').save(img_compress, format='JPEG', quality=random.randint(75, 100))
-            img_compress_bytes = img_compress.getvalue()
-            img_compress.close()
-            path_or_stream = io.BytesIO(img_compress_bytes)
-            pil_image = PIL.Image.open(path_or_stream)
+        # if self.mode == RunMode.Trains and use_compress:
+        #     img_compress = io.BytesIO()
+        #
+        #     pil_image.convert('RGB').save(img_compress, format='JPEG', quality=random.randint(75, 100))
+        #     img_compress_bytes = img_compress.getvalue()
+        #     img_compress.close()
+        #     path_or_stream = io.BytesIO(img_compress_bytes)
+        #     pil_image = PIL.Image.open(path_or_stream)
 
         if len(rgb) == 1 and self.model_conf.image_channel == 3:
             return "The number of image channels {} is inconsistent with the number of configured channels {}.".format(

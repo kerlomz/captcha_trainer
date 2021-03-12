@@ -51,12 +51,12 @@ class Predict:
     def testing(self, image_dir, limit=None):
 
         graph = tf.Graph()
-        sess = tf.Session(
+        sess = tf.compat.v1.Session(
             graph=graph,
-            config=tf.ConfigProto(
+            config=tf.compat.v1.ConfigProto(
                 # allow_soft_placement=True,
                 # log_device_placement=True,
-                gpu_options=tf.GPUOptions(
+                gpu_options=tf.compat.v1.GPUOptions(
                     allocator_type='BFC',
                     # allow_growth=True,  # it will cause fragmentation.
                     per_process_gpu_memory_fraction=0.1
@@ -65,7 +65,7 @@ class Predict:
 
         with sess.graph.as_default():
 
-            sess.run(tf.global_variables_initializer())
+            sess.run(tf.compat.v1.global_variables_initializer())
             # tf.keras.backend.set_session(session=sess)
 
             model = NeuralNetwork(
@@ -77,7 +77,7 @@ class Predict:
             model.build_graph()
             model.build_train_op()
 
-            saver = tf.train.Saver(var_list=tf.global_variables())
+            saver = tf.compat.v1.train.Saver(var_list=tf.compat.v1.global_variables())
 
             """从项目中加载最后一次训练的网络参数"""
             saver.restore(sess, tf.train.latest_checkpoint(self.model_conf.model_root_path))

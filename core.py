@@ -18,6 +18,8 @@ from decoder import *
 from fc import *
 
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
+tf.compat.v1.disable_eager_execution()
 
 
 class NeuralNetwork(object):
@@ -92,7 +94,7 @@ class NeuralNetwork(object):
         # time_major = True: [max_time_step, batch_size, num_classes]
         tf.compat.v1.logging.info("CNN Output: {}".format(x.get_shape()))
 
-        self.seq_len = tf.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
+        self.seq_len = tf.compat.v1.fill([tf.shape(x)[0]], tf.shape(x)[1], name="seq_len")
 
         if self.recurrent == RecurrentNetwork.NoRecurrent:
             self.recurrent_network_builder = None
