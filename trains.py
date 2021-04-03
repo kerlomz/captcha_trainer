@@ -19,7 +19,6 @@ from config import *
 from tf_graph_util import convert_variables_to_constants
 from PIL import ImageFile
 # if build_info['cuda_version'] == '64_110':
-from tf_onnx_util import convert_onnx
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
@@ -53,18 +52,19 @@ class Trains:
         with open(output_path, "wb") as f:
             f.write(tflite_model)
 
-    @staticmethod
-    def compile_onnx(predict_sess, output_graph_def, input_path, loss_func: LossFunction):
-        convert_onnx(
-            sess=predict_sess,
-            graph_def=output_graph_def,
-            input_path=input_path,
-            inputs_op="input:0",
-            outputs_op="dense_decoded:0" if loss_func == LossFunction.CrossEntropy else "output/predict:0"
-        )
-        tf.compat.v1.reset_default_graph()
-        tf.compat.v1.keras.backend.clear_session()
-        predict_sess.close()
+    # @staticmethod
+    # def compile_onnx(predict_sess, output_graph_def, input_path, loss_func: LossFunction):
+    #     from tf_onnx_util import convert_onnx
+    #     convert_onnx(
+    #         sess=predict_sess,
+    #         graph_def=output_graph_def,
+    #         input_path=input_path,
+    #         inputs_op="input:0",
+    #         outputs_op="dense_decoded:0" if loss_func == LossFunction.CrossEntropy else "output/predict:0"
+    #     )
+    #     tf.compat.v1.reset_default_graph()
+    #     tf.compat.v1.keras.backend.clear_session()
+    #     predict_sess.close()
 
     def compile_graph(self, acc):
         """

@@ -6,6 +6,5 @@ tqdm
 colorama
 pyinstaller
 astor
-tf2onnx
 fonttools
 tensorflow-gpu
