@@ -224,9 +224,9 @@ class Pretreatment(object):
         tmp = PIL.Image.fromarray(self.origin)
         w, h = tmp.size
 
-        magnitude = random.randint(2, 6)
-        grid_width = random.randint(5, 10)
-        grid_height = random.randint(3, 8)
+        magnitude = random.randint(2, 4)
+        grid_width = random.randint(2, 5)
+        grid_height = random.randint(2, 5)
 
         horizontal_tiles = grid_width
         vertical_tiles = grid_height
@@ -372,7 +372,7 @@ def preprocessing(
         pretreatment.equalize_hist(True, True)
     if laplacian and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.laplacian(True, True)
-    if warp_perspective and (bool(random.getrandbits(1)) or not is_random):
+    if warp_perspective:
         pretreatment.warp_perspective(True)
     if random_brightness and (bool(random.getrandbits(1)) or not is_random):
         pretreatment.random_brightness(True)
@@ -411,8 +411,8 @@ if __name__ == '__main__':
     import hashlib
     from tools.gif_frames import concat_frames
 
-    root_dir = r"H:\TrainSet\单字\0"
-    target_dir = r"H:\TrainSet\单字\02"
+    root_dir = r"H:\TrainSet\生成1\单字\333\default"
+    target_dir = r"H:\TrainSet\生成1\单字\333\default-555"
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     # name = random.choice(os.listdir(root_dir))
@@ -433,6 +433,12 @@ if __name__ == '__main__':
         except:
             continue
         size = pil_image.size
+
+        # if size[0] > 40 and size[1] > 40:
+        #     continue
+        # pil_image = pil_image.crop([0+5, 0+5, size[0]-10, size[1]-10])
+        # if pil_image.size[0] < 18 or pil_image.size[1] < 18:
+        #     continue
         # offset = random.randint(5, 9)
         # pil_image = pil_image.crop([offset, offset, size[0]-offset, size[1]-offset])
         # im = concat_frames(pil_image, [16, 47])
@@ -488,7 +494,7 @@ if __name__ == '__main__':
             # random_hue=True,
             # laplacian=True
             # binaryzation=random.randint(70, 120),
-            # warp_perspective=True,
+            warp_perspective=True,
             # random_transition=True,
             # rotate=100,
             # random_blank=True

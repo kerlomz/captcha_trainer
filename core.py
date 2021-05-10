@@ -68,7 +68,10 @@ class NeuralNetwork(object):
     def _build_model(self):
 
         """选择采用哪种卷积网络"""
-        if self.network == CNNNetwork.CNN5:
+        if self.network == CNNNetwork.CNN3:
+            x = CNN3(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
+
+        elif self.network == CNNNetwork.CNN5:
             x = CNN5(model_conf=self.model_conf, inputs=self.inputs, utils=self.utils).build()
 
         elif self.network == CNNNetwork.CNNX:
@@ -131,9 +134,9 @@ class NeuralNetwork(object):
     def decay_steps(self):
         if not self.dataset_size:
             return 10000
-        # return 10000
-        epoch_step = int(self.dataset_size / self.model_conf.batch_size)
-        return int(epoch_step / 4)
+        return 10000
+        # epoch_step = int(self.dataset_size / self.model_conf.batch_size)
+        # return int(epoch_step / 4)
 
     def _build_train_op(self):
         """构建训练操作符"""

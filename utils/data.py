@@ -144,12 +144,12 @@ class DataIterator:
                     input_array = self.encoder.text(i1)
 
                 if input_array is None:
-                    tf.compat.v1.logging.warn(
-                        "{}, Cannot identify image file labeled: {}, ignored.".format(input_array, label_array))
+                    # tf.compat.v1.logging.warn(
+                    #     "{}, Cannot identify image file labeled: {}, ignored.".format(input_array, label_array))
                     continue
 
                 if isinstance(input_array, str):
-                    tf.compat.v1.logging.warn("{}, \nInput errors labeled: {} [{}], ignored.".format(input_array, i1, label_array))
+                    # tf.compat.v1.logging.warn("{}, \nInput errors labeled: {} [{}], ignored.".format(input_array, i1, label_array))
                     continue
                 if isinstance(label_array, dict):
                     # tf.logging.warn("The sample label {} contains invalid charset: {}.".format(

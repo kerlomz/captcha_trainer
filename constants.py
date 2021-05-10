@@ -59,6 +59,7 @@ class RunMode(Enum):
 @unique
 class CNNNetwork(Enum):
     """卷积层枚举"""
+    CNN3 = 'CNN3'
     CNNX = 'CNNX'
     CNN5 = 'CNN5'
     ResNetTiny = 'ResNetTiny'
