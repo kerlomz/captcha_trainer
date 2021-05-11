@@ -43,6 +43,7 @@ def get_version():
 
 
 NETWORK_MAP = {
+    'CNN3': CNNNetwork.CNN3,
     'CNNX': CNNNetwork.CNNX,
     'CNN5': CNNNetwork.CNN5,
     'ResNetTiny': CNNNetwork.ResNetTiny,
