@@ -127,6 +127,8 @@ class ModelConfig:
                 Pre_HorizontalStitching="False",
                 Pre_ConcatFrames="-1",
                 Pre_BlendFrames="-1",
+                DA_RandomCaptcha="",
+                Pre_ExecuteMap="",
             )
         with open(self.model_conf.replace(".yaml", "_2.0.yaml"), "w", encoding="utf8") as f:
             f.write(model)

@@ -1,10 +1,10 @@
-pillow>=4.3.0
-opencv-python
-numpy==1.18.5
+pillow
+opencv-python-headless
+numpy
 pyyaml>=3.13
 tqdm
 colorama
 pyinstaller
 astor
 fonttools
-tensorflow-gpu
+tf-nightly-gpu==2.8.0.dev20211021
