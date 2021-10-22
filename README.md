@@ -239,13 +239,17 @@ CUDA下载地址：https://developer.nvidia.com/cuda-downloads
 
 cuDNN下载地址：https://developer.nvidia.com/rdp/form/cudnn-download-survey （需要注册账号）
 
-*笔者使用的版本为：```CUDA10 + cuDNN7.6 + TensorFlow 1.14```，此种组合可使用pip安装无需下载第三方编译的whl安装包。*
+*笔者使用的版本为：```CUDA11.4.1 + cuDNN8.2 + TensorFlow 2.8-DEV```，此种组合可使用pip安装无需下载第三方编译的whl安装包。*
+
+```shell
+pip install tf-nightly-gpu==2.8.0.dev20211021
+```
 
 
 
 ## 2.2 Python环境
 
-1. 安装Python 3.7 环境（包含pip），可用conda替换。
+1. 安装Python 3.8 环境（包含pip），可用conda替换。
 
 2. 安装虚拟环境 virtualenv ```pip3 install virtualenv```
 
@@ -454,7 +458,7 @@ for file in all_files:
 
 1. **如何使用CPU训练：**
 
-   本项目默认安装TensorFlow-GPU版，建议使用GPU进行训练，如需换用CPU训练请替换 ```requirements.txt``` 文件中的```tensorflow-gpu==1.14.0``` 为```tensorflow==1.14.0```，其他无需改动。
+   本项目默认安装TensorFlow-GPU版，建议使用GPU进行训练，如需换用CPU训练请替换 ```requirements.txt``` 文件中的```tensorflow-gpu``` 为```tensorflow```，其他无需改动。
 
 2. **参数修改：**
 
@@ -487,7 +491,7 @@ for file in all_files:
 
 **如有需要欢迎进群交流，落魄算法，在线答疑：**
 
-图像识别技术：857149419
+图像识别技术：857149419 (群已满)/ 934889548(2群)
 
 数据矿工：778910502
 
