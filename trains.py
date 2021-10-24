@@ -46,6 +46,7 @@ class Trains:
             input_tensor_name,
             classes_tensor_name,
         )
+        converter.target_spec.supported_ops = [tf.compat.v1.lite.OpsSet.TFLITE_BUILTINS, tf.compat.v1.lite.OpsSet.SELECT_TF_OPS]
         # converter.post_training_quantize = True
         tflite_model = converter.convert()
         output_path = input_path.replace(".pb", ".tflite")
