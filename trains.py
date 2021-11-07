@@ -36,36 +36,6 @@ class Trains:
         self.model_conf = model_conf
         self.validation = validation.Validation(self.model_conf)
 
-    @staticmethod
-    def compile_tflite(input_path):
-        input_tensor_name = ["input"]
-        classes_tensor_name = ["dense_decoded"]
-
-        converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
-            input_path,
-            input_tensor_name,
-            classes_tensor_name,
-        )
-        # converter.post_training_quantize = True
-        tflite_model = converter.convert()
-        output_path = input_path.replace(".pb", ".tflite")
-        with open(output_path, "wb") as f:
-            f.write(tflite_model)
-
-    # @staticmethod
-    # def compile_onnx(predict_sess, output_graph_def, input_path, loss_func: LossFunction):
-    #     from tf_onnx_util import convert_onnx
-    #     convert_onnx(
-    #         sess=predict_sess,
-    #         graph_def=output_graph_def,
-    #         input_path=input_path,
-    #         inputs_op="input:0",
-    #         outputs_op="dense_decoded:0" if loss_func == LossFunction.CrossEntropy else "output/predict:0"
-    #     )
-    #     tf.compat.v1.reset_default_graph()
-    #     tf.compat.v1.keras.backend.clear_session()
-    #     predict_sess.close()
-
     def compile_graph(self, acc):
         """
         编译当前准确率下对应的计算图为pb模型，准确率仅作为模型命名的一部分
