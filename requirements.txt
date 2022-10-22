@@ -7,4 +7,4 @@ colorama
 pyinstaller
 astor
 fonttools
-tf-nightly-gpu==2.8.0.dev20211021
+tensorflow-gpu

@@ -10,7 +10,7 @@ try:
 
 except Exception as e:
     print(e, "No available gpu found.")
-from tensorflow.python.platform.build_info import build_info
+# from tensorflow.python.platform.build_info import build_info
 import core
 import utils
 import utils.data
