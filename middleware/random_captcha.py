@@ -18,6 +18,7 @@ class BackgroundType(Enum):
 
 
 class RandomCaptcha(object):
+    """随机英数样本生成器"""
     def __init__(self):
         self.__width = [130, 160]
         self.__height = [50, 60]

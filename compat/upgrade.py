@@ -41,7 +41,7 @@ class ModelConfig:
         self.device = system.get('Device') if system else None
         self.device = self.device if self.device else "cpu:0"
         self.device_usage = system.get('DeviceUsage') if system else None
-        self.device_usage = self.device_usage if self.device_usage else 0.01
+        self.device_usage = self.device_usage if self.device_usage else 0.02
         self.charset = self.cf_model['Model'].get('CharSet')
         self.char_exclude = self.cf_model['Model'].get('CharExclude')
         self.model_name = self.cf_model['Model'].get('ModelName')
@@ -130,8 +130,7 @@ class ModelConfig:
                 DA_RandomCaptcha="",
                 Pre_ExecuteMap="",
             )
-        with open(self.model_conf.replace(".yaml", "_2.0.yaml"), "w", encoding="utf8") as f:
-            f.write(model)
+        open(self.model_conf.replace(".yaml", "_2.0.yaml"), "w", encoding="utf8").write(model)
 
 
 if __name__ == '__main__':
