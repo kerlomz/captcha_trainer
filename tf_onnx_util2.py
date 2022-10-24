@@ -108,7 +108,7 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
         g = process_tf_graph(tf_graph,
                              continue_on_error=True,
                              target=",".join(constants.DEFAULT_TARGET),
-                             opset=11,
+                             opset=9,
                              custom_op_handlers=None,
                              extra_opset=None,
                              shape_override=None,
@@ -129,4 +129,55 @@ def convert_onnx(sess, graph_def, input_path, inputs_op, outputs_op):
 
 
 if __name__ == "__main__":
-    pass
+
+    model_path = r"E:\Workplaces\PythonProjects\captcha_trainer\projects\test-CNN3-GRU-H64-CTC-C1\out\graph\test-CNN3-GRU-H64-CTC-C1_0.pb"
+    tf.compat.v1.disable_eager_execution()
+    graph = tf.compat.v1.Graph()
+    sess = tf.compat.v1.Session(
+        graph=graph,
+        config=tf.compat.v1.ConfigProto(
+
+            # allow_soft_placement=True,
+            # log_device_placement=True,
+            gpu_options=tf.compat.v1.GPUOptions(
+                # allocator_type='BFC',
+                allow_growth=True,  # it will cause fragmentation.
+                # per_process_gpu_memory_fraction=self.model_conf.device_usage
+                per_process_gpu_memory_fraction=0.1
+            )
+        )
+    )
+    graph_def = graph.as_graph_def()
+    with tf.io.gfile.GFile(model_path, "rb") as f:
+        graph_def_file = f.read()
+    graph_def.ParseFromString(graph_def_file)
+    with graph.as_default():
+        sess.run(tf.compat.v1.global_variables_initializer())
+        _ = tf.import_graph_def(graph_def, name="")
+
+    output_graph_def = convert_variables_to_constants(
+        sess,
+        graph_def,
+        output_node_names=['dense_decoded']
+    )
+
+    def compile_onnx(path):
+        convert_onnx(
+            sess=sess,
+            graph_def=output_graph_def,
+            input_path=path,
+            inputs_op="input:0",
+            # outputs_op="output/transpose:0"
+            outputs_op="output/predict:0",
+            # outputs_op="dense_decoded:0"
+        )
+        tf.compat.v1.reset_default_graph()
+        tf.compat.v1.keras.backend.clear_session()
+        sess.close()
+
+
+    for op in graph.get_operations():
+        print(op.name, ": ", op.values())
+
+    compile_onnx(model_path)
+
