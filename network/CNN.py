@@ -24,7 +24,7 @@ class CNN3(object):
         self.loss_func = self.model_conf.loss_func
 
     def build(self):
-        with tf.keras.backend.name_scope("CNN5"):
+        with tf.keras.backend.name_scope("CNN3"):
             x = self.utils.cnn_layer(0, inputs=self.inputs, kernel_size=7, filters=32, strides=(1, 1))
             x = self.utils.cnn_layer(1, inputs=x, kernel_size=5, filters=64, strides=(1, 2))
             x = self.utils.cnn_layer(2, inputs=x, kernel_size=3, filters=64, strides=(1, 2))
