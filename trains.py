@@ -79,15 +79,6 @@ class Trains:
         with tf.io.gfile.GFile(last_compile_model_path, mode='wb') as gf:
             gf.write(output_graph_def.SerializeToString())
 
-        # if build_info['cuda_version'] == '64_110' and self.model_conf.neu_recurrent not in [
-        #     RecurrentNetwork.BiLSTM,
-        #     RecurrentNetwork.BiGRU,
-        #     RecurrentNetwork.BiLSTMcuDNN,
-        # ]:
-        #     self.compile_onnx(predict_sess, output_graph_def, last_compile_model_path, self.model_conf.loss_func)
-        # if self.model_conf.neu_recurrent == RecurrentNetwork.NoRecurrent:
-        #     self.compile_tflite(last_compile_model_path)
-
     def achieve_cond(self, acc, cost, epoch):
         achieve_accuracy = acc >= self.model_conf.trains_end_acc
         achieve_cost = cost <= self.model_conf.trains_end_cost
@@ -185,7 +176,7 @@ class Trains:
 
         init_op = tf.compat.v1.global_variables_initializer()
         sess.run(init_op)
-        saver = tf.compat.v1.train.Saver(var_list=tf.compat.v1.global_variables(), max_to_keep=2)
+        saver = tf.compat.v1.train.Saver(var_list=tf.compat.v1.global_variables(), max_to_keep=3)
         train_writer = tf.compat.v1.summary.FileWriter('logs', sess.graph)
         # try:
         checkpoint_state = tf.train.get_checkpoint_state(self.model_conf.model_root_path)
